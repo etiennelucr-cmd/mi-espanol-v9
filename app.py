@@ -12,6 +12,30 @@ import coach_quotidien as cq
 import planning_adaptatif as pa
 
 st.set_page_config(page_title='Mi Español · Coach adaptatif',page_icon='🇪🇸',layout='wide')
+
+def verifier_acces():
+    if st.session_state.get("acces_autorise", False):
+        return
+
+    st.title("🇪🇸 Mi Español")
+    st.subheader("Accès privé")
+
+    mot_de_passe = st.text_input(
+        "Mot de passe",
+        type="password"
+    )
+
+    if st.button("Se connecter"):
+        if mot_de_passe == st.secrets["APP_PASSWORD"]:
+            st.session_state["acces_autorise"] = True
+            st.rerun()
+        else:
+            st.error("Mot de passe incorrect")
+
+    st.stop()
+
+
+verifier_acces()
 m.init()
 ped.init()
 st.markdown('''<style>.block-container{max-width:1280px;padding-top:1.3rem}.hero{padding:1.5rem;border-radius:18px;background:linear-gradient(120deg,#84212c,#df5c45);color:white}.hero h1,.hero p{color:white}.small{opacity:.8}</style>''',unsafe_allow_html=True)
