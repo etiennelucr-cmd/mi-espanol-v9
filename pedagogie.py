@@ -12,10 +12,9 @@ DESCRIPTEURS={
 'C2':['Comprendre presque tous les textes','Comprendre presque tout discours','Rédiger avec nuance','S’exprimer avec finesse','Participer à des échanges complexes']}
 
 def init():
-    with m.connexion() as c:
-        c.executescript('''CREATE TABLE IF NOT EXISTS productions(id INTEGER PRIMARY KEY,date TEXT,niveau TEXT,dimension TEXT,consigne TEXT,reponse TEXT,attendu TEXT,valide INTEGER,methode TEXT);
-        CREATE TABLE IF NOT EXISTS evaluations_cecrl(id INTEGER PRIMARY KEY,date TEXT,niveau TEXT,dimension TEXT,score INTEGER CHECK(score BETWEEN 0 AND 4),commentaire TEXT);
-        CREATE TABLE IF NOT EXISTS pratiques_audio(id INTEGER PRIMARY KEY,date TEXT,niveau TEXT,phrase TEXT,activite TEXT,note TEXT);''')
+    # Les tables pédagogiques ont été migrées vers Supabase.
+    # Ne pas exécuter de DDL au démarrage de l'application.
+    return None
 
 def normaliser(texte):
     s=unicodedata.normalize('NFD',str(texte).casefold())
@@ -76,8 +75,8 @@ def statistiques_ecriture(niveau):
     return (round(100*sum(int(r['valide'] or 0) for r in rows)/len(rows),1),len(rows)) if rows else (0,0)
 
 def init_oral():
-    with m.connexion() as c:
-        c.execute("CREATE TABLE IF NOT EXISTS comprehension_orale(id INTEGER PRIMARY KEY, date TEXT, niveau TEXT, phrase TEXT, attendu TEXT, reponse TEXT, valide INTEGER)")
+    # La table comprehension_orale existe déjà dans Supabase.
+    return None
 
 def enregistrer_comprehension(niveau,phrase,attendu,reponse):
     init_oral()

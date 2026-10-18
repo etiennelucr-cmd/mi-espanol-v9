@@ -1,5 +1,5 @@
 """Persistance SQLite et moteur pédagogique adaptatif, sans dépendance Streamlit."""
-import json, math, random, sqlite3
+import json, math, random
 from datetime import datetime, timedelta, date
 from pathlib import Path
 
@@ -8,57 +8,67 @@ DATA = json.loads((Path(__file__).resolve().parent / 'contenu.json').read_text(e
 COURS, LEXIQUE = DATA['cours'], DATA['lexique']
 NIVEAUX = ['A1','A2','B1','B2','C1','C2']
 
+# Adaptation cloud : les tables et leurs données existent déjà dans Supabase.
+# Ne jamais recréer ni réimporter les données au démarrage.
+from contextlib import contextmanager
+import psycopg
+from psycopg.rows import dict_row
+import streamlit as st
+
+class _Cursor:
+    def __init__(self, cursor, inserted_id=None):
+        self._cursor = cursor
+        self.lastrowid = inserted_id
+    def fetchone(self):
+        return self._cursor.fetchone()
+    def fetchall(self):
+        return self._cursor.fetchall()
+
+class _Connection:
+    def __init__(self, conn):
+        self._conn = conn
+    def execute(self, query, params=()):
+        # Les requêtes existantes de moteur.py utilisent des marqueurs SQLite '?'.
+        # Elles ne contiennent pas de '?' littéral dans le SQL actuel.
+        query = query.replace('?', '%s')
+        query = query.replace('substr(date,1,10)', 'substring(date from 1 for 10)')
+        ignore_insert = 'INSERT OR IGNORE INTO' in query.upper()
+        query = query.replace('INSERT OR IGNORE INTO', 'INSERT INTO')
+        # PostgreSQL requires an explicit conflict clause instead of SQLite OR IGNORE.
+        if ignore_insert and 'ON CONFLICT' not in query.upper():
+            query += ' ON CONFLICT DO NOTHING'
+        # Legacy callers use lastrowid for these identity-backed tables.
+        upper = query.lstrip().upper()
+        identity_tables = ('INSERT INTO TENTATIVES(', 'INSERT INTO CONJUGAISON_TESTS(')
+        if upper.startswith(identity_tables) and 'RETURNING' not in upper:
+            query += ' RETURNING id'
+            cur = self._conn.execute(query, params)
+            row = cur.fetchone()
+            return _Cursor(cur, row['id'] if row else None)
+        return _Cursor(self._conn.execute(query, params))
+
+    def executemany(self, query, seq_params):
+        query = query.replace('?', '%s')
+        ignore_insert = 'INSERT OR IGNORE INTO' in query.upper()
+        query = query.replace('INSERT OR IGNORE INTO', 'INSERT INTO')
+        if ignore_insert and 'ON CONFLICT' not in query.upper():
+            query += ' ON CONFLICT DO NOTHING'
+        return _Cursor(self._conn.cursor().executemany(query, seq_params))
+
+@contextmanager
 def connexion():
-    c=sqlite3.connect(BASE,timeout=20)
-    c.row_factory=sqlite3.Row
-    c.execute('PRAGMA foreign_keys=ON')
-    return c
+    cfg = st.secrets['postgres']
+    with psycopg.connect(
+        host=cfg['host'], port=int(cfg.get('port', 5432)),
+        dbname=cfg.get('dbname', 'postgres'), user=cfg['user'],
+        password=cfg['password'], sslmode='require', connect_timeout=15,
+        row_factory=dict_row,
+    ) as raw:
+        yield _Connection(raw)
 
 def init():
-    with connexion() as c:
-        c.executescript('''
-        CREATE TABLE IF NOT EXISTS sessions(id INTEGER PRIMARY KEY, debut TEXT NOT NULL, date TEXT NOT NULL, type TEXT NOT NULL, niveau TEXT, lecon_id TEXT, minutes REAL NOT NULL DEFAULT 0, note TEXT);
-        CREATE TABLE IF NOT EXISTS lecons(id TEXT PRIMARY KEY, niveau TEXT NOT NULL, titre TEXT NOT NULL, statut TEXT NOT NULL DEFAULT 'non commencé', debut TEXT, fin TEXT, visites INTEGER NOT NULL DEFAULT 0);
-        CREATE TABLE IF NOT EXISTS questions(id TEXT PRIMARY KEY, niveau TEXT NOT NULL, lecon_id TEXT, competence TEXT NOT NULL, type TEXT NOT NULL, enonce TEXT NOT NULL, options TEXT NOT NULL, bonne TEXT NOT NULL, explication TEXT, source TEXT NOT NULL DEFAULT 'catalogue');
-        CREATE TABLE IF NOT EXISTS tentatives(id INTEGER PRIMARY KEY, date TEXT NOT NULL, type TEXT NOT NULL, niveau TEXT NOT NULL, lecon_id TEXT, score INTEGER NOT NULL, total INTEGER NOT NULL, secondes INTEGER NOT NULL DEFAULT 0);
-        CREATE TABLE IF NOT EXISTS reponses(id INTEGER PRIMARY KEY, tentative_id INTEGER NOT NULL REFERENCES tentatives(id), question_id TEXT NOT NULL, competence TEXT NOT NULL, choix TEXT, correct INTEGER NOT NULL, date TEXT NOT NULL);
-        CREATE TABLE IF NOT EXISTS competences(code TEXT PRIMARY KEY, niveau TEXT NOT NULL, nom TEXT NOT NULL, maitrise REAL NOT NULL DEFAULT 0.3, essais INTEGER NOT NULL DEFAULT 0, succes INTEGER NOT NULL DEFAULT 0, intervalle INTEGER NOT NULL DEFAULT 1, prochaine_revision TEXT, derniere_revision TEXT);
-        CREATE TABLE IF NOT EXISTS progression_jour(date TEXT NOT NULL, niveau TEXT NOT NULL, score REAL NOT NULL, confiance REAL NOT NULL, PRIMARY KEY(date,niveau));
-        CREATE TABLE IF NOT EXISTS objectifs(cle TEXT PRIMARY KEY, valeur TEXT NOT NULL);
-        CREATE TABLE IF NOT EXISTS recompenses(code TEXT PRIMARY KEY, date TEXT NOT NULL);
-        CREATE TABLE IF NOT EXISTS preferences(cle TEXT PRIMARY KEY, valeur TEXT NOT NULL);
-        ''')
-        for niveau, lecons in COURS.items():
-            for lecon in lecons:
-                c.execute('INSERT OR IGNORE INTO lecons(id,niveau,titre) VALUES(?,?,?)',(lecon['id'],niveau,lecon['titre']))
-                for j,(titre,_) in enumerate(lecon['grammaire']):
-                    code=f"{lecon['id']}-g{j}"
-                    c.execute('INSERT OR IGNORE INTO competences(code,niveau,nom) VALUES(?,?,?)',(code,niveau,titre))
-                code=f"{lecon['id']}-vocab"
-                c.execute('INSERT OR IGNORE INTO competences(code,niveau,nom) VALUES(?,?,?)',(code,niveau,'Vocabulaire : '+lecon['titre']))
-                for i,q in enumerate(lecon['questions']):
-                    code=f"{lecon['id']}-g0"
-                    c.execute('INSERT OR IGNORE INTO questions(id,niveau,lecon_id,competence,type,enonce,options,bonne,explication) VALUES(?,?,?,?,?,?,?,?,?)',
-                        (f"{lecon['id']}-q{i}",niveau,lecon['id'],code,'qcm',q['question'],json.dumps(q['options'],ensure_ascii=False),q['options'][q['reponse']],q['explication']))
-                # Questions de traduction du vocabulaire, réponses contrôlées et distracteurs du même cours
-                vocab=lecon['vocabulaire']
-                for i,(es,fr) in enumerate(vocab):
-                    distracteurs=[x[1] for x in vocab if x[1]!=fr]
-                    if len(distracteurs)<2: continue
-                    opts=[fr]+random.Random(f'{lecon["id"]}-{i}').sample(distracteurs,2)
-                    c.execute('INSERT OR IGNORE INTO questions(id,niveau,lecon_id,competence,type,enonce,options,bonne,explication) VALUES(?,?,?,?,?,?,?,?,?)',
-                        (f"{lecon['id']}-v{i}",niveau,lecon['id'],f"{lecon['id']}-vocab",'qcm',f'Que signifie « {es} » ?',json.dumps(opts,ensure_ascii=False),fr,f'{es} = {fr}'))
-                # Variantes de traduction inverse et de reconnaissance pour obtenir
-                # 20 questions par leçon sans dépendre d'une API externe.
-                for i,(es,fr) in enumerate(vocab):
-                    autres=[x[0] for x in vocab if x[0]!=es]
-                    if len(autres)<2:continue
-                    opts=[es]+random.Random(f'inverse-{lecon["id"]}-{i}').sample(autres,2)
-                    for suffixe,enonce in [('inv',f'Comment dit-on « {fr} » en espagnol ?'),
-                                            ('reco',f'Choisis la traduction espagnole de « {fr} ».')]:
-                        c.execute('INSERT OR IGNORE INTO questions(id,niveau,lecon_id,competence,type,enonce,options,bonne,explication) VALUES(?,?,?,?,?,?,?,?,?)',
-                            (f"{lecon['id']}-{suffixe}{i}",niveau,lecon['id'],f"{lecon['id']}-vocab",'qcm',enonce,json.dumps(opts,ensure_ascii=False),es,f'{fr} = {es}'))
-        c.execute("INSERT OR IGNORE INTO objectifs(cle,valeur) VALUES('minutes','30')")
+    """Schéma et données importés précédemment dans Supabase : ne rien écraser."""
+    return None
 
 def rows(sql,args=()):
     with connexion() as c:return [dict(x) for x in c.execute(sql,args).fetchall()]

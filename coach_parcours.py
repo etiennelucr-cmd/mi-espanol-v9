@@ -1,5 +1,5 @@
 """Parcours professeur IA, contrôles déterministes et déblocage séquentiel."""
-import random, time, sqlite3
+import random, time
 from datetime import date, timedelta
 import streamlit as st
 import requests
@@ -44,39 +44,55 @@ def lecon_page(l):
 
 
 def _revision_db():
-    """Create a separate schedule without modifying existing achievements."""
-    with sqlite3.connect(m.BASE) as db:
-        db.execute("""CREATE TABLE IF NOT EXISTS coach_revisions_espacees (
-            niveau TEXT NOT NULL, lecon_id TEXT NOT NULL, etape INTEGER NOT NULL DEFAULT 0,
-            prochaine_date TEXT NOT NULL, dernier_score REAL,
-            derniere_date TEXT, PRIMARY KEY(niveau, lecon_id))""")
+    # coach_revisions_espacees a déjà été créée dans Supabase.
+    return None
 
 
 def _revision_statuts(n, valides):
     _revision_db()
-    today=date.today()
-    with sqlite3.connect(m.BASE) as db:
-        db.row_factory=sqlite3.Row
-        for l in valides:
-            db.execute('INSERT OR IGNORE INTO coach_revisions_espacees (niveau,lecon_id,etape,prochaine_date) VALUES (?,?,0,?)',
-                       (n,str(l['id']),(today+timedelta(days=1)).isoformat()))
-        return {r['lecon_id']:dict(r) for r in db.execute('SELECT * FROM coach_revisions_espacees WHERE niveau=?',(n,))}
+    today = date.today()
+    with m.connexion() as db:
+        for lecon in valides:
+            db.execute(
+                """INSERT INTO coach_revisions_espacees
+                   (niveau, lecon_id, etape, prochaine_date)
+                   VALUES (?, ?, 0, ?)
+                   ON CONFLICT (niveau, lecon_id) DO NOTHING""",
+                (n, str(lecon['id']), (today + timedelta(days=1)).isoformat())
+            )
+    return {
+        r['lecon_id']: r for r in m.rows(
+            'SELECT * FROM coach_revisions_espacees WHERE niveau=?', (n,)
+        )
+    }
 
 
 def _revision_enregistrer(n, lecon_id, score, total):
-    today=date.today()
-    _revision_db()
-    with sqlite3.connect(m.BASE) as db:
-        row=db.execute('SELECT etape FROM coach_revisions_espacees WHERE niveau=? AND lecon_id=?',(n,str(lecon_id))).fetchone()
-        etape=(row[0] if row else 0)
-        if total==20 and score/total>=SEUIL:
-            etape=min(etape+1,6)
-            jours=[1,1,3,7,14,30,60][etape]
-        else:
-            etape=0
-            jours=1
-        db.execute('INSERT OR REPLACE INTO coach_revisions_espacees VALUES (?,?,?,?,?,?)',
-                   (n,str(lecon_id),etape,(today+timedelta(days=jours)).isoformat(),score/total if total else 0,today.isoformat()))
+    today = date.today()
+    rows = m.rows(
+        'SELECT etape FROM coach_revisions_espacees WHERE niveau=? AND lecon_id=?',
+        (n, str(lecon_id))
+    )
+    etape = rows[0]['etape'] if rows else 0
+    if total == 20 and score / total >= SEUIL:
+        etape = min(etape + 1, 6)
+        jours = [1, 1, 3, 7, 14, 30, 60][etape]
+    else:
+        etape, jours = 0, 1
+    prochaine = (today + timedelta(days=jours)).isoformat()
+    score_ratio = score / total if total else 0
+    with m.connexion() as db:
+        db.execute(
+            """INSERT INTO coach_revisions_espacees
+               (niveau, lecon_id, etape, prochaine_date, dernier_score, derniere_date)
+               VALUES (?, ?, ?, ?, ?, ?)
+               ON CONFLICT (niveau, lecon_id) DO UPDATE SET
+                 etape=EXCLUDED.etape,
+                 prochaine_date=EXCLUDED.prochaine_date,
+                 dernier_score=EXCLUDED.dernier_score,
+                 derniere_date=EXCLUDED.derniere_date""",
+            (n, str(lecon_id), etape, prochaine, score_ratio, today.isoformat())
+        )
 
 
 def consolidation(n):

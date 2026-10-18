@@ -75,19 +75,11 @@ def formes(verbe,temps,donnees):
 
 
 def init():
-    with m.connexion() as c:
-        c.execute('''CREATE TABLE IF NOT EXISTS conjugaison_tests (
-            id INTEGER PRIMARY KEY, date TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            niveau TEXT NOT NULL, temps TEXT NOT NULL, type TEXT NOT NULL,
-            score INTEGER NOT NULL, total INTEGER NOT NULL)''')
-        c.execute('''CREATE TABLE IF NOT EXISTS conjugaison_reponses (
-            id INTEGER PRIMARY KEY, test_id INTEGER NOT NULL, niveau TEXT NOT NULL,
-            temps TEXT NOT NULL, verbe TEXT NOT NULL, personne INTEGER NOT NULL,
-            correct INTEGER NOT NULL, date TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)''')
-
+    # Les tables conjugaison_tests et conjugaison_reponses sont déjà dans Supabase.
+    return None
 
 def statut(niveau,temps):
-    r=m.rows('SELECT MAX(CAST(score AS REAL)/total) meilleur,COUNT(*) essais FROM conjugaison_tests WHERE niveau=? AND temps=? AND type="Contrôle" AND total>=20',(niveau,temps))[0]
+    r=m.rows("SELECT MAX(CAST(score AS REAL)/total) meilleur,COUNT(*) essais FROM conjugaison_tests WHERE niveau=? AND temps=? AND type='Contrôle' AND total>=20",(niveau,temps))[0]
     return (r['meilleur'] or 0),r['essais']
 
 
