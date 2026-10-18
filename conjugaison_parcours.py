@@ -126,9 +126,10 @@ def progression(niveau):
 
 def estimation(niveau):
     """Projection indicative à partir de contrôles distincts sur plusieurs jours."""
-    rows=m.rows("""SELECT date,temps,MAX(CAST(score AS REAL)/total) ratio
+    rows=m.rows("""SELECT MIN(date) AS date, temps,
+        MAX(CAST(score AS DOUBLE PRECISION)/total) AS ratio
         FROM conjugaison_tests WHERE niveau=? AND type='Contrôle' AND total>=20
-        GROUP BY substr(date,1,10),temps ORDER BY date""",(niveau,))
+        GROUP BY substr(date,1,10), temps ORDER BY MIN(date)""",(niveau,))
     jours=sorted(set(r['date'][:10] for r in rows))
     if len(jours)<3 or (date.fromisoformat(jours[-1])-date.fromisoformat(jours[0])).days<2:
         return None
@@ -152,7 +153,7 @@ def page():
     init()
     verbes=json.loads((Path(__file__).resolve().parent/'verbes.json').read_text(encoding='utf-8'))
     st.title('📗 Verbes et conjugaisons — parcours A1 → C2')
-    st.caption('Tirages adaptatifs : erreurs prioritaires, acquis espacés et nouveaux exercices après chaque correction. Leçons, fiches de révision, QCM et contrôles. Chaque temps est validé à 95 % minimum sur un contrôle de 20 questions (19/20). Progression sauvegardée dans SQLite.')
+    st.caption('Tirages adaptatifs : erreurs prioritaires, acquis espacés et nouveaux exercices après chaque correction. Leçons, fiches de révision, QCM et contrôles. Chaque temps est validé à 95 % minimum sur un contrôle de 20 questions (19/20). Progression sauvegardée dans Supabase.')
     acces=autorisations()
     cols=st.columns(6)
     for col,n in zip(cols,m.NIVEAUX):
