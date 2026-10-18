@@ -126,15 +126,20 @@ def progression(niveau):
 
 def estimation(niveau):
     """Projection indicative à partir de contrôles distincts sur plusieurs jours."""
-    rows=m.rows("""SELECT MIN(date) AS date, temps,
-        MAX(CAST(score AS DOUBLE PRECISION)/total) AS ratio
-        FROM conjugaison_tests WHERE niveau=? AND type='Contrôle' AND total>=20
-        GROUP BY substr(date,1,10), temps ORDER BY MIN(date)""",(niveau,))
-    jours=sorted(set(r['date'][:10] for r in rows))
+    # Regroupement en Python pour éviter les incompatibilités SQL PostgreSQL.
+    rows=m.rows("""SELECT date, temps, score, total
+        FROM conjugaison_tests
+        WHERE niveau=? AND type='Contrôle' AND total>=20
+        ORDER BY date""",(niveau,))
+    by_day=defaultdict(dict)
+    for r in rows:
+        jour=str(r['date'])[:10]
+        temps=r['temps']
+        ratio=float(r['score'])/float(r['total'])
+        by_day[jour][temps]=max(ratio,by_day[jour].get(temps,0))
+    jours=sorted(by_day)
     if len(jours)<3 or (date.fromisoformat(jours[-1])-date.fromisoformat(jours[0])).days<2:
         return None
-    by_day=defaultdict(dict)
-    for r in rows:by_day[r['date'][:10]][r['temps']]=max(r['ratio'],by_day[r['date'][:10]].get(r['temps'],0))
     cumul={t:0 for t,_ in PARCOURS[niveau]}
     serie=[]
     for jour in jours:
