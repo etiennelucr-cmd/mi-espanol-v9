@@ -43,6 +43,8 @@ class _Connection:
     def execute(self, query, params=()):
         # Les requêtes existantes de moteur.py utilisent des marqueurs SQLite '?'.
         # Elles ne contiennent pas de '?' littéral dans le SQL actuel.
+        # Compatibilité PostgreSQL : ROUND(double precision, 1) nécessite numeric.
+        query = query.replace('ROUND(SUM(minutes),1)', 'ROUND(SUM(minutes)::numeric,1)')
         query = query.replace('?', '%s')
         query = query.replace('substr(date,1,10)', 'substring(CAST(date AS TEXT) from 1 for 10)')
         ignore_insert = 'INSERT OR IGNORE INTO' in query.upper()
@@ -61,6 +63,8 @@ class _Connection:
         return _Cursor(self._conn.execute(query, params))
 
     def executemany(self, query, seq_params):
+        # Compatibilité PostgreSQL : ROUND(double precision, 1) nécessite numeric.
+        query = query.replace('ROUND(SUM(minutes),1)', 'ROUND(SUM(minutes)::numeric,1)')
         query = query.replace('?', '%s')
         ignore_insert = 'INSERT OR IGNORE INTO' in query.upper()
         query = query.replace('INSERT OR IGNORE INTO', 'INSERT INTO')
