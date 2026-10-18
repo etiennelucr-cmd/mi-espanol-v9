@@ -13,6 +13,14 @@ import planning_adaptatif as pa
 
 st.set_page_config(page_title='Mi Español · Coach adaptatif',page_icon='🇪🇸',layout='wide')
 
+# Masquer uniquement la navigation automatique Streamlit (« app », « Test exercices »).
+# Conserver le menu personnalisé Mi Español dans la barre latérale.
+st.markdown("""
+<style>
+[data-testid="stSidebarNav"] { display: none !important; }
+</style>
+""", unsafe_allow_html=True)
+
 def verifier_acces():
     if st.session_state.get("acces_autorise", False):
         return
@@ -411,20 +419,34 @@ def defis():
                'les anciennes dates de déblocage ne peuvent pas être reconstituées avec certitude. '
                'Les badges récompensent la régularité, sans certifier un niveau CECRL.')
 
+# Les informations de la barre latérale sont communes à toutes les rubriques.
+# Évite de refaire leurs nombreuses requêtes Supabase à chaque navigation.
+# TTL court : les progrès récents réapparaissent automatiquement sous 20 s.
+@st.cache_data(ttl=20, show_spinner=False)
+def _sidebar_infos(niveau):
+    progression = m.progression_globale(niveau)
+    projection = m.projection_globale(niveau)
+    index = m.NIVEAUX.index(niveau)
+    suivant = m.NIVEAUX[index + 1] if index + 1 < len(m.NIVEAUX) else None
+    themes = m.themes_valides(niveau) if suivant else []
+    return progression, projection, suivant, themes
+
 pages={'📅 Planning de la semaine':pa.page,'🎯 Programme du jour':ext.programme,'🗺️ Parcours CECRL':ext.parcours,'✍️ Expression écrite':ext.expression,'🎧 Écoute et oral':ext.oral,'📚 Cours':cours,'🧪 Contrôles':controle,'🧠 Révisions':revisions,'📊 Tableau de bord':dashboard,'📈 Axe de progression':axe,'🗂️ Historique':historique,'📖 Lexique':lexique,'📗 Verbes et conjugaisons':cp.page,'🤖 Coach IA':coach,'🏆 Défis':defis}
 with st.sidebar:
     st.title('🇪🇸 Mi Español V8')
-    niveau_suivi=st.selectbox('Niveau suivi',m.NIVEAUX,index=m.NIVEAUX.index(m.preference('niveau_suivi','A1')) if m.preference('niveau_suivi','A1') in m.NIVEAUX else 0,key='sidebar_niveau')
-    if m.preference('niveau_suivi')!=niveau_suivi:m.definir_preference('niveau_suivi',niveau_suivi)
-    p=m.progression_globale(niveau_suivi)
+    niveau_prefere=m.preference('niveau_suivi','A1')
+    if niveau_prefere not in m.NIVEAUX:
+        niveau_prefere='A1'
+    niveau_suivi=st.selectbox('Niveau suivi',m.NIVEAUX,index=m.NIVEAUX.index(niveau_prefere),key='sidebar_niveau')
+    if niveau_prefere!=niveau_suivi:
+        m.definir_preference('niveau_suivi',niveau_suivi)
+    p,projection,prochain,themes_sidebar=_sidebar_infos(niveau_suivi)
     st.metric('Progression totale du niveau',f"{p['pourcentage']:.1f} %")
     st.progress(min(1,p['pourcentage']/100))
     st.caption('Leçons 35 % · quiz 20 % · contrôles 30 % · révisions 15 %')
-    projection=m.projection_globale(niveau_suivi)
-    prochain=m.NIVEAUX[m.NIVEAUX.index(niveau_suivi)+1] if niveau_suivi!=m.NIVEAUX[-1] else None
     if prochain:
         st.markdown(f'**Objectif : accéder à {prochain}**')
-        if all(x['valide'] for x in m.themes_valides(niveau_suivi)):
+        if all(x['valide'] for x in themes_sidebar):
             st.success('Tous les thèmes validés à 98 % : niveau suivant débloqué')
         else:
             st.caption('Niveau suivant verrouillé : termine chaque thème et réussis son quiz à 98 % minimum')
@@ -437,5 +459,5 @@ with st.sidebar:
     else:st.caption('C2 : dernier niveau du parcours')
     st.divider()
     page=st.radio('Navigation',list(pages))
-    st.caption('Estimations internes, non certificatives · SQLite local')
+    st.caption('Estimations internes, non certificatives · Supabase')
 pages[page]()
