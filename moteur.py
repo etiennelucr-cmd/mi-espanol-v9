@@ -1,6 +1,7 @@
-"""Persistance SQLite et moteur pédagogique adaptatif, sans dépendance Streamlit."""
+"""Moteur pédagogique adaptatif avec persistance PostgreSQL (Supabase)."""
 import json, math, random
 from datetime import datetime, timedelta, date
+from decimal import Decimal
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent / 'espagnol_v2.db'
@@ -11,18 +12,30 @@ NIVEAUX = ['A1','A2','B1','B2','C1','C2']
 # Adaptation cloud : les tables et leurs données existent déjà dans Supabase.
 # Ne jamais recréer ni réimporter les données au démarrage.
 from contextlib import contextmanager
-import psycopg
 from psycopg.rows import dict_row
+from psycopg_pool import ConnectionPool
 import streamlit as st
+
+def _normaliser(valeur):
+    """Restitue les types attendus par le moteur historique SQLite."""
+    if isinstance(valeur, Decimal):
+        return float(valeur)
+    if isinstance(valeur, (datetime, date)):
+        return valeur.isoformat()
+    if isinstance(valeur, dict):
+        return {cle: _normaliser(v) for cle, v in valeur.items()}
+    if isinstance(valeur, list):
+        return [_normaliser(v) for v in valeur]
+    return valeur
 
 class _Cursor:
     def __init__(self, cursor, inserted_id=None):
         self._cursor = cursor
         self.lastrowid = inserted_id
     def fetchone(self):
-        return self._cursor.fetchone()
+        return _normaliser(self._cursor.fetchone())
     def fetchall(self):
-        return self._cursor.fetchall()
+        return _normaliser(self._cursor.fetchall())
 
 class _Connection:
     def __init__(self, conn):
@@ -31,7 +44,7 @@ class _Connection:
         # Les requêtes existantes de moteur.py utilisent des marqueurs SQLite '?'.
         # Elles ne contiennent pas de '?' littéral dans le SQL actuel.
         query = query.replace('?', '%s')
-        query = query.replace('substr(date,1,10)', 'substring(date from 1 for 10)')
+        query = query.replace('substr(date,1,10)', 'substring(CAST(date AS TEXT) from 1 for 10)')
         ignore_insert = 'INSERT OR IGNORE INTO' in query.upper()
         query = query.replace('INSERT OR IGNORE INTO', 'INSERT INTO')
         # PostgreSQL requires an explicit conflict clause instead of SQLite OR IGNORE.
@@ -55,15 +68,34 @@ class _Connection:
             query += ' ON CONFLICT DO NOTHING'
         return _Cursor(self._conn.cursor().executemany(query, seq_params))
 
+@st.cache_resource(show_spinner=False)
+def _pool_postgres():
+    """Pool partagé entre les relances Streamlit, sans partager une connexion active."""
+    cfg = st.secrets['postgres']
+    pool = ConnectionPool(
+        conninfo='',
+        kwargs={
+            'host': cfg['host'],
+            'port': int(cfg.get('port', 5432)),
+            'dbname': cfg.get('dbname', 'postgres'),
+            'user': cfg['user'],
+            'password': cfg['password'],
+            'sslmode': 'require',
+            'connect_timeout': 15,
+            'row_factory': dict_row,
+        },
+        min_size=1,
+        max_size=4,
+        timeout=20,
+        open=True,
+    )
+    pool.wait(timeout=20)
+    return pool
+
 @contextmanager
 def connexion():
-    cfg = st.secrets['postgres']
-    with psycopg.connect(
-        host=cfg['host'], port=int(cfg.get('port', 5432)),
-        dbname=cfg.get('dbname', 'postgres'), user=cfg['user'],
-        password=cfg['password'], sslmode='require', connect_timeout=15,
-        row_factory=dict_row,
-    ) as raw:
+    # pool.connection() rend la connexion au pool et gère commit/rollback.
+    with _pool_postgres().connection() as raw:
         yield _Connection(raw)
 
 def init():
@@ -117,7 +149,7 @@ def banque(niveau=None,lecon_id=None,limite=10,mode='adaptatif'):
     else:random.shuffle(qs)
     result=qs[:limite]
     for q in result:
-        q['options']=json.loads(q['options']);random.shuffle(q['options'])
+        q['options']=json.loads(q['options']) if isinstance(q['options'], str) else list(q['options']);random.shuffle(q['options'])
     return result
 
 def nom_competence(code):
@@ -168,7 +200,7 @@ def snapshot():
                 marks=','.join('?' for _ in types)
                 t=c.execute(f'SELECT COALESCE(SUM(score),0) a, COALESCE(SUM(total),0) b FROM tentatives WHERE niveau=? AND type IN ({marks})',(niveau,*types)).fetchone()
                 return t['a']/t['b'] if t['b'] else 0
-            score=.35*lesson+.20*ratio(['Exercice'])+.30*ratio(['Contrôle'])+.15*ratio(['Révision','Remédiation'])
+            score=.35*float(lesson)+.20*float(ratio(['Exercice']))+.30*float(ratio(['Contrôle']))+.15*float(ratio(['Révision','Remédiation']))
             confiance=min(1.0,n/40)
             c.execute('INSERT INTO progression_jour(date,niveau,score,confiance) VALUES(?,?,?,?) ON CONFLICT(date,niveau) DO UPDATE SET score=excluded.score,confiance=excluded.confiance',(today,niveau,score,confiance))
 
@@ -235,7 +267,7 @@ def progression_globale(niveau):
     # Révisions et remédiations comptent ensemble.
     rr=rows("SELECT COALESCE(SUM(score),0) points,COALESCE(SUM(total),0) total FROM tentatives WHERE niveau=? AND type IN ('Révision','Remédiation')",(niveau,))[0]
     rev=rr['points']/rr['total'] if rr['total'] else 0
-    score=100*(.35*cours+.20*valeurs['quiz']+.30*valeurs['controle']+.15*rev)
+    score=100*(.35*float(cours)+.20*float(valeurs['quiz'])+.30*float(valeurs['controle'])+.15*float(rev))
     return {'niveau':niveau,'pourcentage':round(score,1),'cours':round(100*cours,1),'quiz':round(100*valeurs['quiz'],1),'controles':round(100*valeurs['controle'],1),'revisions':round(100*rev,1),'lecons_terminees':le['finis'] or 0,'lecons_total':le['n'],'nb_quiz':valeurs['quiz_n'],'nb_controles':valeurs['controle_n'],'nb_revisions':valeurs['revision_n']+valeurs['remediation_n']}
 
 def projection_globale(niveau):
