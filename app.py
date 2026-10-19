@@ -13,6 +13,7 @@ import coach_quotidien as cq
 import planning_adaptatif as pa
 import parcours_v10 as pv
 import exercices_v11 as ev
+import apprentissage_v16 as v16
 
 st.set_page_config(page_title='Mi Español · Coach adaptatif',page_icon='🇪🇸',layout='wide')
 
@@ -437,9 +438,9 @@ def defis():
                'les anciennes dates de déblocage ne peuvent pas être reconstituées avec certitude. '
                'Les badges récompensent la régularité, sans certifier un niveau CECRL.')
 
-pages={'📅 Planning de la semaine':pa.page,'🎯 Programme du jour':ext.programme,'🗺️ Parcours CECRL':ext.parcours,'✍️ Expression écrite':ext.expression,'🎧 Écoute et oral':ext.oral,'📚 Cours':cours,'🧪 Contrôles':controle,'🧠 Révisions':revisions,'🗂️ Historique':historique,'📖 Lexique':lexique,'📗 Verbes et conjugaisons':cp.page,'🤖 Coach IA':coach,'🏆 Défis':defis}
+pages={'📅 Planning de la semaine':pa.page,'🎯 Programme du jour':ext.programme,'🗺️ Parcours CECRL':ext.parcours,'✍️ Expression écrite':ext.expression,'🎧 Écoute et oral':ext.oral,'📚 Cours':cours,'🧪 Contrôles':controle,'🧠 Révisions':revisions,'🗂️ Historique':historique,'📖 Lexique':lexique,'📗 Verbes et conjugaisons':cp.page,'🤖 Coach IA':coach,'🏆 Défis':defis,'🧠 Répétition espacée':lambda:v16.repetition(m.preference('niveau_suivi','A1')),'💬 Conversations guidées':lambda:v16.conversation(m.preference('niveau_suivi','A1')),'📈 Maîtrise durable':lambda:v16.maitrise(m.preference('niveau_suivi','A1'))}
 with st.sidebar:
-    st.title('🇪🇸 Mi Español V8')
+    v16.entete()
     niveau_suivi=st.selectbox('Niveau suivi',m.NIVEAUX,index=m.NIVEAUX.index(m.preference('niveau_suivi','A1')) if m.preference('niveau_suivi','A1') in m.NIVEAUX else 0,key='sidebar_niveau')
     if m.preference('niveau_suivi')!=niveau_suivi:m.definir_preference('niveau_suivi',niveau_suivi)
     valides,total=pv.progression(niveau_suivi)
