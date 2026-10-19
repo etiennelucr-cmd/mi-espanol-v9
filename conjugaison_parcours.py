@@ -46,13 +46,47 @@ SUBJ_IMP_HABER=['hubiera','hubieras','hubiera','hubiéramos','hubierais','hubier
 ANT_HABER=['hube','hubiste','hubo','hubimos','hubisteis','hubieron']
 FUT_SUBJ_HABER=['hubiere','hubieres','hubiere','hubiéremos','hubiereis','hubieren']
 
+# Participes passés irréguliers usuels, vérifiés pour les temps composés.
+PARTICIPES_IRREGULIERS = {
+    'abrir': ('ouvert', 'abierto'),
+    'decir': ('dire', 'dicho'),
+    'escribir': ('écrire', 'escrito'),
+    'hacer': ('faire', 'hecho'),
+    'morir': ('mourir', 'muerto'),
+    'poner': ('mettre', 'puesto'),
+    'resolver': ('résoudre', 'resuelto'),
+    'romper': ('casser', 'roto'),
+    'ver': ('voir', 'visto'),
+    'volver': ('revenir', 'vuelto'),
+}
+AUXILIAIRES_COMPOSES = {
+    'perfecto': PRESENT_HABER,
+    'pluscuamperfecto': IMPERF_HABER,
+    'futuro_perfecto': FUT_HABER,
+    'condicional_compuesto': COND_HABER,
+    'subj_perfecto': SUBJ_HABER,
+    'subj_pluscuam': SUBJ_IMP_HABER,
+    'preterito_anterior': ANT_HABER,
+    'futuro_subj_perfecto': FUT_SUBJ_HABER,
+}
+
+def conjugaison_participe_irregulier(verbe, temps):
+    """Construit les six formes composées à partir du participe irrégulier."""
+    if verbe not in PARTICIPES_IRREGULIERS or temps not in AUXILIAIRES_COMPOSES:
+        return None
+    participe = PARTICIPES_IRREGULIERS[verbe][1]
+    return [aux + ' ' + participe for aux in AUXILIAIRES_COMPOSES[temps]]
+
 
 def formes(verbe,temps,donnees):
     """Formes vérifiées pour les verbes réguliers et les 4 paradigmes fournis."""
     if temps in ('presente','indefinido','imperfecto','futuro'):
         i={'presente':2,'indefinido':3,'imperfecto':4,'futuro':5}[temps]
         return donnees[i]
-    # Éviter de présenter des participes irréguliers comme réguliers.
+    # Les participes irréguliers sont pris en charge dans tous les temps composés.
+    if temps in AUXILIAIRES_COMPOSES and verbe in PARTICIPES_IRREGULIERS:
+        return conjugaison_participe_irregulier(verbe, temps)
+    # Ne pas extrapoler les temps simples de verbes irréguliers.
     if not verbe.endswith(('ar','er','ir')) or verbe in {'ser','estar','haber','tener','ir','hacer','poder','querer','decir','venir','saber','poner','leer','escribir'}:
         return None
     radical,grp=verbe[:-2],verbe[-2:]
@@ -209,28 +243,41 @@ def page():
         st.subheader(f'Verbes irréguliers — {libelles[t]}')
         st.caption('Conjugaisons de référence pour le temps sélectionné. '
                    'Seules les formes disponibles dans le catalogue sont affichées.')
-        irreguliers=['ser','estar','ir','tener','hacer','poder','querer',
-                     'decir','venir','saber','poner','leer','escribir','haber']
-        disponibles=[(v,verbes[v],formes(v,t,verbes[v]))
-                     for v in irreguliers if v in verbes and formes(v,t,verbes[v])]
-        if disponibles:
-            st.markdown('**Toutes les conjugaisons disponibles, visibles simultanément :**')
+        if t in AUXILIAIRES_COMPOSES:
+            st.info('Auxiliaire **haber** + participe passé irrégulier. '
+                    'Les verbes ci-dessous ont un participe irrégulier, même si '
+                    'leur conjugaison au présent peut être régulière.')
+            disponibles=[(v, sens, conjugaison_participe_irregulier(v,t))
+                         for v,(sens,_) in PARTICIPES_IRREGULIERS.items()]
             colonnes=st.columns(3)
-            for i,(verbe,donnees,valeurs) in enumerate(disponibles):
-                with colonnes[i % 3]:
-                    st.markdown(f'**{verbe} — {donnees[1]}**')
-                    st.dataframe(
-                        pd.DataFrame({'Personne':PERSONNES,'Forme':valeurs}),
-                        hide_index=True,
-                        use_container_width=True,
-                    )
+            for i,(verbe,sens,valeurs) in enumerate(disponibles):
+                with colonnes[i%3]:
+                    st.markdown(f'**{verbe} — {sens}**')
+                    st.dataframe(pd.DataFrame({'Personne':PERSONNES,'Forme':valeurs}),
+                                 hide_index=True,use_container_width=True)
+            st.caption('À distinguer : ser → sido, estar → estado, ir → ido, '
+                       'tener → tenido. Ces participes sont réguliers ; '
+                       'ils ne figurent pas parmi les participes irréguliers.')
         else:
-            st.info('Le catalogue actuel ne contient pas encore de formes vérifiées '
-                    'de verbes irréguliers pour ce temps.')
-        absents=[v for v in irreguliers if v in verbes and v not in [x[0] for x in disponibles]]
-        if absents:
-            st.caption('Non disponibles pour ce temps : '+', '.join(absents)+'. '
-                       'Aucune conjugaison non vérifiée n’est affichée.')
+            irreguliers=['ser','estar','ir','tener','hacer','poder','querer',
+                         'decir','venir','saber','poner','leer','escribir','haber']
+            disponibles=[(v,verbes[v],formes(v,t,verbes[v]))
+                         for v in irreguliers if v in verbes and formes(v,t,verbes[v])]
+            if disponibles:
+                st.markdown('**Toutes les conjugaisons disponibles, visibles simultanément :**')
+                colonnes=st.columns(3)
+                for i,(verbe,donnees,valeurs) in enumerate(disponibles):
+                    with colonnes[i%3]:
+                        st.markdown(f'**{verbe} — {donnees[1]}**')
+                        st.dataframe(pd.DataFrame({'Personne':PERSONNES,'Forme':valeurs}),
+                                     hide_index=True,use_container_width=True)
+            else:
+                st.info('Le catalogue actuel ne contient pas encore de formes vérifiées '
+                        'de verbes irréguliers pour ce temps.')
+            absents=[v for v in irreguliers if v in verbes and v not in [x[0] for x in disponibles]]
+            if absents:
+                st.caption('Non disponibles pour ce temps : '+', '.join(absents)+'. '
+                           'Aucune conjugaison non vérifiée n’est affichée.')
     for tab,typ,taille in [(tabs[2],'QCM',10),(tabs[3],'Contrôle',20)]:
         with tab:
             prefix=f'conj_{typ}_{n}_{t}'

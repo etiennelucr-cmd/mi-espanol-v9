@@ -251,50 +251,146 @@ def phrases_traduction(n, lecon, nombre, prefix, dimension):
         st.rerun()
 
 
+def _themes_mixte(niveau):
+    """Thèmes validés par le Coach IA et premier thème encore en cours."""
+    import coach_parcours as coach
+    lecons=m.COURS.get(niveau,[])
+    scores=m.scores_coach_par_niveau(niveau)
+    valides=[l for l in lecons if scores.get(str(l['id']),0)>=coach.SEUIL]
+    en_cours=next((l for l in lecons if scores.get(str(l['id']),0)<coach.SEUIL),None)
+    return valides+([en_cours] if en_cours else [])
+
+
+def _temps_mixte(niveau):
+    """Tous les temps validés + premier temps non validé des niveaux accessibles."""
+    niveaux=m.NIVEAUX[:m.NIVEAUX.index(niveau)+1]
+    result=[]
+    for n in niveaux:
+        scores=m.scores_conjugaison_par_niveau(n)
+        en_cours=False
+        for code,libelle in cp.PARCOURS[n]:
+            acquis=scores.get(code,(0,0))[0]>=.95
+            if acquis or not en_cours:
+                result.append((n,code,libelle))
+            if not acquis:
+                en_cours=True
+                break
+    return result
+
+
+def _tirage_mixte(niveau,nombre=20,exclure=(),historique=()):
+    """12 traductions multi-thèmes + 8 conjugaisons multi-temps, réparties équitablement."""
+    themes=_themes_mixte(niveau)
+    anciens={ev._net_pair(fr,es) for fr,es in list(exclure)+list(historique)
+             if isinstance(fr,str) and isinstance(es,str)}
+    groupes=[]
+    for lecon in themes:
+        phrases=list(dict.fromkeys((fr,es) for fr,es,_ in ev._sources(lecon)))
+        random.shuffle(phrases)
+        phrases.sort(key=lambda x:ev._net_pair(*x) in anciens)
+        if phrases:groupes.append(phrases)
+    traductions=[];vus=set()
+    while len(traductions)<12 and any(groupes):
+        ordre=list(range(len(groupes)));random.shuffle(ordre)
+        for idx in ordre:
+            if len(traductions)>=12:break
+            while groupes[idx]:
+                fr,es=groupes[idx].pop(0);cle=ev._net_pair(fr,es)
+                if cle not in vus:
+                    vus.add(cle);traductions.append(('traduction',fr,es));break
+    temps=_temps_mixte(niveau)
+    banque_verbes=ev.VERBES
+    conj_groupes=[]
+    for _,code,libelle in temps:
+        candidats=[]
+        for verbe,donnees in banque_verbes.items():
+            valeurs=cp.formes(verbe,code,donnees)
+            if valeurs:
+                for i,forme in enumerate(valeurs):
+                    if forme and forme!='—':
+                        candidats.append(('conjugaison',f'{verbe} — {libelle} — {cp.PERSONNES[i]}',forme))
+        random.shuffle(candidats)
+        if candidats:conj_groupes.append(candidats)
+    conj=[]
+    while len(conj)<8 and any(conj_groupes):
+        ordre=list(range(len(conj_groupes)));random.shuffle(ordre)
+        for idx in ordre:
+            if len(conj)>=8:break
+            if conj_groupes[idx]:conj.append(conj_groupes[idx].pop())
+    lot=traductions+conj
+    random.shuffle(lot)
+    return lot[:nombre]
+
+
+def _exercice_mixte(niveau,mode):
+    prefix=f'mixte_{mode}_{niveau}_v173';cle=prefix+'_lot';nombre=20
+    themes=_themes_mixte(niveau);temps=_temps_mixte(niveau)
+    if not themes:
+        st.info('Aucun thème disponible.');return
+    st.info(f'{len(themes)} thèmes : '+', '.join(l['titre'] for l in themes))
+    st.info(f'{len(temps)} temps de conjugaison : '+', '.join(libelle for _,_,libelle in temps))
+    st.caption('12 traductions et 8 conjugaisons : acquis et notions en cours mélangés. '
+               'Les traductions alternent français → espagnol et espagnol → français.')
+    if cle not in st.session_state:
+        st.session_state[cle]=_tirage_mixte(niveau,nombre,historique=_historique_phrases(prefix+'_historique'))
+    lot=st.session_state[cle];tour=st.session_state.get(prefix+'_tour',0)
+    precedent=st.session_state.get(prefix+'_correction')
+    if precedent:
+        st.success(f'Dernier résultat : {precedent["score"]}/{precedent["total"]} — sauvegardé')
+        with st.expander('Voir les corrections',expanded=True):
+            for consigne,attendu,reponse,ok in precedent['items']:
+                st.write(('✅ ' if ok else '❌ ')+consigne)
+                st.write('Ta réponse :',reponse or '(vide)')
+                st.write('Réponse de référence :',attendu)
+    if len(lot)<nombre:
+        st.warning(f'{len(lot)} questions disponibles. 20 sont nécessaires pour une note sur 20.')
+    if not lot:return
+    with st.form(prefix+'_form'):
+        reponses=[];traduction_index=0
+        for i,(genre,source,cible) in enumerate(lot):
+            if genre=='traduction':
+                vers_es=traduction_index%2==0;traduction_index+=1
+                consigne=(f'Traduis en {"espagnol" if vers_es else "français"} : '
+                          f'{source if vers_es else cible}')
+            else:
+                consigne=f'Conjugue : {source}'
+            reponses.append(st.text_input(f'{i+1}. {consigne}',key=f'{prefix}_{tour}_{i}'))
+        soumis=st.form_submit_button('Corriger et enregistrer',type='primary')
+    if soumis:
+        if len(lot)<nombre or any(not x.strip() for x in reponses):
+            st.warning('Il faut 20 questions et toutes les réponses pour valider.');return
+        dimension='Contrôle — thèmes et temps' if mode=='controle' else 'Révision — thèmes et temps'
+        items=[];traduction_index=0
+        for (genre,source,cible),rep in zip(lot,reponses):
+            if genre=='traduction':
+                vers_es=traduction_index%2==0;traduction_index+=1
+                consigne,attendu=(source,cible) if vers_es else (cible,source)
+            else:
+                consigne,attendu=source,cible
+            ok=ped.production(niveau,dimension,consigne,rep,attendu)
+            items.append((consigne,attendu,rep,ok))
+        score=sum(bool(x[3]) for x in items)
+        st.session_state[prefix+'_correction']={'score':score,'total':len(lot),'items':items}
+        paires=[(fr,es) for genre,fr,es in lot if genre=='traduction']
+        _memoriser_phrases(prefix+'_historique',paires)
+        st.session_state[cle]=_tirage_mixte(niveau,nombre,exclure=paires,
+                              historique=_historique_phrases(prefix+'_historique'))
+        st.session_state[prefix+'_tour']=tour+1
+        st.rerun()
+
+
 def controle():
-    title('🧪 Contrôle noté sur 20','20 phrases à traduire sur le thème prioritaire du planning hebdomadaire.')
-    n=m.preference('niveau_suivi','A1')
-    lecon=pv.theme(n)
-    st.info(f'📅 Thème du planning : {lecon["titre"] if lecon else "Aucun thème"} · Temps : {pa.priorites(n)[1]}')
-    phrases_traduction(n,lecon,20,f'controle_phrases_{n}_{lecon["id"] if lecon else "vide"}','Contrôle — phrases')
-    st.caption('La note sur 20 est affichée lorsque 20 phrases sont disponibles. Cette évaluation écrite ne valide pas à elle seule un thème du Coach IA.')
+    title('🧪 Contrôle noté sur 20','20 phrases tirées de tous les thèmes validés et en cours.')
+    _exercice_mixte(m.preference('niveau_suivi','A1'),'controle')
+    st.caption('Cette évaluation écrite ne valide pas à elle seule un thème du Coach IA.')
+
 
 def revisions():
-    title('🧠 Révisions évolutives','20 phrases à traduire, en lien avec le planning hebdomadaire.')
+    title('🧠 Révisions évolutives','20 phrases tirées de tous les thèmes validés et en cours.')
     n=m.preference('niveau_suivi','A1')
-    lecon=pv.theme(n)
     valides,total=pv.progression(n)
-    st.progress(valides/max(1,total),text=f'Progression {n} : {valides}/{total} thèmes validés ({valides/max(1,total):.0%})')
-    if not lecon:return
-    st.info(f'📅 Thème prioritaire : {lecon["titre"]} · Temps : {pa.priorites(n)[1]}')
-    import pedagogie as ped
-    cle=f'revision_phrases_{n}_{lecon["id"]}'
-    if cle not in st.session_state:st.session_state[cle]=ev.phrases(n,lecon,20,historique=_historique_phrases(cle+'_historique'))
-    previous=st.session_state.pop(cle+'_correction',None)
-    if previous:
-        st.metric('Dernière révision',f'{previous[0]}/20')
-        with st.expander('Voir les corrections',expanded=True):
-            for fr,es,reponse,ok in previous[1]:st.write(('✅' if ok else '❌')+f' {fr} — {reponse or "(vide)"} → **{es}**')
-    qs=st.session_state[cle]
-    if len(qs)<20:
-        st.warning(f'Seulement {len(qs)} phrases différentes disponibles pour ce thème : la note sur 20 est désactivée tant que le contenu n’est pas enrichi.')
-    with st.form(cle+'_form'):
-        reponses=[st.text_input(f'{i+1}. Traduis en {"espagnol" if i%2==0 else "français"} : {fr if i%2==0 else es}',key=f'{cle}_{st.session_state.get(cle+"_tour",0)}_{i}') for i,(fr,es) in enumerate(qs)]
-        submit=st.form_submit_button('Corriger et enregistrer',type='primary')
-    if submit:
-        if len(qs)<20 or any(not x.strip() for x in reponses):st.warning('Il faut 20 phrases disponibles et toutes les réponses pour noter la révision.')
-        else:
-            details=[]
-            for (fr,es),rep in zip(qs,reponses):
-                consigne,attendu=(fr,es) if len(details)%2==0 else (es,fr)
-                ok=ped.production(n,'Révision',consigne,rep,attendu)
-                details.append((consigne,attendu,rep,ok))
-            score=sum(x[3] for x in details)
-            st.session_state[cle+'_correction']=(score,details)
-            _memoriser_phrases(cle+'_historique',qs)
-            st.session_state[cle]=ev.phrases(n,lecon,20,exclure=qs,historique=_historique_phrases(cle+'_historique'))
-            st.session_state[cle+'_tour']=st.session_state.get(cle+'_tour',0)+1
-            st.rerun()
+    st.progress(valides/max(1,total),text=f'Progression {n} : {valides}/{total} thèmes validés')
+    _exercice_mixte(n,'revision')
 
 
 def dashboard():
