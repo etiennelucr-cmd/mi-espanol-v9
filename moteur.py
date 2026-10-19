@@ -41,6 +41,10 @@ class _Connection:
     def __init__(self, conn):
         self._conn = conn
     def execute(self, query, params=()):
+        if query.lstrip().split(None,1)[0].upper() in {'INSERT','UPDATE','DELETE','REPLACE'}:
+            # L'écriture doit être visible dès le prochain affichage.
+            for fn in (scores_coach_par_niveau, scores_conjugaison_par_niveau):
+                fn.clear()
         # Les requêtes existantes de moteur.py utilisent des marqueurs SQLite '?'.
         # Elles ne contiennent pas de '?' littéral dans le SQL actuel.
         # Compatibilité PostgreSQL : ROUND(double precision, 1) nécessite numeric.
@@ -95,6 +99,25 @@ def _pool_postgres():
     )
     pool.wait(timeout=20)
     return pool
+
+# Lectures groupées pour éviter une requête réseau par thème / temps.
+@st.cache_data(ttl=15, show_spinner=False)
+def scores_coach_par_niveau(niveau):
+    data = rows("""SELECT lecon_id, MAX(CAST(score AS DOUBLE PRECISION)/NULLIF(total,0)) AS ratio
+        FROM tentatives WHERE type='Coach IA' AND niveau=? AND total>=20
+        GROUP BY lecon_id""", (niveau,))
+    return {str(r['lecon_id']): float(r['ratio']) for r in data if r['ratio'] is not None}
+
+@st.cache_data(ttl=15, show_spinner=False)
+def scores_conjugaison_par_niveau(niveau):
+    data = rows("""SELECT temps, MAX(CAST(score AS DOUBLE PRECISION)/NULLIF(total,0)) AS meilleur,
+        COUNT(*) AS essais FROM conjugaison_tests
+        WHERE niveau=? AND type='Contrôle' AND total>=20 GROUP BY temps""", (niveau,))
+    return {str(r['temps']): (float(r['meilleur'] or 0), int(r['essais'])) for r in data}
+
+@st.cache_data(ttl=15, show_spinner=False)
+def progression_coach_par_niveau(niveau):
+    return scores_coach_par_niveau(niveau)
 
 @contextmanager
 def connexion():

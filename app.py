@@ -448,20 +448,22 @@ with st.sidebar:
     st.metric('Progression totale du niveau',f'{pourcentage:.1f} %')
     st.progress(valides/total if total else 0)
     st.caption(f'{valides} thème(s) validé(s) sur {total} — validation Coach IA à 19/20 minimum')
-    projection=m.projection_globale(niveau_suivi)
+    projection=None  # Calcul facultatif, uniquement sur demande ci-dessous.
     prochain=m.NIVEAUX[m.NIVEAUX.index(niveau_suivi)+1] if niveau_suivi!=m.NIVEAUX[-1] else None
     if prochain:
         st.markdown(f'**Objectif : accéder à {prochain}**')
-        if all(x['valide'] for x in m.themes_valides(niveau_suivi)):
+        if valides == total:
             st.success('Tous les thèmes validés à 98 % : niveau suivant débloqué')
         else:
             st.caption('Niveau suivant verrouillé : termine chaque thème et réussis son quiz à 98 % minimum')
-        if projection and projection.get('atteint'):
-            st.success('Progression indicative atteinte (validation des thèmes : 98 %)')
-        elif projection:
-            st.info('Date estimée : '+projection['centre'])
-        else:
-            st.caption('Date estimée : en attente de 7 jours de progression mesurable')
+        if st.toggle('Afficher une estimation de date', value=False):
+            projection=m.projection_globale(niveau_suivi)
+            if projection and projection.get('atteint'):
+                st.success('Progression indicative atteinte (validation des thèmes : 98 %)')
+            elif projection:
+                st.info('Date estimée : '+projection['centre'])
+            else:
+                st.caption('Date estimée : en attente de 7 jours de progression mesurable')
     else:st.caption('C2 : dernier niveau du parcours')
     st.divider()
     page=st.radio('Navigation',list(pages))

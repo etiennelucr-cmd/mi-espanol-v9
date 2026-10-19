@@ -79,9 +79,7 @@ def init():
     return None
 
 def statut(niveau,temps):
-    r=m.rows("SELECT MAX(CAST(score AS REAL)/total) meilleur,COUNT(*) essais FROM conjugaison_tests WHERE niveau=? AND temps=? AND type='Contrôle' AND total>=20",(niveau,temps))[0]
-    return (r['meilleur'] or 0),r['essais']
-
+    return m.scores_conjugaison_par_niveau(niveau).get(temps, (0, 0))
 
 def autorisations():
     accessibles=['A1']

@@ -8,8 +8,7 @@ import moteur as m
 SEUIL=0.95
 
 def valide(n, lecon):
-    r=m.rows("SELECT MAX(CAST(score AS REAL)/NULLIF(total,0)) AS ratio FROM tentatives WHERE type='Coach IA' AND niveau=? AND lecon_id=? AND total>=20",(n,lecon['id']))
-    return bool(r and r[0]['ratio'] is not None and r[0]['ratio']>=SEUIL)
+    return m.scores_coach_par_niveau(n).get(str(lecon['id']), 0) >= SEUIL
 
 def accessible(n):
     idx=m.NIVEAUX.index(n)
