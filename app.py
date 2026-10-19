@@ -11,6 +11,7 @@ import conjugaison_parcours as cp
 import coach_quotidien as cq
 import planning_adaptatif as pa
 import parcours_v10 as pv
+import exercices_v11 as ev
 
 st.set_page_config(page_title='Mi Español · Coach adaptatif',page_icon='🇪🇸',layout='wide')
 
@@ -95,7 +96,7 @@ def question_session(prefix,questions,typ,niveau,lecon_id=None):
             with st.expander(('✅ ' if result['answers'].get(q['id'])==q['bonne'] else '❌ ')+q['enonce']):
                 st.write('Ta réponse :',result['answers'].get(q['id']) or 'Aucune')
                 st.write('Bonne réponse :',q['bonne']);st.caption(q.get('explication') or '')
-    if typ!='Révision' and st.button('🔄 Nouveau tirage de questions',key=prefix+'_new'):
+    if typ!='Révision' and not prefix.startswith('cours_qcm_v11_') and st.button('🔄 Nouveau tirage de questions',key=prefix+'_new'):
         for q in qs:st.session_state.pop(prefix+'_'+q['id'],None)
         st.session_state.pop(prefix+'_result',None)
         st.session_state[key]=m.banque(niveau,lecon_id,len(qs))
@@ -175,8 +176,18 @@ def cours():
             st.rerun()
     if st.session_state.pop('cours_message',None):
         st.success('Séance enregistrée. Continue avec la leçon affichée.')
-    st.subheader('✍️ 10 phrases de la leçon — entraînement adaptatif')
-    phrases_traduction(n,l,10,'cours_phrases_'+l['id'],'Phrases de la leçon')
+    st.subheader('📝 QCM de la leçon — 30 questions variées')
+    st.caption('Vocabulaire, expressions, exemples et fiche de conjugaison au temps du planning hebdomadaire.')
+    cle_qcm=f'cours_qcm_v11_{n}_{l["id"]}'
+    if cle_qcm not in st.session_state:
+        st.session_state[cle_qcm]=ev.qcm(n,l,30)
+    question_session(cle_qcm,st.session_state[cle_qcm],'Exercice',n,l['id'])
+    if st.button('🔄 Renouveler les 30 questions',key=cle_qcm+'_refresh'):
+        for q in st.session_state[cle_qcm]:st.session_state.pop(cle_qcm+'_'+q['id'],None)
+        st.session_state.pop(cle_qcm+'_result',None)
+        st.session_state[cle_qcm]=ev.qcm(n,l,30)
+        st.session_state[cle_qcm+'_questions']=st.session_state[cle_qcm]
+        st.rerun()
 
 def phrases_traduction(n, lecon, nombre, prefix, dimension):
     """Phrases contextualisées ; aucune écriture avant validation explicite."""
@@ -185,7 +196,7 @@ def phrases_traduction(n, lecon, nombre, prefix, dimension):
         return
     key=prefix+'_lot'
     if key not in st.session_state:
-        st.session_state[key]=pv.tirage_phrases(n,lecon,nombre)
+        st.session_state[key]=ev.phrases(n,lecon,nombre)
     lot=st.session_state[key]
     if len(lot)<nombre:
         st.warning(f'{len(lot)} phrase(s) disponibles pour ce thème : {nombre} demandées. Aucun contenu inventé.')
@@ -213,7 +224,7 @@ def phrases_traduction(n, lecon, nombre, prefix, dimension):
             items.append((fr,es,rep,ok))
         score=sum(bool(x[3]) for x in items)
         st.session_state[prefix+'_correction']={'score':score,'total':len(lot),'items':items}
-        st.session_state[key]=pv.tirage_phrases(n,lecon,nombre,exclure=lot)
+        st.session_state[key]=ev.phrases(n,lecon,nombre,exclure=lot)
         st.session_state[prefix+'_tour']=tour+1
         st.rerun()
 
@@ -222,7 +233,7 @@ def controle():
     title('🧪 Contrôle noté sur 20','20 phrases à traduire sur le thème prioritaire du planning hebdomadaire.')
     n=m.preference('niveau_suivi','A1')
     lecon=pv.theme(n)
-    st.info(f'📅 Thème du planning : {lecon["titre"] if lecon else "Aucun thème"}')
+    st.info(f'📅 Thème du planning : {lecon["titre"] if lecon else "Aucun thème"} · Temps : {pa.priorites(n)[1]}')
     phrases_traduction(n,lecon,20,f'controle_phrases_{n}_{lecon["id"] if lecon else "vide"}','Contrôle — phrases')
     st.caption('La note sur 20 est affichée lorsque 20 phrases sont disponibles. Cette évaluation écrite ne valide pas à elle seule un thème du Coach IA.')
 
@@ -233,10 +244,10 @@ def revisions():
     valides,total=pv.progression(n)
     st.progress(valides/max(1,total),text=f'Progression {n} : {valides}/{total} thèmes validés ({valides/max(1,total):.0%})')
     if not lecon:return
-    st.info(f'📅 Thème prioritaire : {lecon["titre"]}')
+    st.info(f'📅 Thème prioritaire : {lecon["titre"]} · Temps : {pa.priorites(n)[1]}')
     import pedagogie as ped
     cle=f'revision_phrases_{n}_{lecon["id"]}'
-    if cle not in st.session_state:st.session_state[cle]=ped.exercices(n,20,lecon=lecon)
+    if cle not in st.session_state:st.session_state[cle]=ev.phrases(n,lecon,20)
     previous=st.session_state.pop(cle+'_correction',None)
     if previous:
         st.metric('Dernière révision',f'{previous[0]}/20')
@@ -257,7 +268,7 @@ def revisions():
                 details.append((fr,es,rep,ok))
             score=sum(x[3] for x in details)
             st.session_state[cle+'_correction']=(score,details)
-            st.session_state[cle]=ped.exercices(n,20,exclure=qs,lecon=lecon)
+            st.session_state[cle]=ev.phrases(n,lecon,20,exclure=qs)
             st.session_state[cle+'_tour']=st.session_state.get(cle+'_tour',0)+1
             st.rerun()
 
