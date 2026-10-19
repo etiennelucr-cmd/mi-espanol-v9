@@ -10,16 +10,9 @@ import extension as ext
 import conjugaison_parcours as cp
 import coach_quotidien as cq
 import planning_adaptatif as pa
+import parcours_v10 as pv
 
 st.set_page_config(page_title='Mi Español · Coach adaptatif',page_icon='🇪🇸',layout='wide')
-
-# Masquer uniquement la navigation automatique Streamlit (« app », « Test exercices »).
-# Conserver le menu personnalisé Mi Español dans la barre latérale.
-st.markdown("""
-<style>
-[data-testid="stSidebarNav"] { display: none !important; }
-</style>
-""", unsafe_allow_html=True)
 
 def verifier_acces():
     if st.session_state.get("acces_autorise", False):
@@ -188,15 +181,17 @@ def cours():
 
 def controle():
     title('🧪 Contrôle noté sur 20', '20 questions distinctes · 1 point par réponse correcte · correction détaillée et exercices ciblés.')
-    n=st.selectbox('Niveau évalué',m.NIVEAUX,key='controle_n')
+    n=m.preference('niveau_suivi','A1')
+    lecon=pv.theme(n)
+    st.info(f'📅 Planning hebdomadaire : {lecon["titre"] if lecon else "Aucun thème"}')
     mode=st.radio('Sélection des questions',['Adaptatif','Aléatoire'],horizontal=True,key='controle_mode')
-    prefix=f'controle20_{n}_{mode}'
+    prefix=f'controle20_{n}_{mode}_{lecon["id"] if lecon else "vide"}'
     if st.session_state.get('controle_active_prefix')!=prefix:
         st.session_state['controle_active_prefix']=prefix
         st.session_state.pop(prefix+'_questions',None)
         st.session_state.pop(prefix+'_result',None)
     if prefix+'_questions' not in st.session_state:
-        st.session_state[prefix+'_questions']=m.banque(n,limite=20,mode='adaptatif' if mode=='Adaptatif' else 'aleatoire')
+        st.session_state[prefix+'_questions']=m.banque(n,lecon['id'] if lecon else None,limite=20,mode='adaptatif' if mode=='Adaptatif' else 'aleatoire')
         st.session_state[prefix+'_start']=time.monotonic()
     qs=st.session_state[prefix+'_questions']
     if len(qs)<20:
@@ -249,33 +244,45 @@ def controle():
         if st.button('▶ Passer automatiquement au nouveau contrôle',key=prefix+'_new',type='primary'):
             for q in qs:st.session_state.pop(prefix+'_'+q['id'],None)
             st.session_state.pop(prefix+'_result',None)
-            st.session_state[prefix+'_questions']=m.banque(n,limite=20,mode='adaptatif' if mode=='Adaptatif' else 'aleatoire')
+            st.session_state[prefix+'_questions']=m.banque(n,lecon['id'] if lecon else None,limite=20,mode='adaptatif' if mode=='Adaptatif' else 'aleatoire')
             st.session_state[prefix+'_start']=time.monotonic()
             st.rerun()
 
 def revisions():
-    title('🧠 Révisions évolutives','Niveau actuel uniquement ; le niveau suivant est débloqué après validation de tous les thèmes à 98 %.')
-    actuel=st.session_state.get('sidebar_niveau',m.preference('niveau_suivi','A1'))
-    autorises=[actuel]
-    i=m.NIVEAUX.index(actuel)
-    themes=m.themes_valides(actuel)
-    valides=sum(t['valide'] for t in themes)
-    st.progress(valides/max(1,len(themes)),text=f'Thèmes validés : {valides}/{len(themes)} (98 % minimum sur 20 questions = 20/20)')
-    if valides==len(themes) and i+1<len(m.NIVEAUX):autorises.append(m.NIVEAUX[i+1])
-    n=st.selectbox('Niveau de révision',autorises,key='rev_niveau_v8')
-    items=m.revisions(n);today=date.today().isoformat()
-    if not items:st.info('Effectue un quiz pour démarrer tes révisions.');return
-    for x in items:
-        etat='🔴 À revoir' if x['prochaine_revision'] and x['prochaine_revision']<=today else ('🟢 Consolidation' if x['maitrise']>=.98 else '🟠 En apprentissage')
-        with st.expander(f"{etat} · {x['nom']} · {x['maitrise']:.0%}"):
-            st.write(f"Niveau : {x['niveau']} · Essais : {x['essais']} · Réussites : {x['succes']}")
-            st.write('Prochaine révision :',x['prochaine_revision'] or 'Non programmée')
-    if st.button('Créer mon quiz de révision',type='primary'):
-        st.session_state['revision_token']=st.session_state.get('revision_token',0)+1
-    if st.session_state.get('revision_token'):
-        st.caption('Après chaque validation, un nouveau tirage apparaît automatiquement. La correction précédente reste consultable.')
-        prefix=f"rev_{n}_{st.session_state['revision_token']}"
-        question_session(prefix,m.banque(n,limite=20),'Révision',n)
+    title('🧠 Révisions évolutives','20 phrases à traduire, en lien avec le planning hebdomadaire.')
+    n=m.preference('niveau_suivi','A1')
+    lecon=pv.theme(n)
+    valides,total=pv.progression(n)
+    st.progress(valides/max(1,total),text=f'Progression {n} : {valides}/{total} thèmes validés ({valides/max(1,total):.0%})')
+    if not lecon:return
+    st.info(f'📅 Thème prioritaire : {lecon["titre"]}')
+    import pedagogie as ped
+    cle=f'revision_phrases_{n}_{lecon["id"]}'
+    if cle not in st.session_state:st.session_state[cle]=ped.exercices(n,20,lecon=lecon)
+    previous=st.session_state.pop(cle+'_correction',None)
+    if previous:
+        st.metric('Dernière révision',f'{previous[0]}/20')
+        with st.expander('Voir les corrections',expanded=True):
+            for fr,es,reponse,ok in previous[1]:st.write(('✅' if ok else '❌')+f' {fr} — {reponse or "(vide)"} → **{es}**')
+    qs=st.session_state[cle]
+    if len(qs)<20:
+        st.warning(f'Seulement {len(qs)} phrases différentes disponibles pour ce thème : la note sur 20 est désactivée tant que le contenu n’est pas enrichi.')
+    with st.form(cle+'_form'):
+        reponses=[st.text_input(f'{i+1}. Traduis en espagnol : {fr}',key=f'{cle}_{st.session_state.get(cle+"_tour",0)}_{i}') for i,(fr,es) in enumerate(qs)]
+        submit=st.form_submit_button('Corriger et enregistrer',type='primary')
+    if submit:
+        if len(qs)<20 or any(not x.strip() for x in reponses):st.warning('Il faut 20 phrases disponibles et toutes les réponses pour noter la révision.')
+        else:
+            details=[]
+            for (fr,es),rep in zip(qs,reponses):
+                ok=ped.production(n,'Révision',fr,rep,es)
+                details.append((fr,es,rep,ok))
+            score=sum(x[3] for x in details)
+            st.session_state[cle+'_correction']=(score,details)
+            st.session_state[cle]=ped.exercices(n,20,exclure=qs,lecon=lecon)
+            st.session_state[cle+'_tour']=st.session_state.get(cle+'_tour',0)+1
+            st.rerun()
+
 
 def dashboard():
     title('📊 Tableau de bord quotidien')
@@ -419,34 +426,20 @@ def defis():
                'les anciennes dates de déblocage ne peuvent pas être reconstituées avec certitude. '
                'Les badges récompensent la régularité, sans certifier un niveau CECRL.')
 
-# Les informations de la barre latérale sont communes à toutes les rubriques.
-# Évite de refaire leurs nombreuses requêtes Supabase à chaque navigation.
-# TTL court : les progrès récents réapparaissent automatiquement sous 20 s.
-@st.cache_data(ttl=20, show_spinner=False)
-def _sidebar_infos(niveau):
-    progression = m.progression_globale(niveau)
-    projection = m.projection_globale(niveau)
-    index = m.NIVEAUX.index(niveau)
-    suivant = m.NIVEAUX[index + 1] if index + 1 < len(m.NIVEAUX) else None
-    themes = m.themes_valides(niveau) if suivant else []
-    return progression, projection, suivant, themes
-
-pages={'📅 Planning de la semaine':pa.page,'🎯 Programme du jour':ext.programme,'🗺️ Parcours CECRL':ext.parcours,'✍️ Expression écrite':ext.expression,'🎧 Écoute et oral':ext.oral,'📚 Cours':cours,'🧪 Contrôles':controle,'🧠 Révisions':revisions,'📊 Tableau de bord':dashboard,'📈 Axe de progression':axe,'🗂️ Historique':historique,'📖 Lexique':lexique,'📗 Verbes et conjugaisons':cp.page,'🤖 Coach IA':coach,'🏆 Défis':defis}
+pages={'📅 Planning de la semaine':pa.page,'🎯 Programme du jour':ext.programme,'🗺️ Parcours CECRL':ext.parcours,'✍️ Expression écrite':ext.expression,'🎧 Écoute et oral':ext.oral,'📚 Cours':cours,'🧪 Contrôles':controle,'🧠 Révisions':revisions,'🗂️ Historique':historique,'📖 Lexique':lexique,'📗 Verbes et conjugaisons':cp.page,'🤖 Coach IA':coach,'🏆 Défis':defis}
 with st.sidebar:
     st.title('🇪🇸 Mi Español V8')
-    niveau_prefere=m.preference('niveau_suivi','A1')
-    if niveau_prefere not in m.NIVEAUX:
-        niveau_prefere='A1'
-    niveau_suivi=st.selectbox('Niveau suivi',m.NIVEAUX,index=m.NIVEAUX.index(niveau_prefere),key='sidebar_niveau')
-    if niveau_prefere!=niveau_suivi:
-        m.definir_preference('niveau_suivi',niveau_suivi)
-    p,projection,prochain,themes_sidebar=_sidebar_infos(niveau_suivi)
+    niveau_suivi=st.selectbox('Niveau suivi',m.NIVEAUX,index=m.NIVEAUX.index(m.preference('niveau_suivi','A1')) if m.preference('niveau_suivi','A1') in m.NIVEAUX else 0,key='sidebar_niveau')
+    if m.preference('niveau_suivi')!=niveau_suivi:m.definir_preference('niveau_suivi',niveau_suivi)
+    p=m.progression_globale(niveau_suivi)
     st.metric('Progression totale du niveau',f"{p['pourcentage']:.1f} %")
     st.progress(min(1,p['pourcentage']/100))
     st.caption('Leçons 35 % · quiz 20 % · contrôles 30 % · révisions 15 %')
+    projection=m.projection_globale(niveau_suivi)
+    prochain=m.NIVEAUX[m.NIVEAUX.index(niveau_suivi)+1] if niveau_suivi!=m.NIVEAUX[-1] else None
     if prochain:
         st.markdown(f'**Objectif : accéder à {prochain}**')
-        if all(x['valide'] for x in themes_sidebar):
+        if all(x['valide'] for x in m.themes_valides(niveau_suivi)):
             st.success('Tous les thèmes validés à 98 % : niveau suivant débloqué')
         else:
             st.caption('Niveau suivant verrouillé : termine chaque thème et réussis son quiz à 98 % minimum')
@@ -459,5 +452,5 @@ with st.sidebar:
     else:st.caption('C2 : dernier niveau du parcours')
     st.divider()
     page=st.radio('Navigation',list(pages))
-    st.caption('Estimations internes, non certificatives · Supabase')
+    st.caption('Estimations internes, non certificatives · SQLite local')
 pages[page]()

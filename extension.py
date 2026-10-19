@@ -5,6 +5,7 @@ import streamlit.components.v1 as components
 import moteur as m
 import pedagogie as p
 import coach_quotidien as cq
+import parcours_v10 as pv
 
 def parcours():
     st.title('🗺️ Attendus CECRL — A1 à C2')
@@ -28,15 +29,20 @@ def parcours():
     </style>''' + '<div class="cecrl-scroll"><table class="cecrl-table"><thead><tr><th scope="col">Compétence</th>'
         + entetes + '</tr></thead><tbody>' + ''.join(lignes) + '</tbody></table></div>',unsafe_allow_html=True)
     st.caption('Sur un petit écran, fais défiler horizontalement le tableau pour voir les niveaux C1 et C2.')
+    st.subheader('📚 Objectifs indicatifs de vocabulaire par niveau')
+    st.dataframe({'Niveau':m.NIVEAUX,'Objectif indicatif (mots)':[500,1000,2000,3500,5000,7000]},hide_index=True)
+    st.caption('Repères pédagogiques internes, non imposés par le CECRL. Les objectifs peuvent être adaptés.')
 
 
 def expression():
     st.title('✍️ Expression écrite — entraînement adaptatif')
-    n=st.selectbox('Niveau',m.NIVEAUX,key='write_level')
-    key='write_exercises_'+n
-    if key not in st.session_state:st.session_state[key]=p.exercices(n,20)
+    n=m.preference('niveau_suivi','A1')
+    l=pv.theme(n)
+    st.info(f'📅 Planning hebdomadaire : {n} — {l["titre"] if l else "Aucun thème"}')
+    key='write_exercises_'+n+'_'+(l['id'] if l else '')
+    if key not in st.session_state:st.session_state[key]=p.exercices(n,20,lecon=l)
     if st.button('🔀 Nouveau lot',key='write_new_'+n):
-        st.session_state[key]=p.exercices(n,20,exclure=st.session_state[key]);st.rerun()
+        st.session_state[key]=p.exercices(n,20,exclure=st.session_state[key],lecon=l);st.rerun()
     resultat=st.session_state.pop(key+'_result',None)
     if resultat:
         with st.expander('Correction du lot précédent',expanded=True):
@@ -60,7 +66,7 @@ def expression():
             outcomes.append((fr,es,answer,valid))
         m.enregistrer_session('Expression écrite',duree,n)
         st.session_state[key+'_result']=outcomes
-        st.session_state[key]=p.exercices(n,20,exclure=tasks)
+        st.session_state[key]=p.exercices(n,20,exclure=tasks,lecon=l)
         st.session_state[key+'_tour']=st.session_state.get(key+'_tour',0)+1
         st.rerun()
 
@@ -69,7 +75,11 @@ def oral():
     st.title('🎧 Écoute et compréhension orale — parcours progressif')
     st.caption('Jusqu’à 500 énoncés par niveau, construits à partir des exemples des cours. Les énoncés longs peuvent associer deux phrases.')
     disponibles=[n for n in m.NIVEAUX if p.oral_debloque(n)]
-    n=st.selectbox('Niveau débloqué',disponibles,key='oral_level')
+    n=m.preference('niveau_suivi','A1')
+    if n not in disponibles:
+        st.warning('Ce niveau oral est encore verrouillé.');return
+    l=pv.theme(n)
+    st.info(f'📅 Planning hebdomadaire : {l["titre"] if l else "Aucun thème"}')
     score,total=p.progression_orale(n)
     st.metric('Compréhension — 20 dernières réponses',f'{score} %',f'{total}/20 évaluations récentes')
     st.progress(score/100)
@@ -77,11 +87,11 @@ def oral():
         st.success('Niveau validé à 95 % : le niveau suivant est débloqué, si disponible.')
     else:
         st.info('Pour débloquer le niveau suivant : au moins 19 réponses exactes sur les 20 dernières évaluations.')
-    banque=p.banque_orale(n)
+    banque=p.banque_orale(n,lecon=l)
     st.caption(f'Banque disponible : {len(banque)} énoncés · Correction automatique stricte : une paraphrase correcte peut être refusée.')
     if not banque:st.warning('Aucun énoncé disponible.');return
-    cle='oral_tirage_'+n
-    if cle not in st.session_state:st.session_state[cle]=p.tirage_oral(n)
+    cle='oral_tirage_'+n+'_'+(l['id'] if l else '')
+    if cle not in st.session_state:st.session_state[cle]=p.tirage_oral(n,lecon=l)
     es,fr=st.session_state[cle]
     phrase=html.escape(es,quote=True)
     components.html(f'''<div style="font:16px sans-serif"><button onclick="let u=new SpeechSynthesisUtterance(document.getElementById('phrase').textContent);u.lang='es-ES';u.rate=.82;speechSynthesis.cancel();speechSynthesis.speak(u)">▶ Écouter en espagnol</button><span id="phrase" style="display:none">{phrase}</span></div>''',height=55)
@@ -102,7 +112,7 @@ def oral():
             p.audio(n,es,'compréhension orale',compris)
             m.enregistrer_session('Écoute / oral',duree,n)
             st.session_state['oral_feedback_'+n]=(es,fr,compris,valide)
-            st.session_state[cle]=p.tirage_oral(n,exclure=[es])
+            st.session_state[cle]=p.tirage_oral(n,exclure=[es],lecon=l)
             st.session_state['oral_tour_'+n]=st.session_state.get('oral_tour_'+n,0)+1
             st.rerun()
     if hasattr(st,'audio_input'):
@@ -114,11 +124,14 @@ def oral():
 def programme():
     st.markdown('## 🇪🇸 ¡Hola! Bienvenido a Mi Español')
     stats=m.statistiques()
-    c1,c2,c3,c4=st.columns(4)
+    c1,c2,c3,c4,c5=st.columns(5)
     c1.metric('Niveau estimé',m.niveau_estime())
     c2.metric('Étude aujourd’hui',f"{stats['minutes']:.0f} min")
     c3.metric('Quiz du jour',stats['tests'])
     c4.metric('XP total',stats['xp'])
+    niveau_actuel=m.preference('niveau_suivi','A1')
+    c5.metric(f'Mots acquis estimés — {niveau_actuel}',pv.mots_acquis(niveau_actuel))
+    st.caption('Estimation basée sur les mots du lexique utilisés dans au moins deux traductions enregistrées correctes ; les QCM ne sont pas encore pris en compte.')
     obj=m.objectif()
     st.progress(min(1,stats['minutes']/obj),text=f"Objectif quotidien : {stats['minutes']:.0f} / {obj} minutes")
     st.divider()
@@ -151,6 +164,8 @@ def programme():
         return
     st.success(f'🔒 Temps validé pour aujourd’hui : {minutes} minutes. Modification possible demain.')
     activites,due,faibles=p.plan(n,minutes)
+    lecon=pv.theme(n)
+    if lecon:st.info(f'📅 Thème du planning hebdomadaire : **{lecon["titre"]}**')
     st.subheader('📊 Répartition de ton temps aujourd’hui')
     st.caption('Temps des cours, productions écrites et pratiques orales sauvegardés, ainsi que durée des quiz et contrôles enregistrés. Les durées des quiz sont indicatives (temps écoulé entre ouverture et correction).')
     # Les séances existantes sont comptées automatiquement. Pour les autres activités,
