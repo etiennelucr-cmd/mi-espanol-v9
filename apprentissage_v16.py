@@ -17,20 +17,43 @@ MOIS=['','janvier','février','mars','avril','mai','juin','juillet','août','sep
 JOURS=['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche']
 
 def entete():
+    """En-tête compact avec drapeau CSS, lisible sur mobile et sans emoji de drapeau."""
     now=datetime.now(ZoneInfo('Europe/Paris'))
     saint=SAINTS.get((now.month,now.day),'Saint du jour non renseigné')
+    date_label=f'{JOURS[now.weekday()]} {now.day} {MOIS[now.month]} {now.year}'
     st.markdown("""<style>
-    .v16brand{background:linear-gradient(115deg,#ffffff,#fff2dc);border:1px solid #f2dfc7;border-radius:14px;padding:13px 11px;margin-bottom:8px}
-    .v16brand .v16name{font-size:1.35rem;font-weight:800;color:#13264b}
-    .v16brand .v16flag{font-size:2rem;vertical-align:middle;margin-right:7px}
-    .v16brand .v16saint{color:#a36d12;font-size:.88rem;margin-top:4px}
+    .v16brand{
+      background:linear-gradient(120deg,#fff,#fff3e0 80%,#ffe9ca);
+      border:1px solid #ead9c1;border-radius:16px;
+      padding:14px 13px 12px;margin:4px 0 6px;
+      box-shadow:0 2px 10px rgba(23,39,74,.06);
+      color:#172b53;
+    }
+    .v16brand-top{display:flex;align-items:center;gap:10px;min-width:0}
+    .v16flag{
+      display:inline-block;flex-shrink:0;width:41px;height:27px;
+      background:linear-gradient(to bottom,#aa151b 0 25%,#f1bf00 25% 75%,#aa151b 75% 100%);
+      border-radius:3px;box-shadow:0 1px 5px rgba(0,0,0,.2);
+      border:1px solid rgba(0,0,0,.1);position:relative;
+    }
+    .v16flag::after{content:'◆';position:absolute;left:10px;top:6px;
+      color:#aa151b;font-size:10px;line-height:10px}
+    .v16name{font-size:1.17rem;font-weight:800;line-height:1.1;white-space:nowrap}
+    .v16version{color:#bf2846}
+    .v16tag{font-size:.74rem;color:#68738a;margin:5px 0 0 51px}
+    .v16date{font-size:.83rem;margin-top:12px;color:#394866;line-height:1.35}
+    .v16saint{font-size:.83rem;color:#a36d12;margin-top:4px}
     </style>""",unsafe_allow_html=True)
-    st.markdown('<div class="v16brand"><span class="v16flag">🇪🇸</span><span class="v16name">Mi Español V16</span><div class="v16saint">📅 '
-                +html.escape(f'{JOURS[now.weekday()]} {now.day} {MOIS[now.month]} {now.year}')
-                +' · '+html.escape(saint)+'</div></div>',unsafe_allow_html=True)
-    # Horloge locale mise à jour sans relancer l'application.
-    components.html("""<div id="h" style="font:600 18px system-ui;color:#bc2941;padding:0 2px">--:--</div>
-    <script>function tick(){document.getElementById('h').textContent='🕒 '+new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(new Date());}tick();setInterval(tick,1000);</script>""",height=33)
+    st.markdown(
+      '<div class="v16brand">'
+      '<div class="v16brand-top"><span class="v16flag" role="img" aria-label="Drapeau espagnol"></span>'
+      '<span class="v16name">Mi Español <span class="v16version">V16</span></span></div>'
+      '<div class="v16tag">Apprendre · Progresser · Réussir</div>'
+      '<div class="v16date">📅 '+html.escape(date_label)+'</div>'
+      '<div class="v16saint">✦ '+html.escape(saint)+'</div>'
+      '</div>',unsafe_allow_html=True)
+    components.html("""<div id="h" style="font:600 16px system-ui;color:#bf2846;padding:0 3px">--:--</div>
+    <script>function tick(){document.getElementById('h').textContent='🕒 '+new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(new Date());}tick();setInterval(tick,1000);</script>""",height=30)
 
 def _key(n):return 'v16_srs_'+n
 def _load(n):
