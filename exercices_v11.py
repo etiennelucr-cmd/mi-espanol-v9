@@ -50,52 +50,79 @@ def _phrases_sources(lecon, niveau):
             distinct.append((fr.strip(), es.strip(), kind))
     return distinct
 
-def phrases(niveau, lecon, n=20, exclure=(), historique=()):
-    """20 énoncés distincts et équilibrés, issus de la leçon et du temps étudié.
+# Variations bilingues prudentes : une seule proposition par exercice.
+# Les substitutions de noms propres et les compléments contextuels
+# conservent le sens et le temps du texte pédagogique de départ.
+_NOMS = [
+    (('Ana', 'Ana'), ('Lucía', 'Lucía')),
+    (('Pablo', 'Pablo'), ('Carlos', 'Carlos')),
+    (('María', 'María'), ('Elena', 'Elena')),
+    (('Madrid', 'Madrid'), ('Sevilla', 'Séville')),
+    (('París', 'Paris'), ('Lyon', 'Lyon')),
+    (('Barcelona', 'Barcelone'), ('Valencia', 'Valence')),
+]
+_CONTEXTES = [
+    ('Hoy', "Aujourd’hui"),
+    ('Normalmente', "D’habitude"),
+    ('En general', "En général"),
+    ('A veces', "Parfois"),
+    ('Esta semana', "Cette semaine"),
+]
 
-    Les énoncés à deux phrases préservent exactement les traductions attestées.
-    Les paires inversées ne comptent pas comme de nouveaux exercices.
+def _variantes(fr, es):
+    """Retourne des paires de traductions autonomes, sans collage de phrases."""
+    fr, es = fr.strip(), es.strip()
+    yield (fr, es)
+    # Variation d'entités nommées attestées dans les deux langues.
+    for (es_old, fr_old), (es_new, fr_new) in _NOMS:
+        if re.search(r'(?<!\\w)' + re.escape(es_old) + r'(?!\\w)', es) and re.search(r'(?<!\\w)' + re.escape(fr_old) + r'(?!\\w)', fr):
+            yield (re.sub(r'(?<!\\w)' + re.escape(fr_old) + r'(?!\\w)', fr_new, fr),
+                   re.sub(r'(?<!\\w)' + re.escape(es_old) + r'(?!\\w)', es_new, es))
+    # Les adverbes s'ajoutent seulement aux affirmations simples au présent.
+    # Ne pas les ajouter aux questions, ordres, souhaits ou phrases au passé/futur.
+    if (es.endswith('.') and fr.endswith('.') and not any(c in es+fr for c in '¿?¡!')
+            and not re.search(r'\\b(ayer|mañana|hier|demain|fui|fue|estuve|hablé|seré|fut|étais|étaient)\\b',
+                              es+' '+fr, flags=re.I)):
+        for es_adv, fr_adv in _CONTEXTES:
+            # Une phrase déjà introduite par un marqueur temporel ne reçoit pas
+            # de second marqueur.
+            if re.match(r'(?i)^(hoy|ayer|mañana|normalmente|a veces|esta semana|en general|aujourd|hier|demain|parfois)',es+' '+fr):
+                break
+            yield (fr_adv + ', ' + fr[0].lower() + fr[1:],
+                   es_adv + ', ' + es[0].lower() + es[1:])
+
+def phrases(niveau, lecon, n=20, exclure=(), historique=()):
+    """Sélectionne au plus n traductions différentes, sans fusion d'exemples.
+
+    Priorité à la couverture du thème et aux formulations inédites.
+    Ne fabrique pas de fausses traductions pour atteindre artificiellement n.
     """
-    sources = _phrases_sources(lecon, niveau)
-    if not sources:
-        return []
-    rng = random.SystemRandom()
+    rng=random.SystemRandom()
+    sources=_phrases_sources(lecon,niveau)
     rng.shuffle(sources)
-    pool = []
-    # Chaque exemple peut être interrogé individuellement.
-    for i, (fr, es, _) in enumerate(sources):
-        pool.append((fr, es, (i,)))
-    # Combinaisons de DEUX exemples différents : pas de répétition interne.
-    for i in range(len(sources)):
-        for j in range(i + 1, len(sources)):
-            fr1, es1, _ = sources[i]
-            fr2, es2, _ = sources[j]
-            pool.append((fr1.rstrip(' .!?') + '. ' + fr2,
-                         es1.rstrip(' .!?') + '. ' + es2, (i, j)))
-    rng.shuffle(pool)
-    previous = {_net_pair(fr, es) for fr, es in list(exclure) + list(historique)}
-    counts = {i: 0 for i in range(len(sources))}
-    selected = []
-    used = set()
-    # On privilégie les énoncés nouveaux et une couverture équilibrée des exemples.
-    for _ in range(min(n, len(pool))):
-        candidates = [x for x in pool if _net_pair(x[0], x[1]) not in used]
-        if not candidates:
-            break
-        best = min(
-            candidates,
-            key=lambda x: (
-                _net_pair(x[0], x[1]) in previous,
-                max(counts[i] for i in x[2]),
-                sum(counts[i] for i in x[2]),
-                rng.random(),
-            ),
-        )
-        selected.append((best[0], best[1]))
-        used.add(_net_pair(best[0], best[1]))
-        for i in best[2]:
-            counts[i] += 1
-    return selected
+    pools=[]
+    used=set()
+    for idx,(fr,es,kind) in enumerate(sources):
+        group=[]
+        for fr_v,es_v in _variantes(fr,es):
+            key=_net_pair(fr_v,es_v)
+            if key not in used:
+                used.add(key)
+                group.append((fr_v,es_v))
+        rng.shuffle(group)
+        if group:pools.append(group)
+    # Tour de rôle : couvrir tous les exemples avant de répéter une structure.
+    previous={_net_pair(fr,es) for fr,es in list(exclure)+list(historique)}
+    for group in pools:
+        group.sort(key=lambda p:_net_pair(*p) in previous)
+    result=[]
+    while len(result)<n and any(pools):
+        rng.shuffle(pools)
+        for group in pools:
+            if group and len(result)<n:
+                result.append(group.pop(0))
+        pools=[g for g in pools if g]
+    return result
 
 def qcm(niveau,lecon,n=30):
     """30 QCM variés tirés du vocabulaire, des exemples et de la conjugaison."""
