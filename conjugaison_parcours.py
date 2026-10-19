@@ -175,7 +175,7 @@ def page():
         else:st.caption('Estimation du déblocage : effectue des contrôles sur au moins 3 jours distincts, avec une progression mesurable, pour obtenir une date indicative.')
     st.progress(min(1,meilleur),text=f'Meilleur contrôle : {meilleur:.0%} · seuil 95 % · {essais} contrôle(s)')
     description,exemple=EXPLICATIONS[t]
-    tabs=st.tabs(['📚 Leçon','🗒️ Fiche de révision','🧠 QCM','🧪 Contrôle'])
+    tabs=st.tabs(['📚 Leçon','🗒️ Fiche de révision','🧠 QCM','🧪 Contrôle','🔀 Verbes irréguliers'])
     eligibles={v:d for v,d in verbes.items() if formes(v,t,d)}
     with tabs[0]:
         st.subheader(libelles[t])
@@ -184,13 +184,17 @@ def page():
         st.markdown('**Comment utiliser ce temps ?**')
         st.write('Repère les marqueurs temporels et le contexte de la phrase. Apprends d’abord les formes régulières, puis compare les irrégularités avec le tableau ci-dessous.')
         st.markdown('**Trois groupes de verbes espagnols**')
-        groupe=st.selectbox('Groupe régulier',['-ar : hablar','-er : comer','-ir : vivir'],key='conj_groupe_'+t)
-        modeles={'-ar : hablar':'hablar','-er : comer':'comer','-ir : vivir':'vivir'}
-        modele=modeles[groupe]
-        formes_modele=formes(modele,t,verbes.get(modele,[])) if modele in verbes else []
-        if formes_modele and len(formes_modele)==6:
-            st.dataframe(pd.DataFrame({'Personne':PERSONNES,'Forme':formes_modele}),hide_index=True,use_container_width=True)
-        else:st.caption('Ce modèle n’est pas encore disponible pour ce temps dans le catalogue actuel.')
+        modeles=[('-ar : hablar','hablar'),('-er : comer','comer'),('-ir : vivir','vivir')]
+        colonnes=st.columns(3)
+        for col,(etiquette,modele) in zip(colonnes,modeles):
+            with col:
+                st.markdown(f'**{etiquette}**')
+                valeurs=formes(modele,t,verbes[modele]) if modele in verbes else None
+                if valeurs and len(valeurs)==6:
+                    st.dataframe(pd.DataFrame({'Personne':PERSONNES,'Forme':valeurs}),
+                                 hide_index=True,use_container_width=True)
+                else:
+                    st.caption('Formes non disponibles pour ce temps.')
         st.caption('Pour les temps avancés, seuls les verbes dont les formes sont prises en charge sont proposés. Les irrégularités restantes seront enrichies ultérieurement.')
         v=st.selectbox('Verbe',list(eligibles),format_func=lambda x:f'{x} — {eligibles[x][1]}',key='conj_verbe')
         st.dataframe(pd.DataFrame({'Personne':PERSONNES,'Conjugaison':formes(v,t,eligibles[v])}),hide_index=True,use_container_width=True)
@@ -201,6 +205,32 @@ def page():
             with st.expander(f'{v} — {d[1]}'):
                 st.table(pd.DataFrame({'Personne':PERSONNES,'Forme':formes(v,t,d)}))
         st.caption('Méthode : lis la règle, récite les six formes, cache le tableau, écris-les puis vérifie. Révise les erreurs le lendemain et trois jours après.')
+    with tabs[4]:
+        st.subheader(f'Verbes irréguliers — {libelles[t]}')
+        st.caption('Conjugaisons de référence pour le temps sélectionné. '
+                   'Seules les formes disponibles dans le catalogue sont affichées.')
+        irreguliers=['ser','estar','ir','tener','hacer','poder','querer',
+                     'decir','venir','saber','poner','leer','escribir','haber']
+        disponibles=[(v,verbes[v],formes(v,t,verbes[v]))
+                     for v in irreguliers if v in verbes and formes(v,t,verbes[v])]
+        if disponibles:
+            st.markdown('**Toutes les conjugaisons disponibles, visibles simultanément :**')
+            colonnes=st.columns(3)
+            for i,(verbe,donnees,valeurs) in enumerate(disponibles):
+                with colonnes[i % 3]:
+                    st.markdown(f'**{verbe} — {donnees[1]}**')
+                    st.dataframe(
+                        pd.DataFrame({'Personne':PERSONNES,'Forme':valeurs}),
+                        hide_index=True,
+                        use_container_width=True,
+                    )
+        else:
+            st.info('Le catalogue actuel ne contient pas encore de formes vérifiées '
+                    'de verbes irréguliers pour ce temps.')
+        absents=[v for v in irreguliers if v in verbes and v not in [x[0] for x in disponibles]]
+        if absents:
+            st.caption('Non disponibles pour ce temps : '+', '.join(absents)+'. '
+                       'Aucune conjugaison non vérifiée n’est affichée.')
     for tab,typ,taille in [(tabs[2],'QCM',10),(tabs[3],'Contrôle',20)]:
         with tab:
             prefix=f'conj_{typ}_{n}_{t}'
