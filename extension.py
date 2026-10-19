@@ -29,6 +29,9 @@ def parcours():
     </style>''' + '<div class="cecrl-scroll"><table class="cecrl-table"><thead><tr><th scope="col">Compétence</th>'
         + entetes + '</tr></thead><tbody>' + ''.join(lignes) + '</tbody></table></div>',unsafe_allow_html=True)
     st.caption('Sur un petit écran, fais défiler horizontalement le tableau pour voir les niveaux C1 et C2.')
+    st.subheader('⏱️ Repères indicatifs de pratique par niveau')
+    st.dataframe({'Niveau':m.NIVEAUX,'Heures indicatives par niveau':[60,120,180,240,300,360]},hide_index=True,use_container_width=True)
+    st.caption('Objectifs pédagogiques internes, non imposés par le CECRL ; les heures seules ne valident pas un niveau.')
     st.subheader('📚 Objectifs indicatifs de vocabulaire par niveau')
     st.dataframe({'Niveau':m.NIVEAUX,'Objectif indicatif (mots)':[500,1000,2000,3500,5000,7000]},hide_index=True)
     st.caption('Repères pédagogiques internes, non imposés par le CECRL. Les objectifs peuvent être adaptés.')
@@ -72,7 +75,16 @@ def expression():
 
 
 def oral():
-    st.title('🎧 Écoute et compréhension orale — parcours progressif')
+    st.title('🎧 Écoute, compréhension et expression orale')
+    choix=st.radio('Choisis ton entraînement',['🎧 Écoute et oral','👂 Compréhension orale — questions','🎙️ Expression orale — prise de parole'],horizontal=True,key='oral_choix_v17')
+    if choix.startswith('👂'):
+        import entrainement_oral_v17 as entrainement
+        entrainement.comprehension();return
+    if choix.startswith('🎙️'):
+        import entrainement_oral_v17 as entrainement
+        entrainement.expression();return
+    st.divider()
+    st.subheader('Écoute et compréhension orale — parcours progressif')
     st.caption('Jusqu’à 500 énoncés par niveau, construits à partir des exemples des cours. Les énoncés longs peuvent associer deux phrases.')
     disponibles=[n for n in m.NIVEAUX if p.oral_debloque(n)]
     n=m.preference('niveau_suivi','A1')
@@ -124,13 +136,17 @@ def oral():
 def programme():
     st.markdown('## 🇪🇸 ¡Hola! Bienvenido a Mi Español')
     stats=m.statistiques()
-    c1,c2,c3,c4,c5=st.columns(5)
+    c1,c2,c3,c4,c5,c6=st.columns(6)
     c1.metric('Niveau estimé',m.niveau_estime())
     c2.metric('Étude aujourd’hui',f"{stats['minutes']:.0f} min")
     c3.metric('Quiz du jour',stats['tests'])
     c4.metric('XP total',stats['xp'])
     niveau_actuel=m.preference('niveau_suivi','A1')
     c5.metric(f'Mots acquis estimés — {niveau_actuel}',pv.mots_acquis(niveau_actuel))
+    import suivi_temps_v17 as suivi
+    heures=suivi.heures_niveau(niveau_actuel)
+    c6.metric(f'Heures apprises — {niveau_actuel}',f'{heures:.1f} h')
+    st.caption(f'Objectif indicatif {niveau_actuel} : {suivi.OBJECTIFS[niveau_actuel]} h de pratique. Les heures ne valident pas à elles seules un niveau CECRL.')
     st.caption('Estimation basée sur les mots du lexique utilisés dans au moins deux traductions enregistrées correctes ; les QCM ne sont pas encore pris en compte.')
     obj=m.objectif()
     st.progress(min(1,stats['minutes']/obj),text=f"Objectif quotidien : {stats['minutes']:.0f} / {obj} minutes")

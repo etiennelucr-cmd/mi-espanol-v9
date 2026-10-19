@@ -225,6 +225,10 @@ def page():
         st.session_state.coach_messages.append({'role':'assistant','content':reponse})
         st.rerun()
     st.divider()
+    with st.expander('💬 Conversations guidées — mises en situation',expanded=False):
+        import apprentissage_v16 as v16
+        v16.conversation(n)
+    st.divider()
     consolidation(n)
     st.divider()
     st.subheader('📝 Contrôle de validation du thème')

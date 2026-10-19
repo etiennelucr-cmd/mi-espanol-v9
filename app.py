@@ -439,7 +439,19 @@ def defis():
                'les anciennes dates de déblocage ne peuvent pas être reconstituées avec certitude. '
                'Les badges récompensent la régularité, sans certifier un niveau CECRL.')
 
-pages={'📅 Planning de la semaine':pa.page,'🎯 Programme du jour':ext.programme,'🗺️ Parcours CECRL':ext.parcours,'✍️ Expression écrite':ext.expression,'🎧 Écoute et oral':ext.oral,'📚 Cours':cours,'🧪 Contrôles':controle,'🧠 Révisions':revisions,'🗂️ Historique':historique,'📖 Lexique':lexique,'📗 Verbes et conjugaisons':cp.page,'🤖 Coach IA':coach,'🏆 Défis':defis,'🧠 Répétition espacée':lambda:v16.repetition(m.preference('niveau_suivi','A1')),'💬 Conversations guidées':lambda:v16.conversation(m.preference('niveau_suivi','A1')),'📈 Maîtrise durable':lambda:v16.maitrise(m.preference('niveau_suivi','A1'))}
+def controles_et_revisions():
+    title('🧪 Contrôles et révisions évolutives',
+          'Deux entraînements complémentaires, liés au même planning hebdomadaire.')
+    choix=st.radio('Choisis ton activité',
+                   ['🧪 Contrôle noté sur 20','🧠 Révisions évolutives'],
+                   horizontal=True,key='controle_revision_choix')
+    st.divider()
+    if choix.startswith('🧪'):
+        controle()
+    else:
+        revisions()
+
+pages={'📅 Planning de la semaine':pa.page,'🎯 Programme du jour':ext.programme,'🗺️ Parcours CECRL':ext.parcours,'✍️ Expression écrite':ext.expression,'🎧 Écoute et expression orale':ext.oral,'📚 Cours':cours,'🧪 Contrôles et révisions':controles_et_revisions,'🎓 Examens blancs':lambda:__import__('examens_v17').page(),'📖 Lexique':lexique,'📗 Verbes et conjugaisons':cp.page,'🤖 Coach IA':coach,'🏆 Défis':defis,'🧠 Répétition espacée':lambda:v16.repetition(m.preference('niveau_suivi','A1')),'📈 Maîtrise durable':lambda:v16.maitrise(m.preference('niveau_suivi','A1'))}
 sidebar_start=time.perf_counter()
 with st.sidebar:
     _t_header=time.perf_counter()
