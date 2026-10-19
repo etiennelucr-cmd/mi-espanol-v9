@@ -230,7 +230,7 @@ def phrases_traduction(n, lecon, nombre, prefix, dimension):
         st.caption('Correction indicative par comparaison normalisée : une autre traduction correcte peut être refusée.')
     tour=st.session_state.get(prefix+'_tour',0)
     with st.form(prefix+'_form'):
-        reponses=[st.text_input(f'{i+1}. Traduis en espagnol : {fr}',key=f'{prefix}_{tour}_{i}') for i,(fr,es) in enumerate(lot)]
+        reponses=[st.text_input(f'{i+1}. Traduis en {"espagnol" if i%2==0 else "français"} : {fr if i%2==0 else es}',key=f'{prefix}_{tour}_{i}') for i,(fr,es) in enumerate(lot)]
         soumis=st.form_submit_button('Corriger et sauvegarder',type='primary')
     if soumis:
         if any(not r.strip() for r in reponses):
@@ -238,8 +238,9 @@ def phrases_traduction(n, lecon, nombre, prefix, dimension):
             return
         items=[]
         for (fr,es),rep in zip(lot,reponses):
-            ok=ped.production(n,dimension,fr,rep,es)
-            items.append((fr,es,rep,ok))
+            consigne,attendu=(fr,es) if len(items)%2==0 else (es,fr)
+            ok=ped.production(n,dimension,consigne,rep,attendu)
+            items.append((consigne,attendu,rep,ok))
         score=sum(bool(x[3]) for x in items)
         st.session_state[prefix+'_correction']={'score':score,'total':len(lot),'items':items}
         _memoriser_phrases(prefix+'_historique',lot)
@@ -276,15 +277,16 @@ def revisions():
     if len(qs)<20:
         st.warning(f'Seulement {len(qs)} phrases différentes disponibles pour ce thème : la note sur 20 est désactivée tant que le contenu n’est pas enrichi.')
     with st.form(cle+'_form'):
-        reponses=[st.text_input(f'{i+1}. Traduis en espagnol : {fr}',key=f'{cle}_{st.session_state.get(cle+"_tour",0)}_{i}') for i,(fr,es) in enumerate(qs)]
+        reponses=[st.text_input(f'{i+1}. Traduis en {"espagnol" if i%2==0 else "français"} : {fr if i%2==0 else es}',key=f'{cle}_{st.session_state.get(cle+"_tour",0)}_{i}') for i,(fr,es) in enumerate(qs)]
         submit=st.form_submit_button('Corriger et enregistrer',type='primary')
     if submit:
         if len(qs)<20 or any(not x.strip() for x in reponses):st.warning('Il faut 20 phrases disponibles et toutes les réponses pour noter la révision.')
         else:
             details=[]
             for (fr,es),rep in zip(qs,reponses):
-                ok=ped.production(n,'Révision',fr,rep,es)
-                details.append((fr,es,rep,ok))
+                consigne,attendu=(fr,es) if len(details)%2==0 else (es,fr)
+                ok=ped.production(n,'Révision',consigne,rep,attendu)
+                details.append((consigne,attendu,rep,ok))
             score=sum(x[3] for x in details)
             st.session_state[cle+'_correction']=(score,details)
             _memoriser_phrases(cle+'_historique',qs)

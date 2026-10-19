@@ -29,9 +29,138 @@ def _temps(niveau):
 def _net_pair(fr, es):
     return (_net(fr).strip(" .!?¿¡"), _net(es).strip(" .!?¿¡"))
 
+# Phrases bilingues rédigées pour pratiquer le temps du planning.
+# Chaque entrée est (espagnol, français), et non une forme isolée.
+PHRASES_TEMPS = {
+ 'presente': [
+  ('Yo como en casa todos los días.', 'Je mange à la maison tous les jours.'),
+  ('Nosotros estudiamos español por la tarde.', "Nous étudions l’espagnol l’après-midi."),
+  ('Ella vive cerca de la escuela.', "Elle habite près de l’école."),
+  ('¿Tú trabajas los lunes?', 'Est-ce que tu travailles le lundi ?'),
+  ('Mis amigos hablan español.', 'Mes amis parlent espagnol.'),
+  ('Yo escribo una carta a mi hermana.', 'J’écris une lettre à ma sœur.')],
+ 'perfecto': [
+  ('Yo he comido con mi familia.', "J’ai mangé avec ma famille."),
+  ('Esta semana hemos estudiado mucho.', 'Cette semaine, nous avons beaucoup étudié.'),
+  ('Ella ha visitado a sus abuelos.', 'Elle a rendu visite à ses grands-parents.'),
+  ('¿Has terminado tus deberes?', 'As-tu terminé tes devoirs ?'),
+  ('Mis amigos han comprado un libro.', 'Mes amis ont acheté un livre.'),
+  ('Hoy he hablado con mi profesor.', "Aujourd’hui, j’ai parlé avec mon professeur.")],
+ 'indefinido': [
+  ('Ayer compré un libro.', "Hier, j’ai acheté un livre."),
+  ('El sábado visitamos el museo.', 'Samedi, nous avons visité le musée.'),
+  ('Ella habló con su hermano anoche.', 'Elle a parlé avec son frère hier soir.'),
+  ('¿Terminaste el trabajo ayer?', 'As-tu terminé le travail hier ?'),
+  ('Mis amigos llegaron el lunes.', 'Mes amis sont arrivés lundi.'),
+  ('El año pasado viví en Madrid.', "L’année dernière, j’ai habité à Madrid.")],
+ 'imperfecto': [
+  ('Cuando era niño, jugaba en el parque.', 'Quand j’étais enfant, je jouais au parc.'),
+  ('Antes vivíamos cerca del mar.', 'Avant, nous habitions près de la mer.'),
+  ('Ella leía todas las noches.', 'Elle lisait tous les soirs.'),
+  ('¿Estudiabas español en la escuela?', "Étudiais-tu l’espagnol à l’école ?"),
+  ('Los domingos comíamos juntos.', 'Le dimanche, nous mangions ensemble.'),
+  ('Mi abuelo trabajaba en una tienda.', 'Mon grand-père travaillait dans un magasin.')],
+ 'futuro': [
+  ('Mañana estudiaré español.', "Demain, j’étudierai l’espagnol."),
+  ('Nosotros visitaremos el museo.', 'Nous visiterons le musée.'),
+  ('Ella comprará una casa.', 'Elle achètera une maison.'),
+  ('¿Trabajarás el sábado?', 'Travailleras-tu samedi ?'),
+  ('Mis amigos llegarán mañana.', 'Mes amis arriveront demain.'),
+  ('Escribiré una carta esta noche.', "J’écrirai une lettre ce soir.")],
+ 'condicional': [
+  ('Yo compraría una casa más grande.', "J’achèterais une maison plus grande."),
+  ('Nosotros viajaríamos en tren.', 'Nous voyagerions en train.'),
+  ('Ella estudiaría más con tiempo.', 'Elle étudierait davantage si elle avait le temps.'),
+  ('¿Hablarías con el profesor?', 'Parlerais-tu avec le professeur ?'),
+  ('Mis amigos vivirían aquí.', 'Mes amis habiteraient ici.'),
+  ('Yo comería contigo.', 'Je mangerais avec toi.')],
+ 'subj_pres': [
+  ('Quiero que estudies español.', "Je veux que tu étudies l’espagnol."),
+  ('Es importante que lleguemos temprano.', 'Il est important que nous arrivions tôt.'),
+  ('Espero que ella coma con nosotros.', "J’espère qu’elle mangera avec nous."),
+  ('Dudo que ellos vivan aquí.', "Je doute qu’ils habitent ici."),
+  ('Prefiero que hables despacio.', 'Je préfère que tu parles lentement.'),
+  ('Es necesario que trabajemos juntos.', 'Il faut que nous travaillions ensemble.')],
+ 'imperativo': [
+  ('¡Habla más despacio!', 'Parle plus lentement !'),
+  ('¡Estudia esta lección!', 'Étudie cette leçon !'),
+  ('¡Comed con nosotros!', 'Mangez avec nous !'),
+  ('¡Escriba su nombre aquí!', 'Écrivez votre nom ici !'),
+  ('¡Escuchad al profesor!', 'Écoutez le professeur !'),
+  ('¡Trabajemos juntos!', 'Travaillons ensemble !')],
+ 'pluscuamperfecto': [
+  ('Yo ya había comido.', "J’avais déjà mangé."),
+  ('Nosotros habíamos terminado antes.', 'Nous avions terminé auparavant.'),
+  ('Ella había estudiado la lección.', 'Elle avait étudié la leçon.'),
+  ('¿Habías hablado con Ana?', 'Avais-tu parlé avec Ana ?'),
+  ('Ellos habían visitado la ciudad.', 'Ils avaient visité la ville.'),
+  ('Yo había trabajado allí.', "J’avais travaillé là-bas.")],
+ 'subj_imp': [
+  ('Quería que estudiaras español.', "Je voulais que tu étudies l’espagnol."),
+  ('Era importante que llegáramos pronto.', 'Il était important que nous arrivions vite.'),
+  ('Esperaba que ella comiera con nosotros.', "J’espérais qu’elle mange avec nous."),
+  ('Dudaba que ellos vivieran aquí.', "Je doutais qu’ils habitent ici."),
+  ('Prefería que hablaras despacio.', 'Je préférais que tu parles lentement.'),
+  ('Era necesario que trabajáramos juntos.', 'Il fallait que nous travaillions ensemble.')],
+ 'futuro_perfecto': [
+  ('Mañana ya habré terminado.', "Demain, j’aurai déjà terminé."),
+  ('Para entonces habremos llegado.', "D’ici là, nous serons arrivés."),
+  ('Ella habrá estudiado todo.', 'Elle aura tout étudié.'),
+  ('¿Habrás comido antes de salir?', 'Auras-tu mangé avant de partir ?'),
+  ('Ellos habrán visitado el museo.', 'Ils auront visité le musée.'),
+  ('Yo habré escrito la carta.', "J’aurai écrit la lettre.")],
+ 'condicional_compuesto': [
+  ('Yo habría estudiado más.', "J’aurais étudié davantage."),
+  ('Nosotros habríamos llegado antes.', 'Nous serions arrivés plus tôt.'),
+  ('Ella habría comprado el libro.', 'Elle aurait acheté le livre.'),
+  ('¿Habrías hablado con él?', 'Aurais-tu parlé avec lui ?'),
+  ('Ellos habrían visitado el museo.', 'Ils auraient visité le musée.'),
+  ('Yo habría terminado a tiempo.', "J’aurais terminé à temps.")],
+ 'subj_perfecto': [
+  ('Espero que hayas comido.', "J’espère que tu as mangé."),
+  ('Me alegra que hayamos llegado.', 'Je suis heureux que nous soyons arrivés.'),
+  ('Dudo que ella haya terminado.', "Je doute qu’elle ait terminé."),
+  ('Es posible que hayan estudiado.', 'Il est possible qu’ils aient étudié.'),
+  ('Me sorprende que hayas escrito.', 'Je suis surpris que tu aies écrit.'),
+  ('Espero que él haya trabajado.', "J’espère qu’il a travaillé.")],
+ 'subj_pluscuam': [
+  ('Ojalá hubieras estudiado más.', 'Si seulement tu avais étudié davantage.'),
+  ('Si hubiéramos salido antes, habríamos llegado.', 'Si nous étions partis plus tôt, nous serions arrivés.'),
+  ('Quería que ella hubiera terminado.', "Je voulais qu’elle ait terminé."),
+  ('Dudaba que ellos hubieran llegado.', "Je doutais qu’ils soient arrivés."),
+  ('Me habría gustado que hubieras venido.', "J’aurais aimé que tu sois venu."),
+  ('Era imposible que hubieran sabido eso.', "Il était impossible qu’ils aient su cela.")],
+ 'preterito_anterior': [
+  ('Apenas hube terminado, salí.', 'À peine eus-je terminé que je sortis.'),
+  ('Cuando hubo comido, se marchó.', "Lorsqu’il eut mangé, il partit."),
+  ('En cuanto hubimos llegado, empezó la reunión.', 'Dès que nous fûmes arrivés, la réunion commença.'),
+  ('Apenas hubo hablado, calló.', "À peine eut-il parlé qu’il se tut."),
+  ('Cuando hubieron terminado, salieron.', "Lorsqu’ils eurent terminé, ils sortirent."),
+  ('Tan pronto como hube leído la carta, respondí.', "Dès que j’eus lu la lettre, je répondis.")],
+ 'futuro_subj': [
+  ('Quien llegare tarde deberá esperar.', 'Quiconque arrivera en retard devra attendre.'),
+  ('Si alguien incumpliere la norma, será sancionado.', 'Si quelqu’un enfreint la règle, il sera sanctionné.'),
+  ('Donde fueres, haz lo que vieres.', 'À Rome, fais comme les Romains.'),
+  ('Quien tuviere dudas podrá preguntar.', 'Quiconque aura des doutes pourra poser des questions.'),
+  ('Si el solicitante presentare pruebas, serán examinadas.', 'Si le demandeur présente des preuves, elles seront examinées.'),
+  ('Quien así lo deseare podrá participar.', 'Quiconque le souhaitera pourra participer.')],
+ 'futuro_subj_perfecto': [
+  ('Quien hubiere terminado podrá salir.', 'Quiconque aura terminé pourra sortir.'),
+  ('Si alguien hubiere incumplido la norma, será sancionado.', 'Si quelqu’un a enfreint la règle, il sera sanctionné.'),
+  ('Quien hubiere presentado la solicitud recibirá respuesta.', 'Quiconque aura déposé la demande recevra une réponse.'),
+  ('Si el juez hubiere dictado sentencia, se notificará.', 'Si le juge a rendu son jugement, celui-ci sera notifié.'),
+  ('Quien hubiere pagado quedará inscrito.', 'Quiconque aura payé sera inscrit.'),
+  ('Si hubieren llegado los documentos, los revisaremos.', 'Si les documents sont arrivés, nous les examinerons.')],
+}
+
 def _phrases_sources(lecon, niveau):
     """Uniquement des traductions attestées dans le contenu pédagogique."""
     base = _sources(lecon)
+    try:
+        code, _ = _temps(niveau)
+        base.extend((fr, es, 'temps du planning') for es, fr in PHRASES_TEMPS.get(code, []))
+    except (KeyError, IndexError, TypeError):
+        pass
     try:
         code, _ = _temps(niveau)
         exemple = conj.EXPLICATIONS.get(code, ('', ''))[1]
@@ -92,37 +221,25 @@ def _variantes(fr, es):
                    es_adv + ', ' + es[0].lower() + es[1:])
 
 def phrases(niveau, lecon, n=20, exclure=(), historique=()):
-    """Sélectionne au plus n traductions différentes, sans fusion d'exemples.
+    """Paires authentiques, sans collage ni variation artificielle.
 
-    Priorité à la couverture du thème et aux formulations inédites.
-    Ne fabrique pas de fausses traductions pour atteindre artificiellement n.
+    La direction est choisie à l'affichage : une phrase sur deux sera
+    espagnol vers français. Si la leçon contient moins de 20 paires,
+    des paires seront revues dans l'autre sens.
     """
     rng=random.SystemRandom()
     sources=_phrases_sources(lecon,niveau)
-    rng.shuffle(sources)
-    pools=[]
-    used=set()
-    for idx,(fr,es,kind) in enumerate(sources):
-        group=[]
-        for fr_v,es_v in _variantes(fr,es):
-            key=_net_pair(fr_v,es_v)
-            if key not in used:
-                used.add(key)
-                group.append((fr_v,es_v))
-        rng.shuffle(group)
-        if group:pools.append(group)
-    # Tour de rôle : couvrir tous les exemples avant de répéter une structure.
     previous={_net_pair(fr,es) for fr,es in list(exclure)+list(historique)}
-    for group in pools:
-        group.sort(key=lambda p:_net_pair(*p) in previous)
-    result=[]
-    while len(result)<n and any(pools):
-        rng.shuffle(pools)
-        for group in pools:
-            if group and len(result)<n:
-                result.append(group.pop(0))
-        pools=[g for g in pools if g]
-    return result
+    rng.shuffle(sources)
+    sources.sort(key=lambda x:(_net_pair(x[0],x[1]) in previous, x[2]!='temps du planning'))
+    pairs=[(fr,es) for fr,es,_ in sources]
+    if not pairs:return []
+    # Ne jamais répéter une paire dans la même direction.
+    if len(pairs)>=n:return pairs[:n]
+    # Le lot a deux directions : 10 de chaque pour un lot de 20.
+    # Chaque paire peut apparaître une fois dans chaque direction.
+    k=min(n,len(pairs)*2)
+    return (pairs+list(reversed(pairs)))[:k]
 
 def qcm(niveau,lecon,n=30):
     """30 QCM variés tirés du vocabulaire, des exemples et de la conjugaison."""
