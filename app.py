@@ -442,10 +442,15 @@ def defis():
 pages={'📅 Planning de la semaine':pa.page,'🎯 Programme du jour':ext.programme,'🗺️ Parcours CECRL':ext.parcours,'✍️ Expression écrite':ext.expression,'🎧 Écoute et oral':ext.oral,'📚 Cours':cours,'🧪 Contrôles':controle,'🧠 Révisions':revisions,'🗂️ Historique':historique,'📖 Lexique':lexique,'📗 Verbes et conjugaisons':cp.page,'🤖 Coach IA':coach,'🏆 Défis':defis,'🧠 Répétition espacée':lambda:v16.repetition(m.preference('niveau_suivi','A1')),'💬 Conversations guidées':lambda:v16.conversation(m.preference('niveau_suivi','A1')),'📈 Maîtrise durable':lambda:v16.maitrise(m.preference('niveau_suivi','A1'))}
 sidebar_start=time.perf_counter()
 with st.sidebar:
+    _t_header=time.perf_counter()
     v16.entete()
-    niveau_suivi=st.selectbox('Niveau suivi',m.NIVEAUX,index=m.NIVEAUX.index(m.preference('niveau_suivi','A1')) if m.preference('niveau_suivi','A1') in m.NIVEAUX else 0,key='sidebar_niveau')
-    if m.preference('niveau_suivi')!=niveau_suivi:m.definir_preference('niveau_suivi',niveau_suivi)
+    diagnostic.record('En-tête Streamlit',time.perf_counter()-_t_header)
+    niveau_enregistre=m.preference('niveau_suivi','A1')
+    niveau_suivi=st.selectbox('Niveau suivi',m.NIVEAUX,index=m.NIVEAUX.index(niveau_enregistre) if niveau_enregistre in m.NIVEAUX else 0,key='sidebar_niveau')
+    if niveau_enregistre!=niveau_suivi:m.definir_preference('niveau_suivi',niveau_suivi)
+    _t_progression=time.perf_counter()
     valides,total=pv.progression(niveau_suivi)
+    diagnostic.record('Progression des thèmes',time.perf_counter()-_t_progression)
     pourcentage=100*valides/total if total else 0
     st.metric('Progression totale du niveau',f'{pourcentage:.1f} %')
     st.progress(valides/total if total else 0)

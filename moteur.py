@@ -1,5 +1,6 @@
 """Moteur pédagogique adaptatif avec persistance PostgreSQL (Supabase)."""
 import json, math, random, time
+from functools import lru_cache
 import diagnostic_v16_2 as diagnostic
 from datetime import datetime, timedelta, date
 from decimal import Decimal
@@ -44,8 +45,10 @@ class _Connection:
     def execute(self, query, params=()):
         if query.lstrip().split(None,1)[0].upper() in {'INSERT','UPDATE','DELETE','REPLACE'}:
             # L'écriture doit être visible dès le prochain affichage.
-            for fn in (scores_coach_par_niveau, scores_conjugaison_par_niveau):
+            for fn in (scores_coach_par_niveau, scores_conjugaison_par_niveau, progression_coach_par_niveau):
                 fn.clear()
+            # Chaque écriture invalide les lectures mémorisées de cette session.
+            st.session_state.pop('_v163_sql_cache', None)
         # Les requêtes existantes de moteur.py utilisent des marqueurs SQLite '?'.
         # Elles ne contiennent pas de '?' littéral dans le SQL actuel.
         # Compatibilité PostgreSQL : ROUND(double precision, 1) nécessite numeric.
@@ -140,7 +143,30 @@ def init():
     return None
 
 def rows(sql,args=()):
-    with connexion() as c:return [dict(x) for x in c.execute(sql,args).fetchall()]
+    """Cache SELECT court, par session, invalidé à chaque écriture SQL.
+
+    Le cache ne traverse pas les sessions utilisateurs et ne stocke pas les
+    résultats de requêtes modifiantes. Le délai de 45 s limite les données
+    obsolètes si une autre session modifie la base.
+    """
+    sql_str=sql.lstrip()
+    cacheable=sql_str.upper().startswith('SELECT')
+    if cacheable:
+        key=(sql,tuple(str(x) for x in args))
+        cache=st.session_state.setdefault('_v163_sql_cache',{})
+        now=time.monotonic()
+        entry=cache.get(key)
+        if entry and now-entry[0]<45:
+            diagnostic.record('Lectures SQL évitées (cache)',0)
+            return [dict(row) for row in entry[1]]
+    with connexion() as c:
+        result=[dict(x) for x in c.execute(sql,args).fetchall()]
+    if cacheable:
+        cache[key]=(time.monotonic(),result)
+        if len(cache)>250:
+            # Garde une taille bornée, évite l'accumulation de données.
+            for k in list(cache)[:len(cache)-200]:cache.pop(k,None)
+    return result
 
 def objectif():
     return int(rows("SELECT valeur FROM objectifs WHERE cle='minutes'")[0]['valeur'])
