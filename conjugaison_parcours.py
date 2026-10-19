@@ -126,9 +126,12 @@ def progression(niveau):
 
 def estimation(niveau):
     """Projection indicative à partir de contrôles distincts sur plusieurs jours."""
-    rows=m.rows("""SELECT date,temps,MAX(CAST(score AS REAL)/total) ratio
-        FROM conjugaison_tests WHERE niveau=? AND type='Contrôle' AND total>=20
-        GROUP BY substr(date,1,10),temps ORDER BY date""",(niveau,))
+    rows=m.rows("""SELECT SUBSTRING(CAST(date AS TEXT) FROM 1 FOR 10) AS date,
+               temps, MAX(CAST(score AS DOUBLE PRECISION)/NULLIF(total,0)) AS ratio
+        FROM conjugaison_tests
+        WHERE niveau=? AND type='Contrôle' AND total>=20
+        GROUP BY SUBSTRING(CAST(date AS TEXT) FROM 1 FOR 10), temps
+        ORDER BY SUBSTRING(CAST(date AS TEXT) FROM 1 FOR 10)""",(niveau,))
     jours=sorted(set(r['date'][:10] for r in rows))
     if len(jours)<3 or (date.fromisoformat(jours[-1])-date.fromisoformat(jours[0])).days<2:
         return None
