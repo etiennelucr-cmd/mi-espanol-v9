@@ -80,14 +80,47 @@ def _record(n,item,correct):
                       'last':date.today().isoformat(),'theme':item['theme']}
     _save(n,data)
 
+def _equivalentes(reponse, attendu):
+    """Tolère quelques synonymes connus sans ignorer les erreurs grammaticales."""
+    def canonical(x):
+        x=_norm(x)
+        for old,new in [('encima de','sobre'),('arriba de','sobre'),('dentro de','en'),('al lado de','junto a')]:
+            x=re.sub(r'(?<!\w)'+re.escape(old)+r'(?!\w)',new,x)
+        return x
+    return bool(reponse.strip()) and canonical(reponse)==canonical(attendu)
+
 def repetition(n):
     st.title('🧠 Répétition espacée')
     st.caption('Les phrases reviennent après 1, 3, 7, 14, 30 puis 60 jours de réussites consécutives. Une erreur réinitialise le cycle.')
     items=_items(n); data=_load(n); today=date.today().isoformat()
     due=[x for x in items if _due(x,data,today)]
     st.metric('Phrases à revoir aujourd’hui',len(due))
-    if not due:st.success('Aucune phrase à revoir aujourd’hui pour le thème prioritaire.');return
     key='v16_review_'+n
+    feedback_key='v16_feedback_'+n
+    feedback=st.session_state.get(feedback_key)
+    if feedback:
+        if feedback['correct']:
+            st.success('Bonne réponse ! La révision a été enregistrée.')
+        else:
+            st.warning('Réponse proposée : '+feedback['expected'])
+            st.caption('Si ta traduction est aussi correcte, tu peux la valider sans pénalité.')
+            if not feedback.get('confirmed') and st.button('Ma réponse est aussi correcte',key='v16_accept_'+n):
+                _record(n,feedback['item'],True)
+                st.session_state[feedback_key]={'correct':True,'expected':feedback['expected'],'item':feedback['item']}
+                st.rerun()
+            if not feedback.get('confirmed') and st.button('Je me suis trompé',key='v16_wrong_'+n):
+                _record(n,feedback['item'],False)
+                st.session_state[feedback_key]={'correct':False,'confirmed':True,'expected':feedback['expected'],'item':feedback['item']}
+                st.rerun()
+        if feedback.get('confirmed') or feedback['correct']:
+            if st.button('Phrase suivante',key='v16_next_'+n):
+                st.session_state.pop(feedback_key,None)
+                st.session_state.pop(key,None)
+                st.rerun()
+        return
+    if not due:
+        st.success('Aucune phrase à revoir aujourd’hui pour le thème prioritaire.')
+        return
     if key not in st.session_state or st.session_state[key] not in [x['id'] for x in due]:
         st.session_state[key]=random.choice(due)['id']
     item=next(x for x in due if x['id']==st.session_state[key])
@@ -96,13 +129,13 @@ def repetition(n):
         response=st.text_input('Ta traduction',key='v16_srs_answer_'+item['id'])
         submit=st.form_submit_button('Corriger et enregistrer')
     if submit:
-        correct=_norm(response)==_norm(item['es'])
-        _record(n,item,correct)
-        if correct:st.success('Bonne réponse !')
-        else:st.warning('Réponse attendue : '+item['es'])
-        st.caption('Correction automatique stricte : une traduction équivalente peut être refusée.')
-        st.session_state.pop(key,None)
-        st.button('Phrase suivante',on_click=st.rerun)
+        if not response.strip():
+            st.warning('Écris une traduction avant de corriger.')
+            return
+        correct=_equivalentes(response,item['es'])
+        if correct:_record(n,item,True)
+        st.session_state[feedback_key]={'correct':correct,'expected':item['es'],'item':item}
+        st.rerun()
 
 DIALOGUES={
  'Restaurant':[('Hola, ¿tiene una mesa para dos?', 'Demande une table pour deux personnes.'),
