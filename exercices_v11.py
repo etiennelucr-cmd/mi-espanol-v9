@@ -26,37 +26,76 @@ def _temps(niveau):
     temps=conj.PARCOURS[niveau]
     return temps[j if j is not None else 0]
 
-def phrases(niveau,lecon,n=20,exclure=()):
-    """Phrases authentiques puis combinaisons de deux propositions attestées.
-    Ne crée pas de fausses conjugaisons : l'original reste inchangé.
-    """
-    base=_sources(lecon)
-    code,_=_temps(niveau)
-    exemple=conj.EXPLICATIONS.get(code,('', ''))[1]
-    if ' — ' in exemple:
-        es,fr=exemple.split(' — ',1)
-        base.append((fr.strip(),es.strip(),'fiche de conjugaison'))
-    if not base:return []
-    rng=random.SystemRandom()
-    pool=[(fr,es) for fr,es,_ in base]
-    # Phrases plus longues et variées en combinant deux énoncés complets.
-    if len(base)>1:
-        for a in base:
-            for b in base:
-                if a==b:continue
-                fr1,es1,_=a;fr2,es2,_=b
-                pool.append((fr1.rstrip(' .!?')+'. '+fr2,es1.rstrip(' .!?')+'. '+es2))
-    pool=list(dict.fromkeys(pool))
-    previous={tuple(x) for x in exclure}
-    rng.shuffle(pool)
-    # Priorité aux traductions erronées de ce thème, puis aux énoncés inédits.
+def _net_pair(fr, es):
+    return (_net(fr).strip(" .!?¿¡"), _net(es).strip(" .!?¿¡"))
+
+def _phrases_sources(lecon, niveau):
+    """Uniquement des traductions attestées dans le contenu pédagogique."""
+    base = _sources(lecon)
     try:
-        erreurs=m.rows('SELECT consigne,attendu FROM productions WHERE niveau=? AND valide=0 ORDER BY id DESC LIMIT 200',(niveau,))
-        fautes={(r['consigne'],r['attendu']) for r in erreurs}
-    except Exception:
-        fautes=set()
-    pool.sort(key=lambda x:(x in previous,x not in fautes))
-    return pool[:n]
+        code, _ = _temps(niveau)
+        exemple = conj.EXPLICATIONS.get(code, ('', ''))[1]
+        if ' — ' in exemple:
+            es, fr = exemple.split(' — ', 1)
+            if es.strip() and fr.strip():
+                base.append((fr.strip(), es.strip(), 'conjugaison'))
+    except (KeyError, IndexError, TypeError):
+        pass
+    seen = set()
+    distinct = []
+    for fr, es, kind in base:
+        key = _net_pair(fr, es)
+        if key not in seen:
+            seen.add(key)
+            distinct.append((fr.strip(), es.strip(), kind))
+    return distinct
+
+def phrases(niveau, lecon, n=20, exclure=(), historique=()):
+    """20 énoncés distincts et équilibrés, issus de la leçon et du temps étudié.
+
+    Les énoncés à deux phrases préservent exactement les traductions attestées.
+    Les paires inversées ne comptent pas comme de nouveaux exercices.
+    """
+    sources = _phrases_sources(lecon, niveau)
+    if not sources:
+        return []
+    rng = random.SystemRandom()
+    rng.shuffle(sources)
+    pool = []
+    # Chaque exemple peut être interrogé individuellement.
+    for i, (fr, es, _) in enumerate(sources):
+        pool.append((fr, es, (i,)))
+    # Combinaisons de DEUX exemples différents : pas de répétition interne.
+    for i in range(len(sources)):
+        for j in range(i + 1, len(sources)):
+            fr1, es1, _ = sources[i]
+            fr2, es2, _ = sources[j]
+            pool.append((fr1.rstrip(' .!?') + '. ' + fr2,
+                         es1.rstrip(' .!?') + '. ' + es2, (i, j)))
+    rng.shuffle(pool)
+    previous = {_net_pair(fr, es) for fr, es in list(exclure) + list(historique)}
+    counts = {i: 0 for i in range(len(sources))}
+    selected = []
+    used = set()
+    # On privilégie les énoncés nouveaux et une couverture équilibrée des exemples.
+    for _ in range(min(n, len(pool))):
+        candidates = [x for x in pool if _net_pair(x[0], x[1]) not in used]
+        if not candidates:
+            break
+        best = min(
+            candidates,
+            key=lambda x: (
+                _net_pair(x[0], x[1]) in previous,
+                max(counts[i] for i in x[2]),
+                sum(counts[i] for i in x[2]),
+                rng.random(),
+            ),
+        )
+        selected.append((best[0], best[1]))
+        used.add(_net_pair(best[0], best[1]))
+        for i in best[2]:
+            counts[i] += 1
+    return selected
 
 def qcm(niveau,lecon,n=30):
     """30 QCM variés tirés du vocabulaire, des exemples et de la conjugaison."""

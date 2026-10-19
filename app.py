@@ -1,3 +1,4 @@
+import json
 """Mi Español V6 — cours enrichis et contrôles /20 avec remédiation."""
 import csv, io, json, random, time
 from datetime import date,datetime,timedelta
@@ -189,6 +190,23 @@ def cours():
         st.session_state[cle_qcm+'_questions']=st.session_state[cle_qcm]
         st.rerun()
 
+def _historique_phrases(cle):
+    try:
+        valeur=m.preference(cle, '[]')
+        data=json.loads(valeur) if isinstance(valeur,str) else []
+        return [tuple(x) for x in data if isinstance(x,list) and len(x)==2]
+    except (ValueError,TypeError):
+        return []
+
+def _memoriser_phrases(cle, phrases):
+    anciens=_historique_phrases(cle)
+    ensemble={tuple(x) for x in anciens}
+    for paire in phrases:
+        if tuple(paire) not in ensemble:
+            anciens.append(tuple(paire))
+            ensemble.add(tuple(paire))
+    m.definir_preference(cle,json.dumps(anciens[-300:],ensure_ascii=False))
+
 def phrases_traduction(n, lecon, nombre, prefix, dimension):
     """Phrases contextualisées ; aucune écriture avant validation explicite."""
     if not lecon:
@@ -196,7 +214,7 @@ def phrases_traduction(n, lecon, nombre, prefix, dimension):
         return
     key=prefix+'_lot'
     if key not in st.session_state:
-        st.session_state[key]=ev.phrases(n,lecon,nombre)
+        st.session_state[key]=ev.phrases(n,lecon,nombre,historique=_historique_phrases(prefix+'_historique'))
     lot=st.session_state[key]
     if len(lot)<nombre:
         st.warning(f'{len(lot)} phrase(s) disponibles pour ce thème : {nombre} demandées. Aucun contenu inventé.')
@@ -224,7 +242,8 @@ def phrases_traduction(n, lecon, nombre, prefix, dimension):
             items.append((fr,es,rep,ok))
         score=sum(bool(x[3]) for x in items)
         st.session_state[prefix+'_correction']={'score':score,'total':len(lot),'items':items}
-        st.session_state[key]=ev.phrases(n,lecon,nombre,exclure=lot)
+        _memoriser_phrases(prefix+'_historique',lot)
+        st.session_state[key]=ev.phrases(n,lecon,nombre,exclure=lot,historique=_historique_phrases(prefix+'_historique'))
         st.session_state[prefix+'_tour']=tour+1
         st.rerun()
 
@@ -247,7 +266,7 @@ def revisions():
     st.info(f'📅 Thème prioritaire : {lecon["titre"]} · Temps : {pa.priorites(n)[1]}')
     import pedagogie as ped
     cle=f'revision_phrases_{n}_{lecon["id"]}'
-    if cle not in st.session_state:st.session_state[cle]=ev.phrases(n,lecon,20)
+    if cle not in st.session_state:st.session_state[cle]=ev.phrases(n,lecon,20,historique=_historique_phrases(cle+'_historique'))
     previous=st.session_state.pop(cle+'_correction',None)
     if previous:
         st.metric('Dernière révision',f'{previous[0]}/20')
@@ -268,7 +287,8 @@ def revisions():
                 details.append((fr,es,rep,ok))
             score=sum(x[3] for x in details)
             st.session_state[cle+'_correction']=(score,details)
-            st.session_state[cle]=ev.phrases(n,lecon,20,exclure=qs)
+            _memoriser_phrases(cle+'_historique',qs)
+            st.session_state[cle]=ev.phrases(n,lecon,20,exclure=qs,historique=_historique_phrases(cle+'_historique'))
             st.session_state[cle+'_tour']=st.session_state.get(cle+'_tour',0)+1
             st.rerun()
 
