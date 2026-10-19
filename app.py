@@ -1,6 +1,7 @@
 import json
 """Mi Español V6 — cours enrichis et contrôles /20 avec remédiation."""
 import csv, io, json, random, time
+import diagnostic_v16_2 as diagnostic
 from datetime import date,datetime,timedelta
 import pandas as pd
 import requests
@@ -439,6 +440,7 @@ def defis():
                'Les badges récompensent la régularité, sans certifier un niveau CECRL.')
 
 pages={'📅 Planning de la semaine':pa.page,'🎯 Programme du jour':ext.programme,'🗺️ Parcours CECRL':ext.parcours,'✍️ Expression écrite':ext.expression,'🎧 Écoute et oral':ext.oral,'📚 Cours':cours,'🧪 Contrôles':controle,'🧠 Révisions':revisions,'🗂️ Historique':historique,'📖 Lexique':lexique,'📗 Verbes et conjugaisons':cp.page,'🤖 Coach IA':coach,'🏆 Défis':defis,'🧠 Répétition espacée':lambda:v16.repetition(m.preference('niveau_suivi','A1')),'💬 Conversations guidées':lambda:v16.conversation(m.preference('niveau_suivi','A1')),'📈 Maîtrise durable':lambda:v16.maitrise(m.preference('niveau_suivi','A1'))}
+sidebar_start=time.perf_counter()
 with st.sidebar:
     v16.entete()
     niveau_suivi=st.selectbox('Niveau suivi',m.NIVEAUX,index=m.NIVEAUX.index(m.preference('niveau_suivi','A1')) if m.preference('niveau_suivi','A1') in m.NIVEAUX else 0,key='sidebar_niveau')
@@ -468,4 +470,10 @@ with st.sidebar:
     st.divider()
     page=st.radio('Navigation',list(pages))
     st.caption('Estimations internes, non certificatives · SQLite local')
-pages[page]()
+diagnostic.record("Barre latérale et navigation",time.perf_counter()-sidebar_start)
+page_start=time.perf_counter()
+try:
+    pages[page]()
+finally:
+    diagnostic.record("Page sélectionnée",time.perf_counter()-page_start)
+    diagnostic.report()

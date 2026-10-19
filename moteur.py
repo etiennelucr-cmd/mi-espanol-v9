@@ -1,5 +1,6 @@
 """Moteur pédagogique adaptatif avec persistance PostgreSQL (Supabase)."""
-import json, math, random
+import json, math, random, time
+import diagnostic_v16_2 as diagnostic
 from datetime import datetime, timedelta, date
 from decimal import Decimal
 from pathlib import Path
@@ -64,7 +65,11 @@ class _Connection:
             cur = self._conn.execute(query, params)
             row = cur.fetchone()
             return _Cursor(cur, row['id'] if row else None)
-        return _Cursor(self._conn.execute(query, params))
+        start=time.perf_counter()
+        try:
+            return _Cursor(self._conn.execute(query, params))
+        finally:
+            diagnostic.record('Exécution SQL',time.perf_counter()-start)
 
     def executemany(self, query, seq_params):
         # Compatibilité PostgreSQL : ROUND(double precision, 1) nécessite numeric.
@@ -122,7 +127,12 @@ def progression_coach_par_niveau(niveau):
 @contextmanager
 def connexion():
     # pool.connection() rend la connexion au pool et gère commit/rollback.
-    with _pool_postgres().connection() as raw:
+    start=time.perf_counter()
+    pool=_pool_postgres()
+    diagnostic.record('Accès au pool PostgreSQL',time.perf_counter()-start)
+    start=time.perf_counter()
+    with pool.connection() as raw:
+        diagnostic.record('Attente connexion PostgreSQL',time.perf_counter()-start)
         yield _Connection(raw)
 
 def init():
