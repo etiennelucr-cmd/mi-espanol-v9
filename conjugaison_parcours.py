@@ -126,20 +126,14 @@ def progression(niveau):
 
 def estimation(niveau):
     """Projection indicative à partir de contrôles distincts sur plusieurs jours."""
-    # Regroupement en Python pour éviter les incompatibilités SQL PostgreSQL.
-    rows=m.rows("""SELECT date, temps, score, total
-        FROM conjugaison_tests
-        WHERE niveau=? AND type='Contrôle' AND total>=20
-        ORDER BY date""",(niveau,))
-    by_day=defaultdict(dict)
-    for r in rows:
-        jour=str(r['date'])[:10]
-        temps=r['temps']
-        ratio=float(r['score'])/float(r['total'])
-        by_day[jour][temps]=max(ratio,by_day[jour].get(temps,0))
-    jours=sorted(by_day)
+    rows=m.rows("""SELECT date,temps,MAX(CAST(score AS REAL)/total) ratio
+        FROM conjugaison_tests WHERE niveau=? AND type='Contrôle' AND total>=20
+        GROUP BY substr(date,1,10),temps ORDER BY date""",(niveau,))
+    jours=sorted(set(r['date'][:10] for r in rows))
     if len(jours)<3 or (date.fromisoformat(jours[-1])-date.fromisoformat(jours[0])).days<2:
         return None
+    by_day=defaultdict(dict)
+    for r in rows:by_day[r['date'][:10]][r['temps']]=max(r['ratio'],by_day[r['date'][:10]].get(r['temps'],0))
     cumul={t:0 for t,_ in PARCOURS[niveau]}
     serie=[]
     for jour in jours:
@@ -158,7 +152,7 @@ def page():
     init()
     verbes=json.loads((Path(__file__).resolve().parent/'verbes.json').read_text(encoding='utf-8'))
     st.title('📗 Verbes et conjugaisons — parcours A1 → C2')
-    st.caption('Tirages adaptatifs : erreurs prioritaires, acquis espacés et nouveaux exercices après chaque correction. Leçons, fiches de révision, QCM et contrôles. Chaque temps est validé à 95 % minimum sur un contrôle de 20 questions (19/20). Progression sauvegardée dans Supabase.')
+    st.caption('Tirages adaptatifs : erreurs prioritaires, acquis espacés et nouveaux exercices après chaque correction. Leçons, fiches de révision, QCM et contrôles. Chaque temps est validé à 95 % minimum sur un contrôle de 20 questions (19/20). Progression sauvegardée dans SQLite.')
     acces=autorisations()
     cols=st.columns(6)
     for col,n in zip(cols,m.NIVEAUX):
@@ -189,6 +183,16 @@ def page():
         st.subheader(libelles[t])
         st.write(description)
         st.info(exemple)
+        st.markdown('**Comment utiliser ce temps ?**')
+        st.write('Repère les marqueurs temporels et le contexte de la phrase. Apprends d’abord les formes régulières, puis compare les irrégularités avec le tableau ci-dessous.')
+        st.markdown('**Trois groupes de verbes espagnols**')
+        groupe=st.selectbox('Groupe régulier',['-ar : hablar','-er : comer','-ir : vivir'],key='conj_groupe_'+t)
+        modeles={'-ar : hablar':'hablar','-er : comer':'comer','-ir : vivir':'vivir'}
+        modele=modeles[groupe]
+        formes_modele=formes(modele,t,verbes.get(modele,[])) if modele in verbes else []
+        if formes_modele and len(formes_modele)==6:
+            st.dataframe(pd.DataFrame({'Personne':PERSONNES,'Forme':formes_modele}),hide_index=True,use_container_width=True)
+        else:st.caption('Ce modèle n’est pas encore disponible pour ce temps dans le catalogue actuel.')
         st.caption('Pour les temps avancés, seuls les verbes dont les formes sont prises en charge sont proposés. Les irrégularités restantes seront enrichies ultérieurement.')
         v=st.selectbox('Verbe',list(eligibles),format_func=lambda x:f'{x} — {eligibles[x][1]}',key='conj_verbe')
         st.dataframe(pd.DataFrame({'Personne':PERSONNES,'Conjugaison':formes(v,t,eligibles[v])}),hide_index=True,use_container_width=True)

@@ -190,13 +190,15 @@ def page():
     actuel=next((i for i,v in enumerate(acquis) if not v),len(lecons)-1)
     st.progress(sum(acquis)/len(lecons),text=f'{sum(acquis)}/{len(lecons)} thèmes validés ({sum(acquis)/len(lecons):.0%})')
     st.info('📌 Thème prioritaire : **'+lecons[actuel]['titre']+'**. Il reste au programme jusqu’à un contrôle à 19/20. Les thèmes suivants restent verrouillés.')
-    for i,l in enumerate(lecons):
-        statut='✅' if acquis[i] else ('📖' if i==actuel else '🔒')
-        st.caption(f'{statut} {i+1}. {l["titre"]}')
+    with st.expander('Afficher tous les thèmes du niveau',expanded=False):
+        for i,l in enumerate(lecons):
+            statut='✅' if acquis[i] else ('📖' if i==actuel else '🔒')
+            st.caption(f'{statut} {i+1}. {l["titre"]}')
     if all(acquis):st.success('Tous les thèmes de ce niveau sont validés. Le niveau suivant est débloqué !')
     l=lecons[actuel]
     st.divider()
-    lecon_page(l)
+    with st.expander("📘 Leçon : "+l["titre"],expanded=False):
+        lecon_page(l)
     st.divider()
     st.subheader('🧠 Entraînement avec le professeur')
     st.write('Pose une question sur la leçon ou demande des explications supplémentaires. La conversation ne remplace pas le contrôle noté.')

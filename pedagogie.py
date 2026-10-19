@@ -20,10 +20,11 @@ def normaliser(texte):
     s=unicodedata.normalize('NFD',str(texte).casefold())
     return ' '.join(re.sub('[^a-z0-9 ]',' ',''.join(c for c in s if unicodedata.category(c)!='Mn')).split())
 
-def exercices(niveau,n=20,exclure=None):
+def exercices(niveau,n=20,exclure=None,lecon=None):
     """Réactive les traductions ratées et renouvelle le reste du lot."""
-    pool=list(dict.fromkeys((fr,es) for lecon in m.COURS.get(niveau,[])
-        for es,fr in (lecon['vocabulaire']+lecon['expressions']+lecon['exemples']) if len(es)<110 and len(fr)<110))
+    lecons=[lecon] if lecon else m.COURS.get(niveau,[])
+    pool=list(dict.fromkeys((fr,es) for lesson in lecons
+        for es,fr in (lesson['expressions']+lesson['exemples']) if 3<=len(es.split()) and len(es)<180 and len(fr)<180))
     if not pool:return []
     exclure=set(tuple(x) for x in (exclure or []))
     erreurs=m.rows("""SELECT consigne,attendu FROM productions WHERE niveau=? AND valide=0
@@ -96,10 +97,10 @@ def oral_debloque(niveau):
     score,total=progression_orale(precedent)
     return total>=20 and score>=95 and oral_debloque(precedent)
 
-def banque_orale(niveau,maximum=500):
+def banque_orale(niveau,maximum=500,lecon=None):
     # Énoncés réels du cours, complétés par des combinaisons de deux phrases distinctes.
     base=list(dict.fromkeys((es.strip().rstrip('.!?')+'.',fr.strip().rstrip('.!?')+'.')
-        for lecon in m.COURS[niveau] for es,fr in lecon['exemples']
+        for lesson in ([lecon] if lecon else m.COURS[niveau]) for es,fr in lesson['exemples']
         if len(es.split())>=3 and len(fr.split())>=3))
     banque=list(base)
     if len(banque)<maximum:
@@ -111,9 +112,9 @@ def banque_orale(niveau,maximum=500):
             if len(banque)>=maximum:break
     return banque[:maximum]
 
-def tirage_oral(niveau,exclure=None):
+def tirage_oral(niveau,exclure=None,lecon=None):
     init_oral()
-    pool=banque_orale(niveau)
+    pool=banque_orale(niveau,lecon=lecon)
     if not pool:return None
     derniers=m.rows('SELECT phrase,valide FROM comprehension_orale WHERE niveau=? ORDER BY id DESC LIMIT 120',(niveau,))
     poids={}

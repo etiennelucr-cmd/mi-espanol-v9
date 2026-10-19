@@ -258,40 +258,21 @@ def definir_preference(cle,valeur):
         c.execute('INSERT INTO preferences(cle,valeur) VALUES(?,?) ON CONFLICT(cle) DO UPDATE SET valeur=excluded.valeur',(cle,str(valeur)))
 
 def progression_globale(niveau):
-    """Progression identique, avec 2 requêtes au lieu de 6."""
-    le = rows(
-        "SELECT COUNT(*) n, SUM(CASE WHEN statut='terminé' THEN 1 ELSE 0 END) finis "
-        "FROM lecons WHERE niveau=?", (niveau,)
-    )[0]
-    cours = (le['finis'] or 0) / max(1, le['n'])
-    bilans = rows(
-        "SELECT type, COALESCE(SUM(score),0) points, "
-        "COALESCE(SUM(total),0) total, COUNT(*) n "
-        "FROM tentatives WHERE niveau=? "
-        "AND type IN ('Exercice','Contrôle','Révision','Remédiation') "
-        "GROUP BY type", (niveau,)
-    )
-    par_type = {r['type']: r for r in bilans}
-    def ratio(typ):
-        r = par_type.get(typ)
-        return float(r['points']) / float(r['total']) if r and r['total'] else 0.0
-    quiz = ratio('Exercice')
-    controle = ratio('Contrôle')
-    revisions = [par_type[t] for t in ('Révision','Remédiation') if t in par_type]
-    points_rev = sum(float(r['points']) for r in revisions)
-    total_rev = sum(float(r['total']) for r in revisions)
-    rev = points_rev / total_rev if total_rev else 0.0
-    score = 100 * (.35*cours + .20*quiz + .30*controle + .15*rev)
-    def nb(typ):
-        return par_type[typ]['n'] if typ in par_type else 0
-    return {
-        'niveau': niveau, 'pourcentage': round(score,1),
-        'cours': round(100*cours,1), 'quiz': round(100*quiz,1),
-        'controles': round(100*controle,1), 'revisions': round(100*rev,1),
-        'lecons_terminees': le['finis'] or 0, 'lecons_total': le['n'],
-        'nb_quiz': nb('Exercice'), 'nb_controles': nb('Contrôle'),
-        'nb_revisions': nb('Révision') + nb('Remédiation')
-    }
+    """Score interne 0-100 combinant achèvement, quiz, contrôles et révisions.
+    Une activité absente vaut 0, pour éviter de valider un niveau sur une seule source.
+    """
+    le=rows("SELECT COUNT(*) n, SUM(CASE WHEN statut='terminé' THEN 1 ELSE 0 END) finis FROM lecons WHERE niveau=?",(niveau,))[0]
+    total=max(1,le['n']);cours=(le['finis'] or 0)/total
+    valeurs={}
+    for typ,nom in [('Exercice','quiz'),('Contrôle','controle'),('Révision','revision'),('Remédiation','remediation')]:
+        r=rows('SELECT COALESCE(SUM(score),0) points, COALESCE(SUM(total),0) total, COUNT(*) n FROM tentatives WHERE niveau=? AND type=?',(niveau,typ))[0]
+        valeurs[nom]=(r['points']/r['total']) if r['total'] else 0
+        valeurs[nom+'_n']=r['n']
+    # Révisions et remédiations comptent ensemble.
+    rr=rows("SELECT COALESCE(SUM(score),0) points,COALESCE(SUM(total),0) total FROM tentatives WHERE niveau=? AND type IN ('Révision','Remédiation')",(niveau,))[0]
+    rev=rr['points']/rr['total'] if rr['total'] else 0
+    score=100*(.35*float(cours)+.20*float(valeurs['quiz'])+.30*float(valeurs['controle'])+.15*float(rev))
+    return {'niveau':niveau,'pourcentage':round(score,1),'cours':round(100*cours,1),'quiz':round(100*valeurs['quiz'],1),'controles':round(100*valeurs['controle'],1),'revisions':round(100*rev,1),'lecons_terminees':le['finis'] or 0,'lecons_total':le['n'],'nb_quiz':valeurs['quiz_n'],'nb_controles':valeurs['controle_n'],'nb_revisions':valeurs['revision_n']+valeurs['remediation_n']}
 
 def projection_globale(niveau):
     """Projection indicative à 98% du score combiné."""
@@ -312,24 +293,15 @@ def projection_globale(niveau):
 SEUIL_VALIDATION = 0.98
 
 def themes_valides(niveau):
-    """Validation inchangée ; lecture groupée de toutes les leçons et tentatives."""
-    etats = rows('SELECT id, statut FROM lecons WHERE niveau=?', (niveau,))
-    statuts = {r['id']: r['statut'] for r in etats}
-    derniers = rows(
-        "SELECT DISTINCT ON (lecon_id) lecon_id, score, total "
-        "FROM tentatives WHERE niveau=? AND type='Exercice' "
-        "AND lecon_id IS NOT NULL ORDER BY lecon_id, id DESC", (niveau,)
-    )
-    essais = {r['lecon_id']: r for r in derniers}
-    resultat = []
+    """Un thème est validé avec leçon terminée et dernière évaluation >=98%."""
+    resultat=[]
     for lecon in COURS[niveau]:
-        essai = essais.get(lecon['id'])
-        valide = bool(
-            statuts.get(lecon['id']) == 'terminé'
-            and essai and essai['total'] >= 20
-            and float(essai['score']) / float(essai['total']) >= SEUIL_VALIDATION
-        )
-        resultat.append({'titre': lecon['titre'], 'valide': valide})
+        etat=rows('SELECT statut FROM lecons WHERE id=?',(lecon['id'],))
+        essai=rows("""SELECT score,total FROM tentatives WHERE niveau=? AND lecon_id=?
+            AND type='Exercice' ORDER BY id DESC LIMIT 1""",(niveau,lecon['id']))
+        valide=bool(etat and etat[0]['statut']=='terminé' and essai and
+            essai[0]['total']>=20 and essai[0]['score']/essai[0]['total']>=SEUIL_VALIDATION)
+        resultat.append({'titre':lecon['titre'],'valide':valide})
     return resultat
 
 def niveau_debloque(niveau):
