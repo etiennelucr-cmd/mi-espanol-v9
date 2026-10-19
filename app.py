@@ -175,78 +175,56 @@ def cours():
             st.rerun()
     if st.session_state.pop('cours_message',None):
         st.success('Séance enregistrée. Continue avec la leçon affichée.')
-    st.subheader('📝 Quiz de la leçon')
-    prefix='coursquiz_'+l['id']
-    question_session(prefix,m.banque(n,l['id'],20),'Exercice',n,l['id'])
+    st.subheader('✍️ 10 phrases de la leçon — entraînement adaptatif')
+    phrases_traduction(n,l,10,'cours_phrases_'+l['id'],'Phrases de la leçon')
+
+def phrases_traduction(n, lecon, nombre, prefix, dimension):
+    """Phrases contextualisées ; aucune écriture avant validation explicite."""
+    if not lecon:
+        st.info('Aucun thème disponible dans le planning.')
+        return
+    key=prefix+'_lot'
+    if key not in st.session_state:
+        st.session_state[key]=pv.tirage_phrases(n,lecon,nombre)
+    lot=st.session_state[key]
+    if len(lot)<nombre:
+        st.warning(f'{len(lot)} phrase(s) disponibles pour ce thème : {nombre} demandées. Aucun contenu inventé.')
+    if not lot:return
+    precedent=st.session_state.get(prefix+'_correction')
+    if precedent:
+        st.success(f'Dernier résultat : {precedent["score"]}/{precedent["total"]} — sauvegardé')
+        with st.expander('Voir les corrections précédentes',expanded=True):
+            for consigne,attendu,reponse,ok in precedent['items']:
+                st.write(('✅ ' if ok else '❌ ')+consigne)
+                st.write('Ta réponse :',reponse or '(vide)')
+                st.write('Réponse de référence :',attendu)
+        st.caption('Correction indicative par comparaison normalisée : une autre traduction correcte peut être refusée.')
+    tour=st.session_state.get(prefix+'_tour',0)
+    with st.form(prefix+'_form'):
+        reponses=[st.text_input(f'{i+1}. Traduis en espagnol : {fr}',key=f'{prefix}_{tour}_{i}') for i,(fr,es) in enumerate(lot)]
+        soumis=st.form_submit_button('Corriger et sauvegarder',type='primary')
+    if soumis:
+        if any(not r.strip() for r in reponses):
+            st.warning('Réponds à toutes les phrases avant de valider.')
+            return
+        items=[]
+        for (fr,es),rep in zip(lot,reponses):
+            ok=ped.production(n,dimension,fr,rep,es)
+            items.append((fr,es,rep,ok))
+        score=sum(bool(x[3]) for x in items)
+        st.session_state[prefix+'_correction']={'score':score,'total':len(lot),'items':items}
+        st.session_state[key]=pv.tirage_phrases(n,lecon,nombre,exclure=lot)
+        st.session_state[prefix+'_tour']=tour+1
+        st.rerun()
+
 
 def controle():
-    title('🧪 Contrôle noté sur 20', '20 questions distinctes · 1 point par réponse correcte · correction détaillée et exercices ciblés.')
+    title('🧪 Contrôle noté sur 20','20 phrases à traduire sur le thème prioritaire du planning hebdomadaire.')
     n=m.preference('niveau_suivi','A1')
     lecon=pv.theme(n)
-    st.info(f'📅 Planning hebdomadaire : {lecon["titre"] if lecon else "Aucun thème"}')
-    mode=st.radio('Sélection des questions',['Adaptatif','Aléatoire'],horizontal=True,key='controle_mode')
-    prefix=f'controle20_{n}_{mode}_{lecon["id"] if lecon else "vide"}'
-    if st.session_state.get('controle_active_prefix')!=prefix:
-        st.session_state['controle_active_prefix']=prefix
-        st.session_state.pop(prefix+'_questions',None)
-        st.session_state.pop(prefix+'_result',None)
-    if prefix+'_questions' not in st.session_state:
-        st.session_state[prefix+'_questions']=m.banque(n,lecon['id'] if lecon else None,limite=20,mode='adaptatif' if mode=='Adaptatif' else 'aleatoire')
-        st.session_state[prefix+'_start']=time.monotonic()
-    qs=st.session_state[prefix+'_questions']
-    if len(qs)<20:
-        st.warning(f'Seulement {len(qs)} questions disponibles pour {n}. Le contrôle /20 exige 20 questions : enrichis la banque.');return
-    result=st.session_state.get(prefix+'_result')
-    if not result:
-        with st.form(prefix+'_form'):
-            answers={}
-            for i,q in enumerate(qs):
-                answers[q['id']]=st.radio(f'{i+1}/20 — {q["enonce"]}',q['options'],index=None,key=prefix+'_'+q['id'])
-            submit=st.form_submit_button('Terminer et noter mon contrôle /20',type='primary')
-        if submit:
-            if any(v is None for v in answers.values()):
-                st.warning('Réponds aux 20 questions avant de rendre le contrôle.')
-            else:
-                elapsed=int(time.monotonic()-st.session_state[prefix+'_start'])
-                tid,score=m.enregistrer_test('Contrôle',n,None,qs,answers,elapsed)
-                st.session_state[prefix+'_result']={'id':tid,'score':score,'qs':qs,'answers':answers}
-                st.rerun()
-    else:
-        score=result['score']
-        st.metric('Note du contrôle',f'{score}/20',f'{score*5}% de réussite')
-        st.progress(score/20)
-        st.subheader('Correction détaillée des 20 questions')
-        erreurs=[]
-        for i,q in enumerate(qs,1):
-            ok=result['answers'][q['id']]==q['bonne']
-            if not ok:erreurs.append(q)
-            with st.expander(f'{"✅" if ok else "❌"} Question {i} — {q["enonce"]}',expanded=not ok):
-                st.write('**Ta réponse :**',result['answers'][q['id']])
-                st.write('**Bonne réponse :**',q['bonne'])
-                st.info(q.get('explication') or 'Revois la leçon associée à cette compétence.')
-                st.caption('Compétence : '+m.nom_competence(q['competence']))
-        st.subheader('🎯 Exercices ciblés sur tes faiblesses')
-        if erreurs:
-            st.write(f'{len(erreurs)} erreur(s) : les exercices de remédiation privilégient les compétences correspondantes.')
-            codes=list(dict.fromkeys(q['competence'] for q in erreurs))
-            token=f'{prefix}_remed'
-            if st.button('Générer 10 nouvelles questions ciblées',key=token+'_go',type='primary'):
-                st.session_state[token+'_questions']=m.banque_ciblee(n,codes,10,{q['id'] for q in qs})
-                st.session_state.pop(token+'_result',None)
-                st.session_state[token+'_start']=time.monotonic()
-                st.rerun()
-            if token+'_questions' in st.session_state:
-                st.caption('Questions différentes du contrôle initial quand le catalogue le permet. Les compétences en erreur sont prioritaires.')
-                question_session(token,st.session_state[token+'_questions'],'Remédiation',n)
-        else:
-            st.success('20/20 ! Aucune faiblesse détectée dans ce contrôle. Essaie un nouveau tirage.')
-        st.info('Un nouveau contrôle est prêt : lance-le après avoir consulté la correction.')
-        if st.button('▶ Passer automatiquement au nouveau contrôle',key=prefix+'_new',type='primary'):
-            for q in qs:st.session_state.pop(prefix+'_'+q['id'],None)
-            st.session_state.pop(prefix+'_result',None)
-            st.session_state[prefix+'_questions']=m.banque(n,lecon['id'] if lecon else None,limite=20,mode='adaptatif' if mode=='Adaptatif' else 'aleatoire')
-            st.session_state[prefix+'_start']=time.monotonic()
-            st.rerun()
+    st.info(f'📅 Thème du planning : {lecon["titre"] if lecon else "Aucun thème"}')
+    phrases_traduction(n,lecon,20,f'controle_phrases_{n}_{lecon["id"] if lecon else "vide"}','Contrôle — phrases')
+    st.caption('La note sur 20 est affichée lorsque 20 phrases sont disponibles. Cette évaluation écrite ne valide pas à elle seule un thème du Coach IA.')
 
 def revisions():
     title('🧠 Révisions évolutives','20 phrases à traduire, en lien avec le planning hebdomadaire.')
@@ -431,10 +409,11 @@ with st.sidebar:
     st.title('🇪🇸 Mi Español V8')
     niveau_suivi=st.selectbox('Niveau suivi',m.NIVEAUX,index=m.NIVEAUX.index(m.preference('niveau_suivi','A1')) if m.preference('niveau_suivi','A1') in m.NIVEAUX else 0,key='sidebar_niveau')
     if m.preference('niveau_suivi')!=niveau_suivi:m.definir_preference('niveau_suivi',niveau_suivi)
-    p=m.progression_globale(niveau_suivi)
-    st.metric('Progression totale du niveau',f"{p['pourcentage']:.1f} %")
-    st.progress(min(1,p['pourcentage']/100))
-    st.caption('Leçons 35 % · quiz 20 % · contrôles 30 % · révisions 15 %')
+    valides,total=pv.progression(niveau_suivi)
+    pourcentage=100*valides/total if total else 0
+    st.metric('Progression totale du niveau',f'{pourcentage:.1f} %')
+    st.progress(valides/total if total else 0)
+    st.caption(f'{valides} thème(s) validé(s) sur {total} — validation Coach IA à 19/20 minimum')
     projection=m.projection_globale(niveau_suivi)
     prochain=m.NIVEAUX[m.NIVEAUX.index(niveau_suivi)+1] if niveau_suivi!=m.NIVEAUX[-1] else None
     if prochain:

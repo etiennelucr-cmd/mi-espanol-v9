@@ -19,31 +19,39 @@ def radio():
 
 def synthese(niveau):
     """Priorise les erreurs de toutes les activités évaluées; oral/autoéval = signal non noté."""
+    vus={r['lecon_id'] for r in m.rows("SELECT DISTINCT lecon_id FROM sessions WHERE niveau=? AND type='Cours' AND lecon_id IS NOT NULL",(niveau,))}
+    vus.update(r['id'] for r in m.rows("SELECT id FROM lecons WHERE niveau=? AND statut IN ('en cours','terminé')",(niveau,)))
+    if not vus:return []
+    # Les erreurs ne doivent provenir que de leçons déjà étudiées.
+    codes_vus={str(l['id']) for l in m.COURS.get(niveau,[]) if l['id'] in vus}
     scores=defaultdict(lambda: {'erreurs':0,'total':0,'reussites':0,'sources':set(),'exemples':[]})
     raw=m.rows('''SELECT r.competence, t.type, COUNT(*) total,
         SUM(CASE WHEN r.correct=0 THEN 1 ELSE 0 END) erreurs
         FROM reponses r JOIN tentatives t ON t.id=r.tentative_id
-        WHERE t.niveau=? GROUP BY r.competence,t.type''',(niveau,))
+        WHERE t.niveau=? AND t.lecon_id IS NOT NULL AND t.lecon_id IN (SELECT id FROM lecons WHERE niveau=? AND statut IN ('en cours','terminé')) GROUP BY r.competence,t.type''',(niveau,niveau))
     for r in raw:
         s=scores[r['competence']];s['total']+=r['total'];s['erreurs']+=r['erreurs'];s['sources'].add(r['type'])
     for r in m.rows('''SELECT r.competence,q.enonce,q.bonne,q.explication,r.choix,t.type
         FROM reponses r JOIN tentatives t ON t.id=r.tentative_id
         LEFT JOIN questions q ON q.id=r.question_id
-        WHERE t.niveau=? AND r.correct=0 ORDER BY r.id DESC LIMIT 250''',(niveau,)):
+        WHERE t.niveau=? AND r.correct=0 AND t.lecon_id IS NOT NULL AND t.lecon_id IN (SELECT id FROM lecons WHERE niveau=? AND statut IN ('en cours','terminé')) ORDER BY r.id DESC LIMIT 250''',(niveau,niveau)):
         s=scores[r['competence']]
         if len(s['exemples'])<2 and r['enonce']:
             s['exemples'].append((r['enonce'],r['choix'],r['bonne'],r['explication']))
     for r in m.rows('SELECT code,nom,maitrise,prochaine_revision FROM competences WHERE niveau=? AND essais>0',(niveau,)):
+        if not any(str(r['code']).startswith(ident+'-') for ident in codes_vus):continue
         s=scores[r['code']];s['nom']=r['nom'];s['maitrise']=r['maitrise'];s['due']=r['prochaine_revision'] and r['prochaine_revision']<=date.today().isoformat()
     # Les productions écrites sont évaluées par comparaison stricte, pas par compétence grammaticale.
     ecrits=m.rows('''SELECT consigne,reponse,attendu,valide FROM productions
         WHERE niveau=? ORDER BY id DESC LIMIT 150''',(niveau,))
+    phrases_vues={fr for l in m.COURS.get(niveau,[]) if l['id'] in vus for es,fr in (l.get('exemples',[])+l.get('expressions',[]))}
+    ecrits=[x for x in ecrits if x['consigne'] in phrases_vues]
     echec=[x for x in ecrits if x['valide']==0]
     if ecrits:
         s=scores['__ecrit__'];s.update({'nom':'Expression écrite — traductions','total':sum(x['valide'] is not None for x in ecrits), 'erreurs':len(echec),'maitrise':1-len(echec)/max(1,sum(x['valide'] is not None for x in ecrits)),'due':False})
         s['sources'].add('Expression écrite')
         for r in echec[:2]:s['exemples'].append((f'Traduis : {r["consigne"]}',r['reponse'],r['attendu'],'Réécris la traduction sans regarder la solution. Plusieurs traductions peuvent être acceptables.'))
-    ranked=sorted([(k,v) for k,v in scores.items() if v['total']>0 and v['erreurs']>0],key=lambda x:(-(x[1]['erreurs']/x[1]['total']),-x[1]['erreurs'],x[1].get('maitrise',1)))
+    ranked=sorted([(k,v) for k,v in scores.items() if v['total']>0 and v['erreurs']>0 and (k=='__ecrit__' or any(str(k).startswith(ident+'-') for ident in codes_vus))],key=lambda x:(-(x[1]['erreurs']/x[1]['total']),-x[1]['erreurs'],x[1].get('maitrise',1)))
     return ranked
 
 def points_faibles(niveau):
