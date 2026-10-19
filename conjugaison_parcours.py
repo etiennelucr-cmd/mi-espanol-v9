@@ -241,6 +241,7 @@ def page():
         st.caption('Méthode : lis la règle, récite les six formes, cache le tableau, écris-les puis vérifie. Révise les erreurs le lendemain et trois jours après.')
     with tabs[4]:
         st.subheader(f'Verbes irréguliers — {libelles[t]}')
+        st.caption('Version conjugaison : V17.4.1 — participes irréguliers inclus')
         st.caption('Conjugaisons de référence pour le temps sélectionné. '
                    'Seules les formes disponibles dans le catalogue sont affichées.')
         if t in AUXILIAIRES_COMPOSES:

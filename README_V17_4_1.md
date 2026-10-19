@@ -1,0 +1,1 @@
+V17.4.1 : marqueur de version visible dans Conjugaison > Verbes irréguliers. Les dix participes irréguliers du passé composé sont déjà inclus depuis V17.4. Si le marqueur est absent, le nouveau code n'est pas celui exécuté par Streamlit Cloud. Vérifier le dépôt main, le commit et le redémarrage de l'application.
