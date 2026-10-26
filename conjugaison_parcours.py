@@ -233,9 +233,12 @@ def page():
                 else:
                     score=sum(r==q[2] for q,r in zip(lot,reponses))
                     with m.connexion() as c:
-                        cur=c.execute('INSERT INTO conjugaison_tests(date,niveau,temps,type,score,total) VALUES(?,?,?,?,?,?)',(datetime.now().isoformat(timespec='seconds'),n,t,typ,score,len(lot)))
-                        test_id=cur.lastrowid
-                        c.executemany('INSERT INTO conjugaison_reponses(test_id,niveau,temps,verbe,personne,correct) VALUES(?,?,?,?,?,?)',[(test_id,n,t,q[0],q[1],int(r==q[2])) for q,r in zip(lot,reponses)])
+                        horodatage=datetime.now().isoformat(timespec='seconds')
+                        # Dates explicites : compatible avec les anciennes tables Supabase
+                        # dont les colonnes NOT NULL n'ont pas de DEFAULT.
+                        cur=c.execute('INSERT INTO conjugaison_tests(date,niveau,temps,type,score,total) VALUES(?,?,?,?,?,?) RETURNING id',(horodatage,n,t,typ,score,len(lot)))
+                        test_id=cur.fetchone()['id']
+                        c.executemany('INSERT INTO conjugaison_reponses(test_id,niveau,temps,verbe,personne,correct,date) VALUES(?,?,?,?,?,?,?)',[(test_id,n,t,q[0],q[1],int(r==q[2]),horodatage) for q,r in zip(lot,reponses)])
                     # Temps actif approximatif, borné à 2 heures par évaluation.
                     secondes=max(0,min(7200,int(time.monotonic()-st.session_state.get(prefix+'_debut',time.monotonic()))))
                     if secondes:
