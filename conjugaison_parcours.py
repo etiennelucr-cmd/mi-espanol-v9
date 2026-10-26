@@ -46,47 +46,13 @@ SUBJ_IMP_HABER=['hubiera','hubieras','hubiera','hubiéramos','hubierais','hubier
 ANT_HABER=['hube','hubiste','hubo','hubimos','hubisteis','hubieron']
 FUT_SUBJ_HABER=['hubiere','hubieres','hubiere','hubiéremos','hubiereis','hubieren']
 
-# Participes passés irréguliers usuels, vérifiés pour les temps composés.
-PARTICIPES_IRREGULIERS = {
-    'abrir': ('ouvert', 'abierto'),
-    'decir': ('dire', 'dicho'),
-    'escribir': ('écrire', 'escrito'),
-    'hacer': ('faire', 'hecho'),
-    'morir': ('mourir', 'muerto'),
-    'poner': ('mettre', 'puesto'),
-    'resolver': ('résoudre', 'resuelto'),
-    'romper': ('casser', 'roto'),
-    'ver': ('voir', 'visto'),
-    'volver': ('revenir', 'vuelto'),
-}
-AUXILIAIRES_COMPOSES = {
-    'perfecto': PRESENT_HABER,
-    'pluscuamperfecto': IMPERF_HABER,
-    'futuro_perfecto': FUT_HABER,
-    'condicional_compuesto': COND_HABER,
-    'subj_perfecto': SUBJ_HABER,
-    'subj_pluscuam': SUBJ_IMP_HABER,
-    'preterito_anterior': ANT_HABER,
-    'futuro_subj_perfecto': FUT_SUBJ_HABER,
-}
-
-def conjugaison_participe_irregulier(verbe, temps):
-    """Construit les six formes composées à partir du participe irrégulier."""
-    if verbe not in PARTICIPES_IRREGULIERS or temps not in AUXILIAIRES_COMPOSES:
-        return None
-    participe = PARTICIPES_IRREGULIERS[verbe][1]
-    return [aux + ' ' + participe for aux in AUXILIAIRES_COMPOSES[temps]]
-
 
 def formes(verbe,temps,donnees):
     """Formes vérifiées pour les verbes réguliers et les 4 paradigmes fournis."""
     if temps in ('presente','indefinido','imperfecto','futuro'):
         i={'presente':2,'indefinido':3,'imperfecto':4,'futuro':5}[temps]
         return donnees[i]
-    # Les participes irréguliers sont pris en charge dans tous les temps composés.
-    if temps in AUXILIAIRES_COMPOSES and verbe in PARTICIPES_IRREGULIERS:
-        return conjugaison_participe_irregulier(verbe, temps)
-    # Ne pas extrapoler les temps simples de verbes irréguliers.
+    # Éviter de présenter des participes irréguliers comme réguliers.
     if not verbe.endswith(('ar','er','ir')) or verbe in {'ser','estar','haber','tener','ir','hacer','poder','querer','decir','venir','saber','poner','leer','escribir'}:
         return None
     radical,grp=verbe[:-2],verbe[-2:]
@@ -109,11 +75,21 @@ def formes(verbe,temps,donnees):
 
 
 def init():
-    # Les tables conjugaison_tests et conjugaison_reponses sont déjà dans Supabase.
-    return None
+    with m.connexion() as c:
+        c.execute('''CREATE TABLE IF NOT EXISTS conjugaison_tests (
+            id INTEGER PRIMARY KEY, date TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            niveau TEXT NOT NULL, temps TEXT NOT NULL, type TEXT NOT NULL,
+            score INTEGER NOT NULL, total INTEGER NOT NULL)''')
+        c.execute('''CREATE TABLE IF NOT EXISTS conjugaison_reponses (
+            id INTEGER PRIMARY KEY, test_id INTEGER NOT NULL, niveau TEXT NOT NULL,
+            temps TEXT NOT NULL, verbe TEXT NOT NULL, personne INTEGER NOT NULL,
+            correct INTEGER NOT NULL, date TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)''')
+
 
 def statut(niveau,temps):
-    return m.scores_conjugaison_par_niveau(niveau).get(temps, (0, 0))
+    r=m.rows('SELECT MAX(CAST(score AS REAL)/total) meilleur,COUNT(*) essais FROM conjugaison_tests WHERE niveau=? AND temps=? AND type="Contrôle" AND total>=20',(niveau,temps))[0]
+    return (r['meilleur'] or 0),r['essais']
+
 
 def autorisations():
     accessibles=['A1']
@@ -158,9 +134,9 @@ def progression(niveau):
 
 def estimation(niveau):
     """Projection indicative à partir de contrôles distincts sur plusieurs jours."""
-    rows=m.rows("""SELECT substr(date,1,10) AS date,temps,MAX(CAST(score AS REAL)/total) ratio
+    rows=m.rows("""SELECT date,temps,MAX(CAST(score AS REAL)/total) ratio
         FROM conjugaison_tests WHERE niveau=? AND type='Contrôle' AND total>=20
-        GROUP BY substr(date,1,10),temps ORDER BY 1""",(niveau,))
+        GROUP BY substr(date,1,10),temps ORDER BY date""",(niveau,))
     jours=sorted(set(r['date'][:10] for r in rows))
     if len(jours)<3 or (date.fromisoformat(jours[-1])-date.fromisoformat(jours[0])).days<2:
         return None
@@ -209,26 +185,12 @@ def page():
         else:st.caption('Estimation du déblocage : effectue des contrôles sur au moins 3 jours distincts, avec une progression mesurable, pour obtenir une date indicative.')
     st.progress(min(1,meilleur),text=f'Meilleur contrôle : {meilleur:.0%} · seuil 95 % · {essais} contrôle(s)')
     description,exemple=EXPLICATIONS[t]
-    tabs=st.tabs(['📚 Leçon','🗒️ Fiche de révision','🧠 QCM','🧪 Contrôle','🔀 Verbes irréguliers'])
+    tabs=st.tabs(['📚 Leçon','🗒️ Fiche de révision','🧠 QCM','🧪 Contrôle'])
     eligibles={v:d for v,d in verbes.items() if formes(v,t,d)}
     with tabs[0]:
         st.subheader(libelles[t])
         st.write(description)
         st.info(exemple)
-        st.markdown('**Comment utiliser ce temps ?**')
-        st.write('Repère les marqueurs temporels et le contexte de la phrase. Apprends d’abord les formes régulières, puis compare les irrégularités avec le tableau ci-dessous.')
-        st.markdown('**Trois groupes de verbes espagnols**')
-        modeles=[('-ar : hablar','hablar'),('-er : comer','comer'),('-ir : vivir','vivir')]
-        colonnes=st.columns(3)
-        for col,(etiquette,modele) in zip(colonnes,modeles):
-            with col:
-                st.markdown(f'**{etiquette}**')
-                valeurs=formes(modele,t,verbes[modele]) if modele in verbes else None
-                if valeurs and len(valeurs)==6:
-                    st.dataframe(pd.DataFrame({'Personne':PERSONNES,'Forme':valeurs}),
-                                 hide_index=True,use_container_width=True)
-                else:
-                    st.caption('Formes non disponibles pour ce temps.')
         st.caption('Pour les temps avancés, seuls les verbes dont les formes sont prises en charge sont proposés. Les irrégularités restantes seront enrichies ultérieurement.')
         v=st.selectbox('Verbe',list(eligibles),format_func=lambda x:f'{x} — {eligibles[x][1]}',key='conj_verbe')
         st.dataframe(pd.DataFrame({'Personne':PERSONNES,'Conjugaison':formes(v,t,eligibles[v])}),hide_index=True,use_container_width=True)
@@ -239,46 +201,6 @@ def page():
             with st.expander(f'{v} — {d[1]}'):
                 st.table(pd.DataFrame({'Personne':PERSONNES,'Forme':formes(v,t,d)}))
         st.caption('Méthode : lis la règle, récite les six formes, cache le tableau, écris-les puis vérifie. Révise les erreurs le lendemain et trois jours après.')
-    with tabs[4]:
-        st.subheader(f'Verbes irréguliers — {libelles[t]}')
-        st.caption('Version conjugaison : V17.4.1 — participes irréguliers inclus')
-        st.caption('Conjugaisons de référence pour le temps sélectionné. '
-                   'Seules les formes disponibles dans le catalogue sont affichées.')
-        if t in AUXILIAIRES_COMPOSES:
-            st.info('Auxiliaire **haber** + participe passé irrégulier. '
-                    'Les verbes ci-dessous ont un participe irrégulier, même si '
-                    'leur conjugaison au présent peut être régulière.')
-            disponibles=[(v, sens, conjugaison_participe_irregulier(v,t))
-                         for v,(sens,_) in PARTICIPES_IRREGULIERS.items()]
-            colonnes=st.columns(3)
-            for i,(verbe,sens,valeurs) in enumerate(disponibles):
-                with colonnes[i%3]:
-                    st.markdown(f'**{verbe} — {sens}**')
-                    st.dataframe(pd.DataFrame({'Personne':PERSONNES,'Forme':valeurs}),
-                                 hide_index=True,use_container_width=True)
-            st.caption('À distinguer : ser → sido, estar → estado, ir → ido, '
-                       'tener → tenido. Ces participes sont réguliers ; '
-                       'ils ne figurent pas parmi les participes irréguliers.')
-        else:
-            irreguliers=['ser','estar','ir','tener','hacer','poder','querer',
-                         'decir','venir','saber','poner','leer','escribir','haber']
-            disponibles=[(v,verbes[v],formes(v,t,verbes[v]))
-                         for v in irreguliers if v in verbes and formes(v,t,verbes[v])]
-            if disponibles:
-                st.markdown('**Toutes les conjugaisons disponibles, visibles simultanément :**')
-                colonnes=st.columns(3)
-                for i,(verbe,donnees,valeurs) in enumerate(disponibles):
-                    with colonnes[i%3]:
-                        st.markdown(f'**{verbe} — {donnees[1]}**')
-                        st.dataframe(pd.DataFrame({'Personne':PERSONNES,'Forme':valeurs}),
-                                     hide_index=True,use_container_width=True)
-            else:
-                st.info('Le catalogue actuel ne contient pas encore de formes vérifiées '
-                        'de verbes irréguliers pour ce temps.')
-            absents=[v for v in irreguliers if v in verbes and v not in [x[0] for x in disponibles]]
-            if absents:
-                st.caption('Non disponibles pour ce temps : '+', '.join(absents)+'. '
-                           'Aucune conjugaison non vérifiée n’est affichée.')
     for tab,typ,taille in [(tabs[2],'QCM',10),(tabs[3],'Contrôle',20)]:
         with tab:
             prefix=f'conj_{typ}_{n}_{t}'
@@ -311,7 +233,7 @@ def page():
                 else:
                     score=sum(r==q[2] for q,r in zip(lot,reponses))
                     with m.connexion() as c:
-                        cur=c.execute('INSERT INTO conjugaison_tests(niveau,temps,type,score,total) VALUES(?,?,?,?,?)',(n,t,typ,score,len(lot)))
+                        cur=c.execute('INSERT INTO conjugaison_tests(date,niveau,temps,type,score,total) VALUES(?,?,?,?,?,?)',(datetime.now().isoformat(timespec='seconds'),n,t,typ,score,len(lot)))
                         test_id=cur.lastrowid
                         c.executemany('INSERT INTO conjugaison_reponses(test_id,niveau,temps,verbe,personne,correct) VALUES(?,?,?,?,?,?)',[(test_id,n,t,q[0],q[1],int(r==q[2])) for q,r in zip(lot,reponses)])
                     # Temps actif approximatif, borné à 2 heures par évaluation.
