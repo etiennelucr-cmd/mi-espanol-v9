@@ -97,15 +97,24 @@ def _pool_postgres():
             'user': cfg['user'],
             'password': cfg['password'],
             'sslmode': 'require',
-            'connect_timeout': 15,
+            'connect_timeout': 10,
             'row_factory': dict_row,
         },
         min_size=1,
         max_size=4,
-        timeout=20,
+        timeout=30,
+        reconnect_timeout=30,
         open=True,
     )
-    pool.wait(timeout=20)
+    try:
+        pool.wait(timeout=35)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception(
+            'Échec initialisation pool PostgreSQL : vérifier les logs de connexion Supabase'
+        )
+        pool.close()
+        raise
     return pool
 
 # Lectures groupées pour éviter une requête réseau par thème / temps.
