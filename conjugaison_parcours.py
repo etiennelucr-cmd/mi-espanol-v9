@@ -87,7 +87,7 @@ def init():
 
 
 def statut(niveau,temps):
-    r=m.rows('SELECT MAX(CAST(score AS REAL)/total) meilleur,COUNT(*) essais FROM conjugaison_tests WHERE niveau=? AND temps=? AND type="Contrôle" AND total>=20',(niveau,temps))[0]
+    r=m.rows('SELECT MAX(CAST(score AS REAL)/total) meilleur,COUNT(*) essais FROM conjugaison_tests WHERE niveau=? AND temps=? AND type=? AND total>=20',(niveau,temps,'Contrôle'))[0]
     return (r['meilleur'] or 0),r['essais']
 
 
