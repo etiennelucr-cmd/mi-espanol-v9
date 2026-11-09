@@ -569,7 +569,17 @@ import bilan_unifie_v41
 import v40_theme
 import projection_cecrl_v25
 pages={'🇪🇸 Mon aventure V41':accueil_v19.page,'🏡 Mon aventure V19':accueil_v19.page,'📅 Ma progression et mes objectifs':projection_cecrl_v25.page,'🗺️ Carte de progression CECRL':progression_v40.page,'🌳 Arbre de compétences':arbre_v18.tree,'📊 Bilans jour/semaine/mois':arbre_v18.progress,'🎲 Mini-jeux V41':mini_jeux_v41.page,'📊 Tableau de bord V41':bilan_unifie_v41.page,'🎮 Jouer et apprendre':aventure.page,'🌍 Aventure CECRL A1–C2':aventure_cecrl.page,'📅 Planning de la semaine':pa.page,'🎯 Programme du jour':ext.programme,'🗺️ Parcours CECRL':ext.parcours,'✍️ Expression écrite':ext.expression,'🎧 Écoute et expression orale':ext.oral,'📚 Cours':cours,'🧪 Contrôles et révisions':controles_et_revisions,'🎓 Examens blancs':lambda:__import__('examens_v17').page(),'📖 Lexique':lexique,'📗 Verbes et conjugaisons':cp.page,'🤖 Coach IA':coach,'🏆 Défis':defis,'🧠 Répétition espacée':lambda:v16.repetition(m.preference('niveau_suivi','A1')),'📈 Maîtrise durable':lambda:v16.maitrise(m.preference('niveau_suivi','A1'))}
-from v18_style import apply_v26_global
+# Le thème V26 est optionnel : ne jamais bloquer le démarrage si
+# Streamlit Cloud possède un ancien v18_style.py dans son déploiement.
+try:
+    from v18_style import apply_v26_global
+except ImportError:
+    def apply_v26_global():
+        st.markdown("""<style>
+        .block-container {max-width:1150px; padding-top:2rem}
+        h1,h2,h3 {color:#94152a!important}
+        div[data-testid="stMetric"] {background:#fffdf8;border:1px solid #efcd8d;border-radius:16px;padding:13px 16px}
+        </style>""", unsafe_allow_html=True)
 apply_v26_global()
 v40_theme.apply()
 sidebar_start=time.perf_counter()
