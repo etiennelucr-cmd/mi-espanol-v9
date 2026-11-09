@@ -1,5 +1,6 @@
 """Mi Español V18: mode aventure sans modification des tables historiques."""
 import random
+from pathlib import Path
 import streamlit as st
 
 MISSIONS = [
@@ -32,18 +33,20 @@ def _nouveau_jeu():
     random.shuffle(options)
     return {'mot':bonne[0],'bonne':bonne[1],'options':options}
 
-def page():
+def page(compact=False):
     from v18_style import apply
     apply()
     s=_state()
     st.markdown('''<style>
-    .v18-hero{padding:1.4rem;border-radius:20px;background:linear-gradient(115deg,#46aa40,#83cb3c);color:white;margin-bottom:1rem}
+    .v18-hero{padding:1.4rem;border-radius:20px;background:linear-gradient(115deg,#aa1528,#ed7c2e);color:white;margin-bottom:1rem}
     .v18-hero h1,.v18-hero p{color:white!important;margin:.2rem 0}
     div.stButton>button[kind="primary"]{border-radius:14px;font-weight:750}
     </style>''',unsafe_allow_html=True)
-    st.markdown('<div class="v18-hero"><h1>🎮 ¡Vamos de aventura!</h1><p>Une mission, quelques minutes, zéro pression.</p></div>',unsafe_allow_html=True)
-    a,b,c=st.columns(3)
-    a.metric('⭐ XP',s['xp']);b.metric('🪙 Pièces',s['pieces']);c.metric('🏅 Missions',f"{len(s['terminees'])}/{len(MISSIONS)}")
+    if not compact:
+        st.markdown('<div class="v18-hero"><h1>🎮 ¡Vamos de aventura!</h1><p>Une mission, quelques minutes, zéro pression.</p></div>',unsafe_allow_html=True)
+    if not compact:
+        a,b,c=st.columns(3)
+        a.metric('⭐ XP aventure (session)',s['xp']);b.metric('🪙 Pièces (session)',s['pieces']);c.metric('🏅 Missions',f"{len(s['terminees'])}/{len(MISSIONS)}")
     st.progress(len(s['terminees'])/len(MISSIONS))
     tab1,tab2,tab3=st.tabs(['🗺️ Aventure','🎲 Jeu éclair','🎁 Récompenses'])
     with tab1:
@@ -70,7 +73,12 @@ def page():
             st.subheader(f"{mission['icone']} {mission['titre']}")
             st.caption(f"📍 {mission['lieu']} · {mission['personnage']}")
             avatar={'Lucía':'👩🏽','Carlos':'👨🏻‍🍳','Sofía':'👩🏻‍🎓'}.get(mission['personnage'],'🧑')
-            st.markdown(f'<div class="dialogue-card"><span class="dialogue-avatar">{avatar}</span><strong>{mission["personnage"]}</strong><p>{mission["intro"]}</p></div>',unsafe_allow_html=True)
+            photo={'Lucía':'lucia.png','Carlos':'carlos.png','Sofía':'sofia.png'}.get(mission['personnage'])
+            cphoto,ctext=st.columns([1,4],vertical_alignment='center')
+            with cphoto:
+                if photo:st.image(str(Path(__file__).parent/'assets'/photo),width=105)
+            with ctext:
+                st.markdown(f'<div class="dialogue-card"><strong>{mission["personnage"]}</strong><p>{mission["intro"]}</p></div>',unsafe_allow_html=True)
             if s['etape']>=len(mission['dialogue']):
                 st.success('🎉 ¡Misión cumplida! Tu aventure continue !')
                 if st.button('Récupérer ma récompense',type='primary'):

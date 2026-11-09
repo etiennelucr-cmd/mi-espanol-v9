@@ -1,40 +1,33 @@
-"""Accueil ludique V19 : raccourcis vers les modules historiques, sans modifier leurs données."""
-from datetime import date, timedelta
-from html import escape
+"""V41 single home, character portraits, CECRL roadmap and real metrics."""
+from pathlib import Path
 import streamlit as st
-import moteur as m
-import arbre_competences_v18 as arbre
-import aventure_v18 as aventure
 from v18_style import apply_v19
+import tableau_bord_v26 as bilan
+import aventure_v18 as aventure
+import progression_v40
+import projection_cecrl_v25 as projection
+import sauvegarde_aventure_v27 as sauvegarde
+import sync_aventure_v29 as sync
+import mini_jeux_v41 as games
+import bilan_unifie_v41 as dashboard
 
+ASSETS=Path(__file__).parent/'assets'
 
 def page():
     apply_v19()
-    level = m.preference('niveau_suivi', 'A1')
-    s = arbre.state()
-    a = aventure._state()
-    st.markdown('''<div class="v18-hero"><h1>🇪🇸 ¡Hola, aventurero!</h1>
-    <p>Une petite victoire aujourd'hui, une nouvelle compétence demain.</p></div>''', unsafe_allow_html=True)
-    st.caption(f'🎯 Parcours suivi : {level} · les XP ne remplacent pas les validations CECRL')
-    c1,c2,c3=st.columns(3)
-    c1.metric('⭐ XP aventure', a['xp']+s['xp'])
-    c2.metric('🎒 Missions terminées', f"{len(a['terminees'])}/{len(aventure.MISSIONS)}")
-    c3.metric('🌳 Étapes explorées', sum(s['completed'].values()))
-    st.subheader('✨ Que veux-tu faire maintenant ?')
-    options=['🎮 Mission avec un personnage','🌳 Continuer mon arbre CECRL','📊 Voir mes progrès']
-    choice=st.segmented_control('Choisir une activité', options, default=options[0], key='v19_home_action')
-    if choice==options[0]:
-        st.markdown('<div class="v19-action">👩🏽 <b>Retrouve Lucía et ses amis</b><p>Des dialogues très courts, des défis et des récompenses. Rejoue sans pression.</p></div>',unsafe_allow_html=True)
-        aventure.page()
-    elif choice==options[1]:
-        arbre.tree()
-    else:
-        arbre.progress()
-    st.divider()
-    st.subheader('🧭 Explorer librement')
+    st.markdown('<div class="v18-hero"><h1>🇪🇸 ¡Hola, aventurero!</h1><p>Avec Lucía, Carlos et Sofía, apprends, joue et mesure tes progrès réels.</p></div>',unsafe_allow_html=True)
+    bilan.afficher()
+    st.subheader('🌞 Tes compagnons de voyage')
     cols=st.columns(3)
-    cards=[('🏠','Maison','Objets, pièces et logement'),('👨‍👩‍👧','Famille','Parents, cousins et relations'),('🍎','Alimentation','Courses, cuisine et restaurant')]
-    for col,(icon,title,desc) in zip(cols,cards):
+    for col,(name,role,photo) in zip(cols,[('Lucía','Salutations et missions','lucia.png'),('Carlos','Dialogues du quotidien','carlos.png'),('Sofía','Défis et révisions','sofia.png')]):
         with col:
-            st.markdown(f'<div class="v19-topic"><div class="v19-topic-icon">{icon}</div><b>{escape(title)}</b><p>{escape(desc)}</p></div>',unsafe_allow_html=True)
-    st.caption('Les thèmes sont des exemples de découverte. Pour les leçons et validations officielles du parcours, utilise les rubriques CECRL historiques.')
+            st.image(str(ASSETS/photo),width=110)
+            st.markdown(f'**{name}** · {role}')
+    choice=st.radio('Que veux-tu faire maintenant ?', ['🎭 Missions illustrées','🎲 Nouveaux mini-jeux','🗺️ Carte CECRL','📊 Bilan pédagogique','📅 Mes objectifs','💾 Sauvegarder'],horizontal=True,key='v41_home')
+    if choice.startswith('🎭'):aventure.page(compact=True)
+    elif choice.startswith('🎲'):games.page()
+    elif choice.startswith('🗺️'):progression_v40.page()
+    elif choice.startswith('📊'):dashboard.page()
+    elif choice.startswith('📅'):projection.page()
+    else:
+        sauvegarde.page();sync.panel()

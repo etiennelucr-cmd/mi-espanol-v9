@@ -33,3 +33,17 @@ def apply():
     .cecrl-open{background:#fff0c6;color:#8b1728;border-color:#e5b24b}
     .cecrl-locked{background:#f4f1ed;color:#8d8985;opacity:.8}
     </style>""",unsafe_allow_html=True)
+
+def apply_v26_global():
+    st.markdown("""<style>
+    .block-container{max-width:1150px;padding-top:2rem}
+    h1,h2,h3{color:#94152a!important}
+    div[data-testid="stMetric"]{background:#fffdf8;border:1px solid #efcd8d;border-radius:16px;padding:13px 16px}
+    div[data-testid="stMetricValue"]{color:#ad1730}
+    div[data-testid="stTextInput"] input,div[data-testid="stTextArea"] textarea{min-height:44px;border-radius:11px;background:#fffdf9}
+    div[data-testid="stForm"]{border:1px solid #efcd8d;border-radius:18px;padding:20px}
+    div[data-testid="stAlert"],div[data-testid="stExpander"]{border-radius:12px}
+    [data-testid="stSidebar"]{border-right:2px solid #e8b65b}
+    .v19-topic{background:#fff8e8!important;border-color:#f0c77b!important}
+    @media(max-width:720px){.block-container{padding:1rem}.v18-hero h1{font-size:1.5rem!important}}
+    </style>""",unsafe_allow_html=True)

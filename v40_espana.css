@@ -1,0 +1,10 @@
+/* V40 — identité espagnole harmonisée */
+:root {--v40-red:#a8162b;--v40-gold:#f1bd3d;--v40-cream:#fff8e9}
+.v40-road{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin:18px 0 24px}
+.v40-step{border:2px solid #eacb8b;border-radius:16px;padding:18px 5px;text-align:center;display:flex;flex-direction:column;gap:4px;background:#fff9ec;color:#841c2b}
+.v40-step strong{font-size:1.35rem}.v40-step small{font-size:.72rem}
+.v40-available{background:#fff0bc;border-color:#ca293a}.v40-closed{filter:grayscale(.6);opacity:.72}
+[data-testid="stSidebar"]{background:#fff6e7}
+[data-testid="stButton"] button[kind="primary"]{background:#ae1830;border-color:#ae1830;color:white}
+[data-testid="stTabs"] button[aria-selected="true"]{color:#a8162b!important;border-bottom-color:#a8162b!important}
+@media(max-width:750px){.v40-road{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.v40-step{padding:12px 3px}}

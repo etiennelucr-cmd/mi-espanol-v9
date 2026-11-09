@@ -1,5 +1,5 @@
 import json
-"""Mi Español V6 — cours enrichis et contrôles /20 avec remédiation."""
+"""Mi Español V41 — édition España cumulée."""
 import csv, io, json, random, time
 import diagnostic_v16_2 as diagnostic
 from datetime import date,datetime,timedelta
@@ -16,7 +16,7 @@ import parcours_v10 as pv
 import exercices_v11 as ev
 import apprentissage_v16 as v16
 
-st.set_page_config(page_title='Mi Español V24 · Aventure CECRL',page_icon='🇪🇸',layout='wide')
+st.set_page_config(page_title='Mi Español V41 · Édition España',page_icon='🇪🇸',layout='wide')
 st.markdown('''<style>
 .stApp {background: linear-gradient(160deg,#fffaf0 0%,#fff4e4 100%);}
 [data-testid="stSidebar"] {background: #fff0d5; border-right: 1px solid #edc76d;}
@@ -563,15 +563,29 @@ import accueil_v19
 import accueil_v20
 import aventure_cecrl_v18 as aventure_cecrl
 import arbre_competences_v18 as arbre_v18
-pages={'🚀 Mon aventure V23':accueil_v20.page,'🏡 Mon aventure V19':accueil_v19.page,'🌳 Arbre de compétences':arbre_v18.tree,'📊 Bilans jour/semaine/mois':arbre_v18.progress,'🎮 Jouer et apprendre':aventure.page,'🌍 Aventure CECRL A1–C2':aventure_cecrl.page,'📅 Planning de la semaine':pa.page,'🎯 Programme du jour':ext.programme,'🗺️ Parcours CECRL':ext.parcours,'✍️ Expression écrite':ext.expression,'🎧 Écoute et expression orale':ext.oral,'📚 Cours':cours,'🧪 Contrôles et révisions':controles_et_revisions,'🎓 Examens blancs':lambda:__import__('examens_v17').page(),'📖 Lexique':lexique,'📗 Verbes et conjugaisons':cp.page,'🤖 Coach IA':coach,'🏆 Défis':defis,'🧠 Répétition espacée':lambda:v16.repetition(m.preference('niveau_suivi','A1')),'📈 Maîtrise durable':lambda:v16.maitrise(m.preference('niveau_suivi','A1'))}
+import progression_v40
+import mini_jeux_v41
+import bilan_unifie_v41
+import v40_theme
+import projection_cecrl_v25
+pages={'🇪🇸 Mon aventure V41':accueil_v19.page,'🏡 Mon aventure V19':accueil_v19.page,'📅 Ma progression et mes objectifs':projection_cecrl_v25.page,'🗺️ Carte de progression CECRL':progression_v40.page,'🌳 Arbre de compétences':arbre_v18.tree,'📊 Bilans jour/semaine/mois':arbre_v18.progress,'🎲 Mini-jeux V41':mini_jeux_v41.page,'📊 Tableau de bord V41':bilan_unifie_v41.page,'🎮 Jouer et apprendre':aventure.page,'🌍 Aventure CECRL A1–C2':aventure_cecrl.page,'📅 Planning de la semaine':pa.page,'🎯 Programme du jour':ext.programme,'🗺️ Parcours CECRL':ext.parcours,'✍️ Expression écrite':ext.expression,'🎧 Écoute et expression orale':ext.oral,'📚 Cours':cours,'🧪 Contrôles et révisions':controles_et_revisions,'🎓 Examens blancs':lambda:__import__('examens_v17').page(),'📖 Lexique':lexique,'📗 Verbes et conjugaisons':cp.page,'🤖 Coach IA':coach,'🏆 Défis':defis,'🧠 Répétition espacée':lambda:v16.repetition(m.preference('niveau_suivi','A1')),'📈 Maîtrise durable':lambda:v16.maitrise(m.preference('niveau_suivi','A1'))}
+from v18_style import apply_v26_global
+apply_v26_global()
+v40_theme.apply()
 sidebar_start=time.perf_counter()
 with st.sidebar:
     _t_header=time.perf_counter()
     v16.entete()
-    st.caption('🎮 Mi Español V18 · La Aventura')
+    st.caption('🇪🇸 Mi Español V41 · Édition España')
     diagnostic.record('En-tête Streamlit',time.perf_counter()-_t_header)
     niveau_enregistre=m.preference('niveau_suivi','A1')
-    niveau_suivi=st.selectbox('Niveau suivi',m.NIVEAUX,index=m.NIVEAUX.index(niveau_enregistre) if niveau_enregistre in m.NIVEAUX else 0,key='sidebar_niveau')
+    niveaux_accessibles=progression_v40.accessible_levels()
+    if niveau_enregistre not in niveaux_accessibles:
+        niveau_enregistre=niveaux_accessibles[-1]
+        m.definir_preference('niveau_suivi',niveau_enregistre)
+    if st.session_state.get('sidebar_niveau') not in niveaux_accessibles:
+        st.session_state['sidebar_niveau']=niveau_enregistre
+    niveau_suivi=st.selectbox('Niveau suivi (validé)',niveaux_accessibles,index=niveaux_accessibles.index(niveau_enregistre),key='sidebar_niveau')
     if niveau_enregistre!=niveau_suivi:m.definir_preference('niveau_suivi',niveau_suivi)
     _t_progression=time.perf_counter()
     valides,total=pv.progression(niveau_suivi)
@@ -607,8 +621,8 @@ with st.sidebar:
     st.divider()
     st.markdown('### 🧭 Explorer')
     groupes = {
-        '🏠 Accueil': ['🏡 Mon aventure V19','🎮 Jouer et apprendre','🎯 Programme du jour','📅 Planning de la semaine','🤖 Coach IA'],
-        '🗺️ Parcours CECRL': ['🌳 Arbre de compétences','🌍 Aventure CECRL A1–C2','🗺️ Parcours CECRL','📚 Cours','📖 Lexique','📗 Verbes et conjugaisons'],
+        '🏠 Accueil': ['🇪🇸 Mon aventure V41','🎲 Mini-jeux V41','🎮 Jouer et apprendre','🎯 Programme du jour','📅 Planning de la semaine','🤖 Coach IA'],
+        '🗺️ Parcours CECRL': ['🗺️ Carte de progression CECRL','📊 Tableau de bord V41','📅 Ma progression et mes objectifs','🌳 Arbre de compétences','🌍 Aventure CECRL A1–C2','🗺️ Parcours CECRL','📚 Cours','📖 Lexique','📗 Verbes et conjugaisons'],
         '🎮 Jouer et pratiquer': ['🏆 Défis','✍️ Expression écrite','🎧 Écoute et expression orale'],
         '🧠 Mes révisions': ['🧪 Contrôles et révisions','🧠 Répétition espacée','📈 Maîtrise durable'],
         '📊 Mes progrès': ['📊 Bilans jour/semaine/mois','🎓 Examens blancs'],
@@ -624,3 +638,8 @@ try:
 finally:
     diagnostic.record("Page sélectionnée",time.perf_counter()-page_start)
     diagnostic.report()
+    try:
+        import sync_aventure_v29
+        sync_aventure_v29.autosave()
+    except Exception:
+        pass

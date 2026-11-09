@@ -51,13 +51,14 @@ def tree():
     apply()
     s=state();st.title('🌳 Mon arbre de compétences')
     st.caption('Parcours progressif : ton niveau suivi et les niveaux précédents sont accessibles. Les niveaux supérieurs restent verrouillés.')
+    from progression_v40 import accessible_levels
+    unlocked=accessible_levels()
     current=m.preference('niveau_suivi','A1')
-    if current not in LEVELS:current='A1'
-    unlocked=LEVELS[:LEVELS.index(current)+1]
+    if current not in unlocked:current=unlocked[-1]
     st.markdown('<div class="cecrl-road">'+''.join(f'<span class="cecrl-pill {"cecrl-open" if lv in unlocked else "cecrl-locked"}">{"🔓" if lv in unlocked else "🔒"} {lv}</span>' for lv in LEVELS)+'</div>',unsafe_allow_html=True)
     level=st.selectbox('Niveau à explorer (niveaux accessibles)',options=unlocked,index=len(unlocked)-1,key='arbre_niveau_accessible')
-    if current!='C2':st.info(f'🔒 {LEVELS[LEVELS.index(current)+1]} et les niveaux suivants sont verrouillés. Ils seront accessibles lorsque ton niveau suivi évoluera après validation dans le parcours CECRL.')
-    st.caption('⚠️ Le niveau suivi est modifiable dans la barre latérale : ce verrouillage n’est pas encore une certification automatique. Les XP ne valident pas un niveau.')
+    if current!='C2':st.info(f'🔒 {LEVELS[LEVELS.index(current)+1]} et les niveaux suivants sont verrouillés. Ils seront accessibles après validation des compétences précédentes dans le parcours CECRL.')
+    st.caption('🔐 Le déblocage dépend des validations du moteur pédagogique, pas des XP ou du menu latéral.')
     st.metric('⭐ XP aventure',s['xp']);st.caption(f'🪙 {s["coins"]} pièces · récompenses de session')
     t=themes(level)
     if not t:st.warning('Aucun thème disponible pour ce niveau.');return
@@ -100,8 +101,8 @@ def progress():
     mode=st.radio('Période',['Jour','Semaine','Mois'],horizontal=True)
     days={'Jour':1,'Semaine':7,'Mois':30}[mode]
     cutoff=date.today()-timedelta(days=days-1)
-    recent=[a for a in s['attempts'] if date.fromisoformat(a['date'])>=cutoff]
-    previous=[a for a in s['attempts'] if cutoff-timedelta(days=days)<=date.fromisoformat(a['date'])<cutoff]
+    recent=[a for a in s['attempts'] if isinstance(a.get('date'),str) and a['date'][:10].replace('-','').isdigit() and a['date'][:10]>=cutoff.isoformat()]
+    previous=[a for a in s['attempts'] if isinstance(a.get('date'),str) and (cutoff-timedelta(days=days)).isoformat()<=a['date'][:10]<cutoff.isoformat()]
     success=sum(a['correct'] for a in recent)
     c1,c2,c3=st.columns(3)
     c1.metric('Questions jouées',len(recent));c2.metric('Réussite',f'{100*success/len(recent):.0f}%' if recent else '—');c3.metric('Thèmes travaillés',len({(a['level'],a['theme']) for a in recent}))

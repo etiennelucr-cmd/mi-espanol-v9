@@ -30,7 +30,8 @@ def parcours():
         + entetes + '</tr></thead><tbody>' + ''.join(lignes) + '</tbody></table></div>',unsafe_allow_html=True)
     st.caption('Sur un petit écran, fais défiler horizontalement le tableau pour voir les niveaux C1 et C2.')
     st.subheader('⏱️ Repères indicatifs de pratique par niveau')
-    st.dataframe({'Niveau':m.NIVEAUX,'Heures indicatives par niveau':[60,120,180,240,300,360]},hide_index=True,use_container_width=True)
+    from referentiel_heures import HEURES_PAR_NIVEAU, HEURES_CUMULEES
+    st.dataframe({'Niveau':m.NIVEAUX,'Heures indicatives par niveau':[HEURES_PAR_NIVEAU[n] for n in m.NIVEAUX], 'Total cumulé depuis A1':[HEURES_CUMULEES[n] for n in m.NIVEAUX]},hide_index=True,use_container_width=True)
     st.caption('Objectifs pédagogiques internes, non imposés par le CECRL ; les heures seules ne valident pas un niveau.')
     st.subheader('📚 Objectifs indicatifs de vocabulaire par niveau')
     st.dataframe({'Niveau':m.NIVEAUX,'Objectif indicatif (mots)':[500,1000,2000,3500,5000,7000]},hide_index=True)

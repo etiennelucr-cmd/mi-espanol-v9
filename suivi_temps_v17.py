@@ -1,6 +1,7 @@
 """Suivi des durées réellement enregistrées (aucun chronométrage fictif)."""
 import moteur as m
-OBJECTIFS=dict(zip(m.NIVEAUX,[60,120,180,240,300,360]))
+from referentiel_heures import HEURES_PAR_NIVEAU
+OBJECTIFS = HEURES_PAR_NIVEAU
 def heures_niveau(niveau):
     seances=m.rows('SELECT COALESCE(SUM(minutes),0) AS minutes FROM sessions WHERE niveau=?',(niveau,))
     tests=m.rows('''SELECT COALESCE(SUM(CASE WHEN secondes BETWEEN 1 AND 7200 THEN secondes ELSE 0 END),0) AS secondes FROM tentatives WHERE niveau=?''',(niveau,))
