@@ -16,7 +16,15 @@ import parcours_v10 as pv
 import exercices_v11 as ev
 import apprentissage_v16 as v16
 
-st.set_page_config(page_title='Mi Español · Coach adaptatif',page_icon='🇪🇸',layout='wide')
+st.set_page_config(page_title='Mi Español V18 · Aventure CECRL',page_icon='🇪🇸',layout='wide')
+st.markdown('''<style>
+.stApp {background: linear-gradient(160deg,#f9fcff 0%,#fff9f3 100%);}
+[data-testid="stSidebar"] {background: #f5f9ff; border-right: 1px solid #e5eaf3;}
+div.stButton > button[kind="primary"] {border-radius: 18px; font-weight: 750;}
+div[data-testid="stMetric"] {background: white; border: 1px solid #e7ebf2; border-radius: 16px; padding: 12px;}
+[data-testid="stSidebar"] div[data-testid="stRadio"] label {padding: 5px 0;}
+h1,h2,h3 {letter-spacing: -.025em;}
+</style>''', unsafe_allow_html=True)
 
 def verifier_acces():
     if st.session_state.get("acces_autorise", False):
@@ -547,7 +555,10 @@ def controles_et_revisions():
     else:
         revisions()
 
-pages={'📅 Planning de la semaine':pa.page,'🎯 Programme du jour':ext.programme,'🗺️ Parcours CECRL':ext.parcours,'✍️ Expression écrite':ext.expression,'🎧 Écoute et expression orale':ext.oral,'📚 Cours':cours,'🧪 Contrôles et révisions':controles_et_revisions,'🎓 Examens blancs':lambda:__import__('examens_v17').page(),'📖 Lexique':lexique,'📗 Verbes et conjugaisons':cp.page,'🤖 Coach IA':coach,'🏆 Défis':defis,'🧠 Répétition espacée':lambda:v16.repetition(m.preference('niveau_suivi','A1')),'📈 Maîtrise durable':lambda:v16.maitrise(m.preference('niveau_suivi','A1'))}
+import aventure_v18 as aventure
+import aventure_cecrl_v18 as aventure_cecrl
+import arbre_competences_v18 as arbre_v18
+pages={'🌳 Arbre de compétences':arbre_v18.tree,'📊 Bilans jour/semaine/mois':arbre_v18.progress,'🎮 Jouer et apprendre':aventure.page,'🌍 Aventure CECRL A1–C2':aventure_cecrl.page,'📅 Planning de la semaine':pa.page,'🎯 Programme du jour':ext.programme,'🗺️ Parcours CECRL':ext.parcours,'✍️ Expression écrite':ext.expression,'🎧 Écoute et expression orale':ext.oral,'📚 Cours':cours,'🧪 Contrôles et révisions':controles_et_revisions,'🎓 Examens blancs':lambda:__import__('examens_v17').page(),'📖 Lexique':lexique,'📗 Verbes et conjugaisons':cp.page,'🤖 Coach IA':coach,'🏆 Défis':defis,'🧠 Répétition espacée':lambda:v16.repetition(m.preference('niveau_suivi','A1')),'📈 Maîtrise durable':lambda:v16.maitrise(m.preference('niveau_suivi','A1'))}
 sidebar_start=time.perf_counter()
 with st.sidebar:
     _t_header=time.perf_counter()
@@ -581,8 +592,18 @@ with st.sidebar:
                 st.caption('Date estimée : en attente de 7 jours de progression mesurable')
     else:st.caption('C2 : dernier niveau du parcours')
     st.divider()
-    page=st.radio('Navigation',list(pages))
-    st.caption('Estimations internes, non certificatives · SQLite local')
+    st.markdown('### 🧭 Explorer')
+    groupes = {
+        '🏠 Accueil': ['🎮 Jouer et apprendre','🎯 Programme du jour','📅 Planning de la semaine','🤖 Coach IA'],
+        '🗺️ Parcours CECRL': ['🌳 Arbre de compétences','🌍 Aventure CECRL A1–C2','🗺️ Parcours CECRL','📚 Cours','📖 Lexique','📗 Verbes et conjugaisons'],
+        '🎮 Jouer et pratiquer': ['🏆 Défis','✍️ Expression écrite','🎧 Écoute et expression orale'],
+        '🧠 Mes révisions': ['🧪 Contrôles et révisions','🧠 Répétition espacée','📈 Maîtrise durable'],
+        '📊 Mes progrès': ['📊 Bilans jour/semaine/mois','🎓 Examens blancs'],
+    }
+    rubrique = st.radio('Rubrique', list(groupes), key='v18_rubrique')
+    sous_pages = groupes[rubrique]
+    page = st.selectbox('Activité', sous_pages, key='v18_activite') if len(sous_pages)>1 else sous_pages[0]
+    st.caption('💛 À ton rythme · CECRL A1–C2')
 diagnostic.record("Barre latérale et navigation",time.perf_counter()-sidebar_start)
 page_start=time.perf_counter()
 try:

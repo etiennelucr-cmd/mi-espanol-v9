@@ -30923,6 +30923,244 @@
       "es": "En rigor, se trata de dos fenómenos distintos.",
       "fr": "À proprement parler, il s'agit de deux phénomènes distincts.",
       "exemple": ""
+    },
+    {
+      "niveau": "A1",
+      "theme": "Maison",
+      "es": "la pared",
+      "fr": "le mur",
+      "exemple": "La pared es blanca."
+    },
+    {
+      "niveau": "A1",
+      "theme": "Maison",
+      "es": "el techo",
+      "fr": "le plafond",
+      "exemple": "El techo es alto."
+    },
+    {
+      "niveau": "A1",
+      "theme": "Maison",
+      "es": "el tejado",
+      "fr": "le toit",
+      "exemple": "El tejado es rojo."
+    },
+    {
+      "niveau": "A1",
+      "theme": "Alimentation",
+      "es": "el pan",
+      "fr": "le pain",
+      "exemple": "Quiero pan."
+    },
+    {
+      "niveau": "A1",
+      "theme": "Alimentation",
+      "es": "el agua",
+      "fr": "l’eau",
+      "exemple": "Bebo agua."
+    },
+    {
+      "niveau": "A1",
+      "theme": "Alimentation",
+      "es": "la leche",
+      "fr": "le lait",
+      "exemple": "Tomo leche."
+    },
+    {
+      "niveau": "A1",
+      "theme": "Alimentation",
+      "es": "la manzana",
+      "fr": "la pomme",
+      "exemple": "Como una manzana."
+    },
+    {
+      "niveau": "A2",
+      "theme": "Maison",
+      "es": "el pasillo",
+      "fr": "le couloir",
+      "exemple": "El pasillo es estrecho."
+    },
+    {
+      "niveau": "A2",
+      "theme": "Maison",
+      "es": "el armario",
+      "fr": "l’armoire",
+      "exemple": "La ropa está en el armario."
+    },
+    {
+      "niveau": "A2",
+      "theme": "Maison",
+      "es": "el suelo",
+      "fr": "le sol",
+      "exemple": "El suelo está limpio."
+    },
+    {
+      "niveau": "A2",
+      "theme": "Maison",
+      "es": "la escalera",
+      "fr": "l’escalier",
+      "exemple": "Subo la escalera."
+    },
+    {
+      "niveau": "A2",
+      "theme": "Famille",
+      "es": "el suegro",
+      "fr": "le beau-père",
+      "exemple": "Mi suegro viene mañana."
+    },
+    {
+      "niveau": "A2",
+      "theme": "Famille",
+      "es": "la suegra",
+      "fr": "la belle-mère",
+      "exemple": "Mi suegra cocina bien."
+    },
+    {
+      "niveau": "A2",
+      "theme": "Famille",
+      "es": "el sobrino",
+      "fr": "le neveu",
+      "exemple": "Mi sobrino tiene diez años."
+    },
+    {
+      "niveau": "A2",
+      "theme": "Famille",
+      "es": "la sobrina",
+      "fr": "la nièce",
+      "exemple": "Mi sobrina juega fuera."
+    },
+    {
+      "niveau": "B1",
+      "theme": "Maison",
+      "es": "la mudanza",
+      "fr": "le déménagement",
+      "exemple": "La mudanza será el lunes."
+    },
+    {
+      "niveau": "B1",
+      "theme": "Maison",
+      "es": "el alquiler",
+      "fr": "le loyer",
+      "exemple": "El alquiler ha subido."
+    },
+    {
+      "niveau": "B1",
+      "theme": "Maison",
+      "es": "la calefacción",
+      "fr": "le chauffage",
+      "exemple": "La calefacción no funciona."
+    },
+    {
+      "niveau": "B1",
+      "theme": "Maison",
+      "es": "la avería",
+      "fr": "la panne",
+      "exemple": "Hay una avería."
+    },
+    {
+      "niveau": "B1",
+      "theme": "Famille",
+      "es": "el parentesco",
+      "fr": "le lien de parenté",
+      "exemple": "No conozco su parentesco."
+    },
+    {
+      "niveau": "B1",
+      "theme": "Famille",
+      "es": "la convivencia",
+      "fr": "la cohabitation",
+      "exemple": "La convivencia requiere respeto."
+    },
+    {
+      "niveau": "B2",
+      "theme": "Maison",
+      "es": "el aislamiento",
+      "fr": "l’isolation",
+      "exemple": "El aislamiento reduce el ruido."
+    },
+    {
+      "niveau": "B2",
+      "theme": "Maison",
+      "es": "la hipoteca",
+      "fr": "le prêt immobilier",
+      "exemple": "Solicitaron una hipoteca."
+    },
+    {
+      "niveau": "B2",
+      "theme": "Maison",
+      "es": "el mantenimiento",
+      "fr": "l’entretien",
+      "exemple": "El mantenimiento es necesario."
+    },
+    {
+      "niveau": "B2",
+      "theme": "Famille",
+      "es": "la custodia compartida",
+      "fr": "la garde partagée",
+      "exemple": "Acordaron la custodia compartida."
+    },
+    {
+      "niveau": "B2",
+      "theme": "Famille",
+      "es": "el vínculo familiar",
+      "fr": "le lien familial",
+      "exemple": "Mantienen un vínculo familiar fuerte."
+    },
+    {
+      "niveau": "C1",
+      "theme": "Maison",
+      "es": "la eficiencia energética",
+      "fr": "l’efficacité énergétique",
+      "exemple": "La eficiencia energética es prioritaria."
+    },
+    {
+      "niveau": "C1",
+      "theme": "Maison",
+      "es": "la normativa urbanística",
+      "fr": "la réglementation d’urbanisme",
+      "exemple": "La normativa urbanística ha cambiado."
+    },
+    {
+      "niveau": "C1",
+      "theme": "Famille",
+      "es": "la filiación",
+      "fr": "la filiation",
+      "exemple": "La filiación está reconocida."
+    },
+    {
+      "niveau": "C1",
+      "theme": "Famille",
+      "es": "la conciliación familiar",
+      "fr": "la conciliation familiale",
+      "exemple": "La conciliación familiar es fundamental."
+    },
+    {
+      "niveau": "C2",
+      "theme": "Maison",
+      "es": "el usufructo",
+      "fr": "l’usufruit",
+      "exemple": "Conservó el usufructo de la vivienda."
+    },
+    {
+      "niveau": "C2",
+      "theme": "Maison",
+      "es": "la servidumbre de paso",
+      "fr": "la servitude de passage",
+      "exemple": "Existe una servidumbre de paso."
+    },
+    {
+      "niveau": "C2",
+      "theme": "Famille",
+      "es": "el parentesco por afinidad",
+      "fr": "la parenté par alliance",
+      "exemple": "Es un parentesco por afinidad."
+    },
+    {
+      "niveau": "C2",
+      "theme": "Famille",
+      "es": "la sucesión intestada",
+      "fr": "la succession ab intestat",
+      "exemple": "Se abrió una sucesión intestada."
     }
   ]
 }
