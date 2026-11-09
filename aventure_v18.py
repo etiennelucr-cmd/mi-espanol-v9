@@ -33,6 +33,8 @@ def _nouveau_jeu():
     return {'mot':bonne[0],'bonne':bonne[1],'options':options}
 
 def page():
+    from v18_style import apply
+    apply()
     s=_state()
     st.markdown('''<style>
     .v18-hero{padding:1.4rem;border-radius:20px;background:linear-gradient(115deg,#46aa40,#83cb3c);color:white;margin-bottom:1rem}
@@ -46,21 +48,29 @@ def page():
     tab1,tab2,tab3=st.tabs(['🗺️ Aventure','🎲 Jeu éclair','🎁 Récompenses'])
     with tab1:
         if s['mission'] is None:
-            st.subheader('Choisis ta prochaine mission')
+            st.subheader('🗺️ Choisis ta prochaine mission')
+            st.caption('Les missions sont des histoires courtes. Les personnages t’accompagnent à ton rythme.')
             for i,mission in enumerate(MISSIONS):
                 ok=i==0 or i-1 in s['terminees']
                 fini=i in s['terminees']
-                col,btn=st.columns([4,1])
-                col.markdown(f"**{mission['icone']} {mission['titre']}** · {mission['lieu']}  ")
-                col.caption('🏆 Terminée' if fini else ('🔓 Disponible' if ok else '🔒 Termine la mission précédente'))
-                if btn.button('Rejouer' if fini else 'Jouer',key=f'v18_m_{i}',disabled=not ok):
-                    s.update(mission=i,etape=0,choix=None,erreurs=0)
-                    st.rerun()
+                personnage_emoji={'Lucía':'👩🏽','Carlos':'👨🏻‍🍳','Sofía':'👩🏻‍🎓'}.get(mission['personnage'],'🧑')
+                col,btn=st.columns([4,1],vertical_alignment='center')
+                with col:
+                    st.markdown(f"""<div class="mission-card {'mission-done' if fini else 'mission-locked' if not ok else 'mission-ready'}">
+                    <div class="mission-avatar">{personnage_emoji}</div><div class="mission-info">
+                    <div class="mission-label">{'🏆 TERMINÉE' if fini else '🔒 À DÉBLOQUER' if not ok else '✨ MISSION DISPONIBLE'}</div>
+                    <div class="mission-title">{mission['icone']} {mission['titre']}</div>
+                    <div class="mission-sub">📍 {mission['lieu']} · {mission['personnage']} · +30 XP</div></div></div>""",unsafe_allow_html=True)
+                with btn:
+                    if st.button('↻ Rejouer' if fini else '▶ Jouer',key=f'v18_m_{i}',disabled=not ok,use_container_width=True):
+                        s.update(mission=i,etape=0,choix=None,erreurs=0)
+                        st.rerun()
         else:
             mission=MISSIONS[s['mission']]
             st.subheader(f"{mission['icone']} {mission['titre']}")
             st.caption(f"📍 {mission['lieu']} · {mission['personnage']}")
-            st.info(mission['intro'])
+            avatar={'Lucía':'👩🏽','Carlos':'👨🏻‍🍳','Sofía':'👩🏻‍🎓'}.get(mission['personnage'],'🧑')
+            st.markdown(f'<div class="dialogue-card"><span class="dialogue-avatar">{avatar}</span><strong>{mission["personnage"]}</strong><p>{mission["intro"]}</p></div>',unsafe_allow_html=True)
             if s['etape']>=len(mission['dialogue']):
                 st.success('🎉 ¡Misión cumplida! Tu aventure continue !')
                 if st.button('Récupérer ma récompense',type='primary'):

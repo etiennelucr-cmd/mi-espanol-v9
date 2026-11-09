@@ -47,6 +47,8 @@ def quiz(level,theme,s,stage_index):
             s['active']=None;s['answer']=None;st.rerun()
 
 def tree():
+    from v18_style import apply
+    apply()
     s=state();st.title('🌳 Mon arbre de compétences')
     st.caption('Explore A1–C2 librement. Les réussites du mini-jeu ne remplacent pas les validations CECRL du parcours classique.')
     level=st.select_slider('Niveau à explorer',options=LEVELS,value=m.preference('niveau_suivi','A1'))
@@ -60,6 +62,10 @@ def tree():
     st.subheader(f'{level} · {selected}')
     st.progress(min(1,s['completed'].get(key,0)/len(stages)))
     for i,stage in enumerate(stages):
+        progress_step=s['completed'].get(key,0)
+        node_class='done' if progress_step>i else 'current' if progress_step==i else 'locked'
+        if i:st.markdown('<div class="skill-connector"></div>',unsafe_allow_html=True)
+        st.markdown(f'<div class="skill-node {node_class}"><span class="skill-emoji">{stage.split()[0]}</span><div><div class="skill-name">{stage.split(" ",1)[1]}</div><div class="skill-status">{"✓ Terminée" if progress_step>i else "▶ Étape actuelle" if progress_step==i else "🔒 À venir"}</div></div></div>',unsafe_allow_html=True)
         status='✅' if s['completed'].get(key,0)>i else ('🟢' if s['completed'].get(key,0)==i else '🔒')
         with st.expander(f'{status} {stage}',expanded=s['completed'].get(key,0)==i):
             if i==0:

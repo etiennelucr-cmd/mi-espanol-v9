@@ -556,13 +556,16 @@ def controles_et_revisions():
         revisions()
 
 import aventure_v18 as aventure
+import accueil_v19
+import accueil_v20
 import aventure_cecrl_v18 as aventure_cecrl
 import arbre_competences_v18 as arbre_v18
-pages={'🌳 Arbre de compétences':arbre_v18.tree,'📊 Bilans jour/semaine/mois':arbre_v18.progress,'🎮 Jouer et apprendre':aventure.page,'🌍 Aventure CECRL A1–C2':aventure_cecrl.page,'📅 Planning de la semaine':pa.page,'🎯 Programme du jour':ext.programme,'🗺️ Parcours CECRL':ext.parcours,'✍️ Expression écrite':ext.expression,'🎧 Écoute et expression orale':ext.oral,'📚 Cours':cours,'🧪 Contrôles et révisions':controles_et_revisions,'🎓 Examens blancs':lambda:__import__('examens_v17').page(),'📖 Lexique':lexique,'📗 Verbes et conjugaisons':cp.page,'🤖 Coach IA':coach,'🏆 Défis':defis,'🧠 Répétition espacée':lambda:v16.repetition(m.preference('niveau_suivi','A1')),'📈 Maîtrise durable':lambda:v16.maitrise(m.preference('niveau_suivi','A1'))}
+pages={'🚀 Mon aventure V22':accueil_v20.page,'🏡 Mon aventure V19':accueil_v19.page,'🌳 Arbre de compétences':arbre_v18.tree,'📊 Bilans jour/semaine/mois':arbre_v18.progress,'🎮 Jouer et apprendre':aventure.page,'🌍 Aventure CECRL A1–C2':aventure_cecrl.page,'📅 Planning de la semaine':pa.page,'🎯 Programme du jour':ext.programme,'🗺️ Parcours CECRL':ext.parcours,'✍️ Expression écrite':ext.expression,'🎧 Écoute et expression orale':ext.oral,'📚 Cours':cours,'🧪 Contrôles et révisions':controles_et_revisions,'🎓 Examens blancs':lambda:__import__('examens_v17').page(),'📖 Lexique':lexique,'📗 Verbes et conjugaisons':cp.page,'🤖 Coach IA':coach,'🏆 Défis':defis,'🧠 Répétition espacée':lambda:v16.repetition(m.preference('niveau_suivi','A1')),'📈 Maîtrise durable':lambda:v16.maitrise(m.preference('niveau_suivi','A1'))}
 sidebar_start=time.perf_counter()
 with st.sidebar:
     _t_header=time.perf_counter()
     v16.entete()
+    st.caption('🎮 Mi Español V18 · La Aventura')
     diagnostic.record('En-tête Streamlit',time.perf_counter()-_t_header)
     niveau_enregistre=m.preference('niveau_suivi','A1')
     niveau_suivi=st.selectbox('Niveau suivi',m.NIVEAUX,index=m.NIVEAUX.index(niveau_enregistre) if niveau_enregistre in m.NIVEAUX else 0,key='sidebar_niveau')
@@ -601,7 +604,7 @@ with st.sidebar:
     st.divider()
     st.markdown('### 🧭 Explorer')
     groupes = {
-        '🏠 Accueil': ['🎮 Jouer et apprendre','🎯 Programme du jour','📅 Planning de la semaine','🤖 Coach IA'],
+        '🏠 Accueil': ['🏡 Mon aventure V19','🎮 Jouer et apprendre','🎯 Programme du jour','📅 Planning de la semaine','🤖 Coach IA'],
         '🗺️ Parcours CECRL': ['🌳 Arbre de compétences','🌍 Aventure CECRL A1–C2','🗺️ Parcours CECRL','📚 Cours','📖 Lexique','📗 Verbes et conjugaisons'],
         '🎮 Jouer et pratiquer': ['🏆 Défis','✍️ Expression écrite','🎧 Écoute et expression orale'],
         '🧠 Mes révisions': ['🧪 Contrôles et révisions','🧠 Répétition espacée','📈 Maîtrise durable'],
