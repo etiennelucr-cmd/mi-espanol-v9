@@ -16,7 +16,7 @@ def words(level,theme):
 def themes(level):
     return sorted({x.get('theme') for x in m.LEXIQUE if isinstance(x,dict) and x.get('niveau')==level and x.get('theme')})
 
-def quiz(level,theme,s):
+def quiz(level,theme,s,stage_index):
     pool=words(level,theme)
     if len(pool)<2:
         st.info('Ce thème a besoin de davantage de mots pour proposer un quiz.');return
@@ -32,7 +32,7 @@ def quiz(level,theme,s):
     st.markdown('#### 🎮 Mini-défi : trouve la traduction')
     st.markdown('### '+target['es'])
     for i,opt in enumerate(q['options']):
-        if st.button(opt,key=f'arbre_answer_{level}_{theme}_{i}',use_container_width=True,disabled=s['answer'] is not None):
+        if st.button(opt,key=f'arbre_answer_{level}_{theme}_{stage_index}_{i}',use_container_width=True,disabled=s['answer'] is not None):
             correct=(opt==target['fr'])
             s['answer']=opt
             s['attempts'].append({'date':date.today().isoformat(),'level':level,'theme':theme,'correct':correct,'word':target['es']})
@@ -43,7 +43,7 @@ def quiz(level,theme,s):
         if s['answer']==target['fr']:st.success('¡Excelente! +10 XP et +2 pièces')
         else:st.info('À retenir : '+target['es']+' = '+target['fr'])
         if target.get('exemple'):st.caption('💬 '+target['exemple'])
-        if st.button('➡️ Autre défi',type='primary'):
+        if st.button('➡️ Autre défi',type='primary',key=f'arbre_next_{level}_{theme}_{stage_index}'):
             s['active']=None;s['answer']=None;st.rerun()
 
 def tree():
@@ -66,7 +66,12 @@ def tree():
                 st.write('Mots essentiels du thème :')
                 for w in pool[:12]:st.write('**'+w['es']+'** — '+w['fr']+' · '+w.get('exemple',''))
             elif i in (1,2,3):
-                quiz(level,selected,s)
+                if s['completed'].get(key,0)==i:
+                    quiz(level,selected,s,i)
+                elif s['completed'].get(key,0)>i:
+                    st.success('Étape terminée')
+                else:
+                    st.info('Termine les étapes précédentes pour débloquer ce défi.')
             else:
                 st.info('Maîtrise durable : utilise les contrôles et révisions du parcours historique pour valider réellement la compétence.')
             if i<4 and s['completed'].get(key,0)==i and st.button('Étape découverte / pratiquée ✓',key=f'complete_{i}'):
