@@ -50,8 +50,14 @@ def tree():
     from v18_style import apply
     apply()
     s=state();st.title('🌳 Mon arbre de compétences')
-    st.caption('Explore A1–C2 librement. Les réussites du mini-jeu ne remplacent pas les validations CECRL du parcours classique.')
-    level=st.select_slider('Niveau à explorer',options=LEVELS,value=m.preference('niveau_suivi','A1'))
+    st.caption('Parcours progressif : ton niveau suivi et les niveaux précédents sont accessibles. Les niveaux supérieurs restent verrouillés.')
+    current=m.preference('niveau_suivi','A1')
+    if current not in LEVELS:current='A1'
+    unlocked=LEVELS[:LEVELS.index(current)+1]
+    st.markdown('<div class="cecrl-road">'+''.join(f'<span class="cecrl-pill {"cecrl-open" if lv in unlocked else "cecrl-locked"}">{"🔓" if lv in unlocked else "🔒"} {lv}</span>' for lv in LEVELS)+'</div>',unsafe_allow_html=True)
+    level=st.selectbox('Niveau à explorer (niveaux accessibles)',options=unlocked,index=len(unlocked)-1,key='arbre_niveau_accessible')
+    if current!='C2':st.info(f'🔒 {LEVELS[LEVELS.index(current)+1]} et les niveaux suivants sont verrouillés. Ils seront accessibles lorsque ton niveau suivi évoluera après validation dans le parcours CECRL.')
+    st.caption('⚠️ Le niveau suivi est modifiable dans la barre latérale : ce verrouillage n’est pas encore une certification automatique. Les XP ne valident pas un niveau.')
     st.metric('⭐ XP aventure',s['xp']);st.caption(f'🪙 {s["coins"]} pièces · récompenses de session')
     t=themes(level)
     if not t:st.warning('Aucun thème disponible pour ce niveau.');return

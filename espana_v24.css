@@ -1,0 +1,33 @@
+/* Mi Español V24 — identité Espagne globale */
+:root{--esp-rojo:#b71c32;--esp-rojo-oscuro:#82152a;--esp-oro:#f4c44e;--esp-crema:#fff8eb;--esp-borde:#e8cf9d}
+.stApp,[data-testid="stAppViewContainer"],.main{background:linear-gradient(145deg,#fffaf1,#fff3df)!important}
+[data-testid="stSidebar"],section[data-testid="stSidebar"]{background:#fff0d1!important;border-right:2px solid #efc56d!important}
+[data-testid="stHeader"]{background:#fff9efeb!important}
+.block-container{max-width:1320px;padding-top:1.4rem}
+h1,h2,h3{color:#831629!important;letter-spacing:-.025em}
+a{color:#ad1b30}
+.stButton button,.stDownloadButton button,.stFormSubmitButton button,.stLinkButton a{border-radius:14px!important;border-color:#dfbc83!important;transition:box-shadow .15s,transform .15s}
+.stButton button:hover,.stDownloadButton button:hover,.stFormSubmitButton button:hover{border-color:#bd2037!important;box-shadow:0 4px 14px #a21c2b20!important}
+.stButton button[kind="primary"],.stFormSubmitButton button[kind="primary"],button[data-testid="baseButton-primary"]{background:#b71c32!important;border-color:#b71c32!important;color:white!important}
+[data-testid="stMetric"],div[data-testid="stMetric"]{background:#fffdf8!important;border:1px solid #ecd29e!important;border-radius:17px!important;padding:13px!important}
+[data-testid="stMetricValue"]{color:#981a2c!important}
+[data-testid="stExpander"],div[data-testid="stVerticalBlockBorderWrapper"]>div[data-testid="stVerticalBlock"]{border-radius:15px}
+[data-testid="stExpander"]{border-color:#ead2a9!important;background:#fffdf9!important}
+[data-baseweb="tab-list"]{gap:5px;background:#fff0d5;border-radius:13px;padding:5px}
+button[data-baseweb="tab"]{border-radius:10px!important}
+button[data-baseweb="tab"][aria-selected="true"]{background:#b71c32!important;color:white!important}
+[data-testid="stAlert"]{border-radius:14px!important}
+[data-testid="stDataFrame"],.stDataFrame{border-radius:13px;overflow:hidden}
+.v18-hero,.hero,.v20-hero,.v19-hero{background:linear-gradient(110deg,#a6162d,#d72b35 65%,#f0ad36)!important;color:white!important;border-radius:20px!important;box-shadow:0 9px 24px #9e1a2c24!important}
+.v18-hero h1,.v18-hero h2,.hero h1,.hero h2,.v20-hero h1{color:white!important}
+.mission-card{border-color:#e8c995!important;background:#fffaf1!important;border-radius:19px!important}
+.mission-ready,.v19-action{background:linear-gradient(110deg,#fff6da,#fff0e6)!important;border-color:#e9b84b!important}
+.mission-done,.skill-node.done{background:#fff7dd!important;border-color:#e4bf70!important}
+.mission-avatar{background:#ffe3a4!important}
+.mission-label{color:#ae1b30!important}.mission-title,.skill-name{color:#851729!important}
+.skill-node.current{background:#fff1e6!important;border:2px solid #c52038!important}
+.skill-connector{background:#e6b34f!important}
+.dialogue-card{background:#fff8e8!important;border-color:#ebcc8e!important}
+.v19-topic{background:#fff9ed!important;border-color:#efd6a5!important}
+.cecrl-open{background:#fff0c6!important;color:#8b1728!important}.cecrl-locked{background:#f1eeea!important}
+@media(max-width:700px){.block-container{padding:1rem .8rem}.mission-card{padding:12px!important}.mission-avatar{width:48px!important;height:48px!important}}

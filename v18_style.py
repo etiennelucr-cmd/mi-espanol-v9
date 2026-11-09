@@ -14,3 +14,22 @@ def apply_v19():
     .v19-topic p{font-size:13px;color:#607586}
     @media(max-width:650px){.v18-hero{padding:1rem!important}.mission-card{padding:12px!important;gap:9px!important}.mission-avatar{width:44px;height:44px;font-size:28px}}
     </style>''',unsafe_allow_html=True)
+
+# Identité visuelle Espagne : palette rouge, or et crème, appliquée à toutes les pages V18–V22.
+_ORIGINAL_APPLY = apply
+def apply():
+    _ORIGINAL_APPLY()
+    st.markdown("""<style>
+    .v18-hero{background:linear-gradient(120deg,#a90d22,#e33232 60%,#f2a82d)!important;box-shadow:0 12px 28px #ad1a2422!important}
+    .mission-ready,.v19-action{border-color:#f1bb57!important;background:linear-gradient(110deg,#fff9e8,#fff0e8)!important}
+    .mission-done,.skill-node.done{background:#fff8e5!important;border-color:#efc05b!important}
+    .mission-avatar{background:#ffe6ad!important}
+    .mission-label{color:#ad1529!important}.mission-title,.skill-name{color:#7c1725!important}
+    .skill-node.current{border:2px solid #d71e35!important;background:#fff1e5!important;box-shadow:0 4px 18px #c6252822!important}
+    .skill-connector{background:#eab35b!important}
+    .dialogue-card{background:#fff7e8!important;border-color:#f4d7a0!important}
+    .cecrl-road{display:flex;flex-wrap:wrap;gap:9px;margin:12px 0 20px}
+    .cecrl-pill{padding:10px 15px;border-radius:14px;font-weight:800;border:1px solid #e8d3ad}
+    .cecrl-open{background:#fff0c6;color:#8b1728;border-color:#e5b24b}
+    .cecrl-locked{background:#f4f1ed;color:#8d8985;opacity:.8}
+    </style>""",unsafe_allow_html=True)

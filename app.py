@@ -16,12 +16,12 @@ import parcours_v10 as pv
 import exercices_v11 as ev
 import apprentissage_v16 as v16
 
-st.set_page_config(page_title='Mi Español V18 · Aventure CECRL',page_icon='🇪🇸',layout='wide')
+st.set_page_config(page_title='Mi Español V24 · Aventure CECRL',page_icon='🇪🇸',layout='wide')
 st.markdown('''<style>
-.stApp {background: linear-gradient(160deg,#f9fcff 0%,#fff9f3 100%);}
-[data-testid="stSidebar"] {background: #f5f9ff; border-right: 1px solid #e5eaf3;}
-div.stButton > button[kind="primary"] {border-radius: 18px; font-weight: 750;}
-div[data-testid="stMetric"] {background: white; border: 1px solid #e7ebf2; border-radius: 16px; padding: 12px;}
+.stApp {background: linear-gradient(160deg,#fffaf0 0%,#fff4e4 100%);}
+[data-testid="stSidebar"] {background: #fff0d5; border-right: 1px solid #edc76d;}
+div.stButton > button[kind="primary"] {border-radius: 18px; font-weight: 750; background:#c61932; border-color:#c61932;}
+div[data-testid="stMetric"] {background: white; border: 1px solid #efd6a5; border-radius: 16px; padding: 12px;}
 [data-testid="stSidebar"] div[data-testid="stRadio"] label {padding: 5px 0;}
 h1,h2,h3 {letter-spacing: -.025em;}
 </style>''', unsafe_allow_html=True)
@@ -49,6 +49,9 @@ def verifier_acces():
 
 
 verifier_acces()
+
+import espana_theme_v24
+espana_theme_v24.apply()
 m.init()
 ped.init()
 st.markdown('''<style>.block-container{max-width:1280px;padding-top:1.3rem}.hero{padding:1.5rem;border-radius:18px;background:linear-gradient(120deg,#84212c,#df5c45);color:white}.hero h1,.hero p{color:white}.small{opacity:.8}</style>''',unsafe_allow_html=True)
@@ -560,7 +563,7 @@ import accueil_v19
 import accueil_v20
 import aventure_cecrl_v18 as aventure_cecrl
 import arbre_competences_v18 as arbre_v18
-pages={'🚀 Mon aventure V22':accueil_v20.page,'🏡 Mon aventure V19':accueil_v19.page,'🌳 Arbre de compétences':arbre_v18.tree,'📊 Bilans jour/semaine/mois':arbre_v18.progress,'🎮 Jouer et apprendre':aventure.page,'🌍 Aventure CECRL A1–C2':aventure_cecrl.page,'📅 Planning de la semaine':pa.page,'🎯 Programme du jour':ext.programme,'🗺️ Parcours CECRL':ext.parcours,'✍️ Expression écrite':ext.expression,'🎧 Écoute et expression orale':ext.oral,'📚 Cours':cours,'🧪 Contrôles et révisions':controles_et_revisions,'🎓 Examens blancs':lambda:__import__('examens_v17').page(),'📖 Lexique':lexique,'📗 Verbes et conjugaisons':cp.page,'🤖 Coach IA':coach,'🏆 Défis':defis,'🧠 Répétition espacée':lambda:v16.repetition(m.preference('niveau_suivi','A1')),'📈 Maîtrise durable':lambda:v16.maitrise(m.preference('niveau_suivi','A1'))}
+pages={'🚀 Mon aventure V23':accueil_v20.page,'🏡 Mon aventure V19':accueil_v19.page,'🌳 Arbre de compétences':arbre_v18.tree,'📊 Bilans jour/semaine/mois':arbre_v18.progress,'🎮 Jouer et apprendre':aventure.page,'🌍 Aventure CECRL A1–C2':aventure_cecrl.page,'📅 Planning de la semaine':pa.page,'🎯 Programme du jour':ext.programme,'🗺️ Parcours CECRL':ext.parcours,'✍️ Expression écrite':ext.expression,'🎧 Écoute et expression orale':ext.oral,'📚 Cours':cours,'🧪 Contrôles et révisions':controles_et_revisions,'🎓 Examens blancs':lambda:__import__('examens_v17').page(),'📖 Lexique':lexique,'📗 Verbes et conjugaisons':cp.page,'🤖 Coach IA':coach,'🏆 Défis':defis,'🧠 Répétition espacée':lambda:v16.repetition(m.preference('niveau_suivi','A1')),'📈 Maîtrise durable':lambda:v16.maitrise(m.preference('niveau_suivi','A1'))}
 sidebar_start=time.perf_counter()
 with st.sidebar:
     _t_header=time.perf_counter()
