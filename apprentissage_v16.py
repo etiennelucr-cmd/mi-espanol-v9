@@ -47,7 +47,7 @@ def entete():
     st.markdown(
       '<div class="v16brand">'
       '<div class="v16brand-top"><span class="v16flag" role="img" aria-label="Drapeau espagnol"></span>'
-      '<span class="v16name">Mi Español <span class="v16version">V26</span></span></div>'
+      '<span class="v16name">Mi Español <span class="v16version">V42</span></span></div>'
       '<div class="v16tag">Apprendre · Progresser · Réussir</div>'
       '<div class="v16date">📅 '+html.escape(date_label)+'</div>'
       '<div class="v16saint">✦ '+html.escape(saint)+'</div>'

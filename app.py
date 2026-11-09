@@ -1,5 +1,5 @@
 import json
-"""Mi Español V41 — édition España cumulée."""
+"""Mi Español V42 — édition España cumulée."""
 import csv, io, json, random, time
 import diagnostic_v16_2 as diagnostic
 from datetime import date,datetime,timedelta
@@ -16,7 +16,7 @@ import parcours_v10 as pv
 import exercices_v11 as ev
 import apprentissage_v16 as v16
 
-st.set_page_config(page_title='Mi Español V41 · Édition España',page_icon='🇪🇸',layout='wide')
+st.set_page_config(page_title='Mi Español V42 · Édition España',page_icon='🇪🇸',layout='wide')
 st.markdown('''<style>
 .stApp {background: linear-gradient(160deg,#fffaf0 0%,#fff4e4 100%);}
 [data-testid="stSidebar"] {background: #fff0d5; border-right: 1px solid #edc76d;}
@@ -568,7 +568,7 @@ import mini_jeux_v41
 import bilan_unifie_v41
 import v40_theme
 import projection_cecrl_v25
-pages={'🇪🇸 Mon aventure V41':accueil_v19.page,'🏡 Mon aventure V19':accueil_v19.page,'📅 Ma progression et mes objectifs':projection_cecrl_v25.page,'🗺️ Carte de progression CECRL':progression_v40.page,'🌳 Arbre de compétences':arbre_v18.tree,'📊 Bilans jour/semaine/mois':arbre_v18.progress,'🎲 Mini-jeux V41':mini_jeux_v41.page,'📊 Tableau de bord V41':bilan_unifie_v41.page,'🎮 Jouer et apprendre':aventure.page,'🌍 Aventure CECRL A1–C2':aventure_cecrl.page,'📅 Planning de la semaine':pa.page,'🎯 Programme du jour':ext.programme,'🗺️ Parcours CECRL':ext.parcours,'✍️ Expression écrite':ext.expression,'🎧 Écoute et expression orale':ext.oral,'📚 Cours':cours,'🧪 Contrôles et révisions':controles_et_revisions,'🎓 Examens blancs':lambda:__import__('examens_v17').page(),'📖 Lexique':lexique,'📗 Verbes et conjugaisons':cp.page,'🤖 Coach IA':coach,'🏆 Défis':defis,'🧠 Répétition espacée':lambda:v16.repetition(m.preference('niveau_suivi','A1')),'📈 Maîtrise durable':lambda:v16.maitrise(m.preference('niveau_suivi','A1'))}
+pages={'🇪🇸 Mon aventure V42':accueil_v19.page,'🏡 Mon aventure V19':accueil_v19.page,'📅 Ma progression et mes objectifs':projection_cecrl_v25.page,'🗺️ Carte de progression CECRL':progression_v40.page,'🌳 Arbre de compétences':arbre_v18.tree,'📊 Bilans jour/semaine/mois':arbre_v18.progress,'🎲 Mini-jeux V42':mini_jeux_v41.page,'📊 Tableau de bord V42':bilan_unifie_v41.page,'🎮 Jouer et apprendre':aventure.page,'🌍 Aventure CECRL A1–C2':aventure_cecrl.page,'📅 Planning de la semaine':pa.page,'🎯 Programme du jour':ext.programme,'🗺️ Parcours CECRL':ext.parcours,'✍️ Expression écrite':ext.expression,'🎧 Écoute et expression orale':ext.oral,'📚 Cours':cours,'🧪 Contrôles et révisions':controles_et_revisions,'🎓 Examens blancs':lambda:__import__('examens_v17').page(),'📖 Lexique':lexique,'📗 Verbes et conjugaisons':cp.page,'🤖 Coach IA':coach,'🏆 Défis':defis,'🧠 Répétition espacée':lambda:v16.repetition(m.preference('niveau_suivi','A1')),'📈 Maîtrise durable':lambda:v16.maitrise(m.preference('niveau_suivi','A1'))}
 # Le thème V26 est optionnel : ne jamais bloquer le démarrage si
 # Streamlit Cloud possède un ancien v18_style.py dans son déploiement.
 try:
@@ -582,11 +582,13 @@ except ImportError:
         </style>""", unsafe_allow_html=True)
 apply_v26_global()
 v40_theme.apply()
+import v42_theme
+v42_theme.apply()
 sidebar_start=time.perf_counter()
 with st.sidebar:
     _t_header=time.perf_counter()
     v16.entete()
-    st.caption('🇪🇸 Mi Español V41 · Édition España')
+    st.caption('🇪🇸 Mi Español V42 · Édition España')
     diagnostic.record('En-tête Streamlit',time.perf_counter()-_t_header)
     niveau_enregistre=m.preference('niveau_suivi','A1')
     niveaux_accessibles=progression_v40.accessible_levels()
@@ -631,8 +633,8 @@ with st.sidebar:
     st.divider()
     st.markdown('### 🧭 Explorer')
     groupes = {
-        '🏠 Accueil': ['🇪🇸 Mon aventure V41','🎲 Mini-jeux V41','🎮 Jouer et apprendre','🎯 Programme du jour','📅 Planning de la semaine','🤖 Coach IA'],
-        '🗺️ Parcours CECRL': ['🗺️ Carte de progression CECRL','📊 Tableau de bord V41','📅 Ma progression et mes objectifs','🌳 Arbre de compétences','🌍 Aventure CECRL A1–C2','🗺️ Parcours CECRL','📚 Cours','📖 Lexique','📗 Verbes et conjugaisons'],
+        '🏠 Accueil': ['🇪🇸 Mon aventure V42','🎲 Mini-jeux V42','🎮 Jouer et apprendre','🎯 Programme du jour','📅 Planning de la semaine','🤖 Coach IA'],
+        '🗺️ Parcours CECRL': ['🗺️ Carte de progression CECRL','📊 Tableau de bord V42','📅 Ma progression et mes objectifs','🌳 Arbre de compétences','🌍 Aventure CECRL A1–C2','🗺️ Parcours CECRL','📚 Cours','📖 Lexique','📗 Verbes et conjugaisons'],
         '🎮 Jouer et pratiquer': ['🏆 Défis','✍️ Expression écrite','🎧 Écoute et expression orale'],
         '🧠 Mes révisions': ['🧪 Contrôles et révisions','🧠 Répétition espacée','📈 Maîtrise durable'],
         '📊 Mes progrès': ['📊 Bilans jour/semaine/mois','🎓 Examens blancs'],

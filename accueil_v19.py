@@ -18,12 +18,14 @@ def page():
     st.markdown('<div class="v18-hero"><h1>🇪🇸 ¡Hola, aventurero!</h1><p>Avec Lucía, Carlos et Sofía, apprends, joue et mesure tes progrès réels.</p></div>',unsafe_allow_html=True)
     bilan.afficher()
     st.subheader('🌞 Tes compagnons de voyage')
-    cols=st.columns(3)
+    cols=st.columns(3, gap="medium")
     for col,(name,role,photo) in zip(cols,[('Lucía','Salutations et missions','lucia.png'),('Carlos','Dialogues du quotidien','carlos.png'),('Sofía','Défis et révisions','sofia.png')]):
         with col:
-            st.image(str(ASSETS/photo),width=110)
-            st.markdown(f'**{name}** · {role}')
-    choice=st.radio('Que veux-tu faire maintenant ?', ['🎭 Missions illustrées','🎲 Nouveaux mini-jeux','🗺️ Carte CECRL','📊 Bilan pédagogique','📅 Mes objectifs','💾 Sauvegarder'],horizontal=True,key='v41_home')
+            with st.container(border=True):
+                st.image(str(ASSETS/photo),use_container_width=True)
+                st.markdown(f'**{name}**')
+                st.caption(role)
+    choice=st.radio('Que veux-tu faire maintenant ?', ['🎭 Missions illustrées','🎲 Nouveaux mini-jeux','🗺️ Carte CECRL','📊 Bilan pédagogique','📅 Mes objectifs','💾 Sauvegarder'],horizontal=True,key='v42_home')
     if choice.startswith('🎭'):aventure.page(compact=True)
     elif choice.startswith('🎲'):games.page()
     elif choice.startswith('🗺️'):progression_v40.page()
