@@ -571,26 +571,33 @@ with st.sidebar:
     valides,total=pv.progression(niveau_suivi)
     diagnostic.record('Progression des thèmes',time.perf_counter()-_t_progression)
     pourcentage=100*valides/total if total else 0
-    st.metric('Progression totale du niveau',f'{pourcentage:.1f} %')
+     # Synthèse compacte : garder le calcul de validation existant intact.
+    st.markdown('### 🎯 Mon parcours')
+    st.caption(f'Niveau actuel · **{niveau_suivi}**')
     st.progress(valides/total if total else 0)
-    st.caption(f'{valides} thème(s) validé(s) sur {total} — validation Coach IA à 19/20 minimum')
-    projection=None  # Calcul facultatif, uniquement sur demande ci-dessous.
+    st.markdown(f'**{pourcentage:.1f} %** du parcours validé · {valides}/{total} thèmes' if total else 'Aucun thème disponible')
     prochain=m.NIVEAUX[m.NIVEAUX.index(niveau_suivi)+1] if niveau_suivi!=m.NIVEAUX[-1] else None
     if prochain:
-        st.markdown(f'**Objectif : accéder à {prochain}**')
-        if valides == total:
-            st.success('Tous les thèmes validés à 98 % : niveau suivant débloqué')
+        if total and valides == total:
+            st.success(f'🎉 Parcours terminé ! {prochain} est accessible.')
         else:
-            st.caption('Niveau suivant verrouillé : termine chaque thème et réussis son quiz à 98 % minimum')
-        if st.toggle('Afficher une estimation de date', value=False):
-            projection=m.projection_globale(niveau_suivi)
-            if projection and projection.get('atteint'):
-                st.success('Progression indicative atteinte (validation des thèmes : 98 %)')
-            elif projection:
-                st.info('Date estimée : '+projection['centre'])
-            else:
-                st.caption('Date estimée : en attente de 7 jours de progression mesurable')
-    else:st.caption('C2 : dernier niveau du parcours')
+            st.caption(f'🏁 Prochain objectif : {prochain}')
+            st.caption('Les validations suivent encore la règle historique du Coach IA (19/20).')
+    else:
+        st.caption('🏆 C2 · dernier niveau du parcours')
+    with st.expander('📈 Détails et prévision', expanded=False):
+        st.write(f'Thèmes validés : **{valides} sur {total}**')
+        st.caption('Ce pourcentage mesure les thèmes validés, pas la maîtrise complète de la langue.')
+        st.caption('La validation actuelle exige 19/20 au Coach IA. Un assouplissement nécessite une modification cohérente du moteur et des contrôles.')
+        if prochain:
+            if st.button('Calculer ma date indicative', key='sidebar_projection_v18'):
+                projection=m.projection_globale(niveau_suivi)
+                if projection and projection.get('atteint'):
+                    st.success('Objectif de validation atteint.')
+                elif projection:
+                    st.info('Estimation : '+str(projection.get('centre','indisponible')))
+                else:
+                    st.info('Prévision indisponible : au moins 7 jours de progression mesurable sont nécessaires.')
     st.divider()
     st.markdown('### 🧭 Explorer')
     groupes = {
