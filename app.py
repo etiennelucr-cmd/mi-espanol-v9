@@ -641,44 +641,56 @@ h1,h2,h3 {color:#70253a!important;}
  div[data-testid="stHorizontalBlock"] {gap:.65rem!important;}
 }
 </style>""",unsafe_allow_html=True)
-st.markdown('<div class="v47-hero"><h1>🇪🇸 Mi Español</h1><p>Explore les villes, parle aux habitants et progresse à ton rythme</p></div>',unsafe_allow_html=True)
+# V56 : navigation immersive, quatre entrées, contenu affiché uniquement à la demande.
+st.markdown("""<style>
+.v56-banner{background:linear-gradient(115deg,#702139,#a83348 62%,#bb5942);border-radius:25px;
+ padding:26px 18px;text-align:center;box-shadow:0 10px 24px #632b3033;margin-bottom:12px}
+.v56-banner h1{color:#fff9eb!important;font-size:clamp(1.65rem,4vw,2.5rem);margin:0}
+.v56-banner p{color:#ffe8d5!important;margin:8px 0 0}
+.v56-subtitle{font-size:1.15rem;font-weight:800;color:#70253a;margin:12px 0 8px}
+.v56-tip{padding:12px 16px;border-radius:15px;background:#fce6c9;border:1px solid #cb976e;color:#5d3440}
+@media(max-width:720px){.v56-banner{padding:18px 12px}.v56-banner h1{font-size:1.65rem}
+ .v56-menu div[data-testid="stHorizontalBlock"]{flex-wrap:wrap!important}}
+</style>""",unsafe_allow_html=True)
+st.markdown('<div class="v56-banner"><h1>🌍 Mon aventure linguistique</h1><p>Explore les villes, parle aux habitants et progresse à ton rythme !</p></div>',unsafe_allow_html=True)
 if 'v47_page' not in st.session_state:
-    st.session_state.v47_page='🧳 Programme 7 jours'
-nav_items=[('🧳 Programme 7 jours','🧳 Espagnol de survie · 7 jours','📅 Mon itinéraire · 7 jours'),
- ('💬 Phrases utiles','🧳 Espagnol de survie · 7 jours','🧰 Expressions de survie'),
- ('📚 Vocabulaire','🧳 Espagnol de survie · 7 jours','🧰 Expressions de survie'),
- ('✏️ Exercices','🧳 Espagnol de survie · 7 jours','📅 Mon itinéraire · 7 jours'),
- ('🗺️ Situations réelles','🧳 Espagnol de survie · 7 jours','🧰 Expressions de survie'),
- ('🏡 Vie quotidienne','🧳 Espagnol de survie · 7 jours','🧰 Expressions de survie')]
-for start in (0,3):
-    cols=st.columns(3,gap='small')
-    for col,(label,target,section) in zip(cols,nav_items[start:start+3]):
-        with col:
-            if st.button(label,key='v47_nav_'+str(start)+label,use_container_width=True):
-                st.session_state.v47_page=label
-                st.session_state.voyage_section=section
-                st.rerun()
-st.divider()
-if st.button('🏙️ Visiter les villes · aventures interactives',key='v52_open',use_container_width=True,type='primary'):
     st.session_state.v47_page='🏙️ Visiter les villes'
-    st.rerun()
-if st.button('🎮 Explorer les 12 univers · aventure multilingue',key='v50_open',use_container_width=True,type='primary'):
-    st.session_state.v47_page='🎮 Aventure multilingue'
-    st.rerun()
-if st.button('🌍 Mes langues & mes capacités · suivi automatique', key='v48_langues', use_container_width=True):
-    st.session_state.v47_page='🌍 Mes langues & mes capacités'
-    st.rerun()
-st.divider()
+# Choix du mode : les quatre cartes restent identiques sur mobile et ordinateur.
+menu=[('🗺️ Explorer les villes','🏙️ Visiter les villes'),('🎮 Mes défis','🎮 Aventure multilingue'),
+      ('📖 Apprendre','📖 Apprendre'),('🏆 Ma progression','🌍 Mes langues & mes capacités')]
+cols=st.columns(2,gap='small')
+for i,(label,target) in enumerate(menu):
+    with cols[i%2]:
+        if st.button(label,key=f'v56_main_{i}',use_container_width=True,type='primary' if st.session_state.v47_page==target else 'secondary'):
+            st.session_state.v47_page=target
+            st.rerun()
 legacy={'🇪🇸 Mon aventure V42':'🇪🇸 Mon aventure V42','🎲 Mini-jeux':'🎲 Mini-jeux V42',
  '📖 Lexique complet':'📖 Lexique','🗺️ Parcours CECRL':'🗺️ Carte de progression CECRL',
  '📊 Bilans':'📊 Tableau de bord V42','🤖 Coach IA':'🤖 Coach IA',
  '📚 Cours classiques':'📚 Cours','✍️ Expression écrite':'✍️ Expression écrite',
  '🎧 Écoute et oral':'🎧 Écoute et expression orale','💾 Révisions':'🧪 Contrôles et révisions'}
-with st.expander('⚙️ Autres activités et outils classiques (facultatif)'):
-    selected_legacy=st.selectbox('Choisir une ancienne activité',list(legacy),key='v47_legacy_choice')
-    if st.button('Ouvrir cette activité',key='v47_open_legacy'):
-        st.session_state.v47_page=selected_legacy
-        st.rerun()
+if st.session_state.v47_page=='📖 Apprendre':
+    st.markdown('<div class="v56-subtitle">📖 Que veux-tu apprendre aujourd’hui ?</div>',unsafe_allow_html=True)
+    nav_items=[('🧳 Programme 7 jours','📅 Mon itinéraire · 7 jours'),
+     ('💬 Phrases utiles','🧰 Expressions de survie'),('📚 Vocabulaire','🧰 Expressions de survie'),
+     ('✏️ Exercices','📅 Mon itinéraire · 7 jours'),('🗺️ Situations réelles','🧰 Expressions de survie'),
+     ('🏡 Vie quotidienne','🧰 Expressions de survie')]
+    for start in (0,3):
+        cs=st.columns(3,gap='small')
+        for c,(label,section) in zip(cs,nav_items[start:start+3]):
+            with c:
+                if st.button(label,key='v56_learn_'+label,use_container_width=True):
+                    st.session_state.v47_page=label
+                    st.session_state.voyage_section=section
+                    st.rerun()
+if st.session_state.v47_page not in ('🏙️ Visiter les villes','🎮 Aventure multilingue','🌍 Mes langues & mes capacités'):
+    with st.expander('⚙️ Autres activités et outils classiques (facultatif)'):
+        selected_legacy=st.selectbox('Choisir une activité',list(legacy),key='v56_legacy_choice')
+        if st.button('Ouvrir cette activité',key='v56_open_legacy'):
+            st.session_state.v47_page=selected_legacy
+            st.rerun()
+if st.session_state.v47_page=='📖 Apprendre':
+    st.markdown('<div class="v56-tip">👆 Choisis une activité ci-dessus. Les leçons et les exercices s’ouvriront ici, sans encombrer l’accueil.</div>',unsafe_allow_html=True)
 page=legacy.get(st.session_state.v47_page,'🧳 Espagnol de survie · 7 jours')
 page_start=time.perf_counter()
 try:
@@ -691,7 +703,7 @@ try:
     elif st.session_state.v47_page=='🌍 Mes langues & mes capacités':
         import suivi_langues_v48
         suivi_langues_v48.page()
-    else:
+    elif st.session_state.v47_page!='📖 Apprendre':
         pages[page]()
 finally:
     diagnostic.record("Page sélectionnée",time.perf_counter()-page_start)

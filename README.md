@@ -21,3 +21,10 @@ Définir `APP_PASSWORD` dans les **Secrets** de Streamlit et configurer les éve
 - Historique de versions README redondant et caches Python retirés du ZIP
 
 **Limites :** les aventures restent des scénarios à choix ; il n'y a pas encore de dialogues génératifs ou de personnages animés. La persistance SQLite locale peut être éphémère sur hébergement cloud. Le CSS responsive est à valider visuellement sur appareils réels.
+
+
+## V56 — Accueil simplifié
+Quatre accès principaux : Explorer les villes, Mes défis, Apprendre, Ma progression.
+La progression n'est plus affichée sous l'accueil ; elle s'ouvre sur demande.
+Sur téléphone, les quatre entrées restent présentes, avec des boutons tactiles.
+Les activités historiques sont conservées dans Apprendre.
