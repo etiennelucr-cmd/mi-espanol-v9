@@ -42,7 +42,7 @@ def remembered_pet(world,lang,name):
     """Read explicitly stated pet names from saved chat; no external AI."""
     key=f'{lang}:{name}'
     patterns=(
-        r'\b(?:mi|my|mein(?:e)?|il mio|la mia)\s+(?:gato|gata|chat|cat|katze|gatto|gatta|perro|dog|hund|cane)\s+(?:que\s+)?(?:se\s+llama|s\x27appelle|is called|named|heisst|heißt|si chiama)\s+([A-Za-zÀ-ÿ][\wÀ-ÿ-]{1,24})',
+        r'\b(?:(?:tengo|tengo un|tengo una|i have a|i have an|ich habe eine|ho un|ho una)\s+)?(?:mi|my|mein(?:e)?|il mio|la mia|un|una|a|an|einen|eine)\s+(?:gato|gata|chat|cat|katze|gatto|gatta|perro|dog|hund|cane)\s+(?:que\s+)?(?:se\s+llama|s\x27appelle|is called|named|heisst|heißt|si chiama)\s+([A-Za-zÀ-ÿ][\wÀ-ÿ-]{1,24})',
         r'\b(?:mi|my|mein(?:e)?|il mio|la mia)\s+(?:gato|gata|chat|cat|katze|gatto|gatta|perro|dog|hund|cane)\s+(?:es|is|ist|è)\s+(?:llamado|named)\s+([A-Za-zÀ-ÿ][\wÀ-ÿ-]{1,24})',
     )
     for item in reversed(world.get('log',{}).get(key,[])):
