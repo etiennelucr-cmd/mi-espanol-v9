@@ -1,30 +1,23 @@
-# Mi Español V55 — Voyage ludique responsive
+# Mi Español V58 — Carte illustrée interactive
 
-Application Streamlit : 4 langues, 12 villes, 12 univers touristiques, aventures adaptatives et puzzles de phrases.
-
-## Démarrage
+## Démarrer
 
 ```bash
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-## Déploiement sur Streamlit Community Cloud
+Dans **Explorer les villes**, sélectionne une langue et une ville. La carte illustrée comporte quatre bâtiments cliquables, chacun ouvrant une mission existante. Des boutons Streamlit restent disponibles sous la carte pour une navigation accessible au clavier. Les huit autres lieux sont dans le volet complémentaire.
 
-Définir `APP_PASSWORD` dans les **Secrets** de Streamlit et configurer les éventuels autres secrets requis par votre stockage. Ne jamais publier de mots de passe dans GitHub.
+La carte affiche le nombre de missions réussies (score au moins 2/3 dans les visites enregistrées) et le niveau local. La disposition passe de quatre bâtiments par ligne à deux sur téléphone. Les mêmes destinations et missions sont accessibles sur ordinateur et mobile.
 
-## V55
+Les personnages et dialogues restent des simulations guidées. Pas de déplacement libre dans un monde 3D ni de reconnaissance vocale. Les données historiques locales restent stockées dans la base SQLite existante, qui n'est pas incluse dans le ZIP.
 
-- Identité visuelle plus contrastée (bordeaux, terracotta, sable chaud)
-- Navigation et cartes adaptées aux petits écrans, boutons tactiles plus grands
-- Contenu et navigation préservés sur ordinateur et téléphone
-- Historique de versions README redondant et caches Python retirés du ZIP
+## Vérifications
 
-**Limites :** les aventures restent des scénarios à choix ; il n'y a pas encore de dialogues génératifs ou de personnages animés. La persistance SQLite locale peut être éphémère sur hébergement cloud. Le CSS responsive est à valider visuellement sur appareils réels.
+Syntaxe Python et intégrité du ZIP vérifiées. Rendu Streamlit à tester en déploiement, notamment le comportement des liens de bâtiments sur Streamlit Cloud.
 
 
-## V56 — Accueil simplifié
-Quatre accès principaux : Explorer les villes, Mes défis, Apprendre, Ma progression.
-La progression n'est plus affichée sous l'accueil ; elle s'ouvre sur demande.
-Sur téléphone, les quatre entrées restent présentes, avec des boutons tactiles.
-Les activités historiques sont conservées dans Apprendre.
+## V59 — Histoires interactives
+
+Dans Explorer les villes > bâtiment > Histoire interactive, trois scènes liées réagissent aux choix. Les scénarios sont guidés et non génératifs. Défi classique, puzzles, carnet et SOS restent accessibles. Les résultats sont enregistrés par langue, ville et lieu.
