@@ -321,12 +321,51 @@ def social_quick_response(lang,txt,person):
         return {'es':'¡Sí! ☕ ¿A qué hora?','en':'Yes! ☕ What time?','de':'Ja! ☕ Um wie viel Uhr?','it':'Sì! ☕ A che ora?'}[lang]
     return None
 
+# V83 : conversations contextuelles et kit de voyage, sans API externe.
+TRAVEL_SCENES = {
+ 'es':[('☕ Café','Quiero un café, por favor.','¡Claro! ¿Con leche o solo?',['Con leche, por favor.','Solo, gracias.']),('🚇 Transport','¿Dónde está la estación?','Está cerca de aquí. Sigue recto.',['Muchas gracias.','¿Está lejos?']),('🧭 Orientation','¿Cómo llego al centro?','Sigue recto y gira a la derecha.',['Gracias por tu ayuda.','¿A la derecha?']),('🛍️ Achats','¿Cuánto cuesta esto?','Cuesta cinco euros.',['Perfecto, gracias.','Es un poco caro.']),('🏨 Hébergement','Tengo una reserva.','Bienvenido. ¿Cómo te llamas?',['Me llamo Alex.','Aquí está mi reserva.']),('🆘 Aide','Necesito ayuda, por favor.','Claro. ¿Qué necesitas?',['Estoy perdido.','No entiendo.'])],
+ 'en':[('☕ Café','A coffee, please.','Sure! With milk?',['With milk, please.','No milk, thanks.']),('🚇 Transport','Where is the station?','Go straight ahead.',['Thank you.','Is it far?']),('🧭 Directions','How do I get downtown?','Turn right.',['Thank you.','To the right?']),('🛍️ Shopping','How much is this?','Five euros.',['Thank you.','That is expensive.']),('🏨 Hotel','I have a reservation.','Welcome! What is your name?',['My name is Alex.','Here is my booking.']),('🆘 Help','I need help.','Of course. What do you need?',['I am lost.','I do not understand.'])],
+ 'de':[('☕ Café','Einen Kaffee, bitte.','Gerne! Mit Milch?',['Mit Milch, bitte.','Ohne Milch, danke.']),('🚇 Verkehr','Wo ist der Bahnhof?','Gehen Sie geradeaus.',['Danke.','Ist es weit?']),('🧭 Weg','Wie komme ich ins Zentrum?','Biegen Sie rechts ab.',['Danke.','Nach rechts?']),('🛍️ Einkaufen','Wie viel kostet das?','Fünf Euro.',['Danke.','Das ist teuer.']),('🏨 Hotel','Ich habe eine Reservierung.','Willkommen! Wie heißen Sie?',['Ich heiße Alex.','Hier ist meine Buchung.']),('🆘 Hilfe','Ich brauche Hilfe.','Natürlich. Was brauchen Sie?',['Ich habe mich verlaufen.','Ich verstehe nicht.'])],
+ 'it':[('☕ Caffè','Un caffè, per favore.','Certo! Con latte?',['Con latte, grazie.','Senza latte, grazie.']),('🚇 Trasporti','Dov’è la stazione?','Vai sempre dritto.',['Grazie.','È lontano?']),('🧭 Indicazioni','Come arrivo in centro?','Gira a destra.',['Grazie.','A destra?']),('🛍️ Acquisti','Quanto costa questo?','Cinque euro.',['Grazie.','È caro.']),('🏨 Hotel','Ho una prenotazione.','Benvenuto! Come ti chiami?',['Mi chiamo Alex.','Ecco la prenotazione.']),('🆘 Aiuto','Ho bisogno di aiuto.','Certo. Di cosa hai bisogno?',['Mi sono perso.','Non capisco.'])]
+}
+TRAVEL_DAYS={2:'Week-end (2 jours)',3:'Long week-end (3 jours)',7:'Semaine (7 jours)'}
+
+def trip_missions(lang,city,days):
+    scenes=TRAVEL_SCENES[lang]
+    return [(i+1, scenes[i%len(scenes)][0], scenes[i%len(scenes)][1]) for i in range(days)]
+
+def social_context_reply(lang,text,history,person):
+    # Match the most recent NPC question, not an unrelated word in the user's reply.
+    last=next((str(x.get('text','')) for x in reversed(history) if x.get('who')!='you'),'').casefold()
+    msg=text.casefold().strip()
+    if not msg or '?' in msg:return None
+    if any(x in last for x in ('música','music','musik','musica')):
+        return {'es':f'¡Qué bien! 🎵 A mí también me gusta la música. ¿La escuchas en casa o con amigos?', 'en':'Nice! 🎵 Do you listen at home or with friends?', 'de':'Schön! 🎵 Hörst du zu Hause oder mit Freunden Musik?', 'it':'Bello! 🎵 Ascolti musica a casa o con gli amici?'}[lang]
+    if any(x in last for x in ('mascota','pet','tier','animale')):
+        return {'es':'¡Qué bonito! 🐾 ¿Te gusta pasear con tu mascota?', 'en':'So cute! 🐾 Do you like walking with your pet?', 'de':'Wie schön! 🐾 Gehst du gern mit deinem Tier spazieren?', 'it':'Che bello! 🐾 Ti piace passeggiare con il tuo animale?'}[lang]
+    if any(x in last for x in ('¿cómo estás','how are you','wie geht','come stai')):
+        return {'es':'Me alegro de hablar contigo 😊 ¿Qué vas a hacer hoy?', 'en':'Glad we can chat 😊 What are you doing today?', 'de':'Schön, mit dir zu reden 😊 Was machst du heute?', 'it':'Che bello parlare con te 😊 Che fai oggi?'}[lang]
+    if any(x in last for x in ('café','coffee','kaffee','caffè')):
+        return {'es':'¡Perfecto! ☕ ¿Prefieres una terraza o una cafetería tranquila?', 'en':'Great! ☕ A terrace or a quiet café?', 'de':'Super! ☕ Terrasse oder ruhiges Café?', 'it':'Perfetto! ☕ Terrazza o bar tranquillo?'}[lang]
+    return None
+
+def social_storyline(world,lang,people,city):
+    # Stable 3-day mini-arc; actions unlock a new post on the next visit/day.
+    chapter=date.today().toordinal()%3
+    actor=people[stable_number(lang,city,date.today().toordinal()//3)%len(people)][0]
+    lines={
+      'es':['está preparando una salida por la ciudad ☕','ha invitado a sus amigos al parque 🌳','comparte recuerdos de la salida 📸'],
+      'en':['is planning a city outing ☕','invited friends to the park 🌳','shared photos of the outing 📸'],
+      'de':['plant einen Ausflug ☕','hat Freunde in den Park eingeladen 🌳','teilt Fotos vom Ausflug 📸'],
+      'it':['organizza un giro in città ☕','ha invitato gli amici al parco 🌳','condivide foto della giornata 📸']}
+    return actor,lines[lang][chapter],chapter
+
 def page():
     """V68: three genuinely distinct social panels, no duplicate contact buttons."""
     world=store(); keys=list(CITIES)
     # Optional per-profile durable storage. Profile codes are not authentication.
     with st.expander('💾 Sauvegarde et IA · V80',expanded=False):
-        st.caption('La sauvegarde durable nécessite SOCIAL_DATABASE_URL. Le code de profil est un identifiant, pas un mot de passe : ne l’utilise pas pour des données sensibles.')
+        st.caption('La sauvegarde durable nécessite une connexion PostgreSQL configurée. Le code de profil est un identifiant, pas un mot de passe : ne l’utilise pas pour des données sensibles.')
         profile=st.text_input('Code de profil (6 à 64 caractères)',value=st.session_state.get('v80_profile',''),key='v80_profile_input',placeholder='ex. monaventure_2026')
         valid=v80.profile_id(profile)
         if st.button('📂 Charger mon profil',key='v80_load',disabled=not(valid and v80.db_enabled())):
@@ -395,6 +434,12 @@ def page():
     .v68-post,.v68-event{box-shadow:0 5px 18px rgba(48,65,105,.07)}
     .v68-bubble{box-shadow:0 2px 8px rgba(30,58,110,.06)}
     @media(max-width:900px){.v82-story{min-height:110px;padding:6px}.v82-story p{font-size:.75rem}}
+    .v83-panel{background:linear-gradient(120deg,#ffffff,#f1f6ff);border:1px solid #d6e5ff;border-radius:17px;padding:14px 18px;margin:10px 0;box-shadow:0 5px 20px rgba(32,60,115,.08);color:#193e78}
+    .v83-panel strong{font-size:1.03rem}.v83-panel p{margin:6px 0;font-size:.91rem}
+    .v68-post{border-left:4px solid #a48af7!important}.v68-event{border-left:4px solid #74c6af!important}
+    .v68-bubble{font-size:.95rem!important;line-height:1.55!important}
+    .v82-story{border-top:4px solid #9a87ed!important}
+    @media(max-width:850px){.v83-panel{padding:12px}.v68-bubble{font-size:.92rem!important}}
     </style>""",unsafe_allow_html=True)
     language=st.selectbox('🌍 Langue de ton immersion',keys,index=default,format_func=lambda k:{'es':'🇪🇸 Espagnol','en':'🇬🇧 Anglais','de':'🇩🇪 Allemand','it':'🇮🇹 Italien'}.get(language_key(k),str(k)),key='v68_lang')
     lang=language_key(language);cities=CITIES[language];people=PEOPLE[lang]
@@ -408,6 +453,37 @@ def page():
         st.caption('💬 Idée de conversation : « ¿Qué tiempo hace hoy? » · Source : Open-Meteo (actualisation toutes les 20 min)')
     else:
         st.caption(f'🌤️ Météo de {city} momentanément indisponible · La conversation reste accessible.')
+    with st.expander('🧳 Mon séjour · Week-end ou semaine',expanded=False):
+        trip_length=st.selectbox('Durée de ton séjour',list(TRAVEL_DAYS),format_func=lambda x:TRAVEL_DAYS[x],key=f'v83_trip_length_{lang}')
+        st.caption(f'📍 Destination : {city} · Niveau {band} · Phrases pratiques pour voyager')
+        done=world.setdefault('v83_trip_done',{})
+        for day_number,theme,phrase in trip_missions(lang,city,trip_length):
+            mission_id=f'{lang}:{city}:{trip_length}:{day_number}'
+            c1,c2=st.columns([4,1])
+            with c1:st.markdown(f'**Jour {day_number} · {theme}** — {phrase}')
+            with c2:
+                if st.checkbox('Fait',value=bool(done.get(mission_id)),key=f'v83_done_{mission_id}'):
+                    done[mission_id]=True
+                else:done.pop(mission_id,None)
+        completed=sum(bool(done.get(f'{lang}:{city}:{trip_length}:{d}')) for d in range(1,trip_length+1))
+        st.progress(completed/trip_length,text=f'{completed}/{trip_length} missions accomplies')
+    with st.expander('🗣️ Situations réelles · Entraînement A1',expanded=False):
+        scene_idx=st.selectbox('Choisis une situation',range(len(TRAVEL_SCENES[lang])),format_func=lambda i:TRAVEL_SCENES[lang][i][0],key=f'v83_scene_{lang}')
+        theme,opening,answer,options=TRAVEL_SCENES[lang][scene_idx]
+        st.markdown(f'**🗨️ Toi :** {opening}')
+        st.markdown(f'**🏪 Personne sur place :** {answer}')
+        choice=st.radio('Ta réponse',options,key=f'v83_choice_{lang}_{scene_idx}')
+        if st.button('💬 Répondre dans la situation',key=f'v83_scene_send_{lang}_{scene_idx}'):
+            st.success('¡Muy bien! ⭐' if lang=='es' else 'Bien joué ! ⭐')
+            world.setdefault('v83_practice',{}).setdefault(lang,[]).append({'city':city,'scene':theme,'answer':choice,'day':date.today().isoformat()})
+            world['v83_practice'][lang]=world['v83_practice'][lang][-50:]
+            # No rerun here: the successful practice feedback stays visible.
+        st.caption('Simulation pédagogique : les réponses sont des exemples A1, pas une évaluation automatique de prononciation.')
+    with st.expander('📍 Guide express · Phrases utiles sur place',expanded=False):
+        st.markdown(f'**{city}** · '+('🌧️ Prévois un endroit couvert.' if weather and 'pluie' in weather['label'].casefold() else '🌤️ Vérifie la météo avant de sortir.'))
+        for theme,opening,answer,options in TRAVEL_SCENES[lang]:
+            st.markdown(f'**{theme}** · `{opening}`')
+        st.caption('Tu peux utiliser ces phrases pendant ton séjour ou les pratiquer dans les situations A1 ci-dessus.')
     with st.expander('🚆 Voyager ou déménager'):
         dest=st.selectbox('Destination',range(len(cities)),index=current,format_func=lambda i:cities[i][0],key=f'v68_dest_{lang}')
         ca,cb=st.columns(2)
@@ -423,6 +499,15 @@ def page():
     social_day(world,lang,people)
     count,streak=social_metrics(world,lang)
     st.markdown(f'<div class="v82-stats">📨 {count} messages · 🔥 {streak} jour(s) de suite · 🎯 Niveau {html.escape(band)} · 🟢 {len(people)} contacts</div>',unsafe_allow_html=True)
+    actor,story,chapter=social_storyline(world,lang,people,city)
+    st.markdown(f'<div class="v83-panel"><strong>📰 La vie du quartier · Épisode {chapter+1}/3</strong><p>👥 {html.escape(actor)} {html.escape(story)}</p><small>Les histoires changent au fil des jours ; les personnages sont simulés.</small></div>',unsafe_allow_html=True)
+    if st.button('💬 Réagir à cette histoire',key=f'v83_arc_{lang}_{city}_{date.today().isoformat()}'):
+        idx=next((i for i,p in enumerate(people) if p[0]==actor),0)
+        st.session_state[f'v65_selected_{lang}']=idx
+        reaction={'es':'¡Qué buena idea! 😊','en':'What a great idea! 😊','de':'Was für eine gute Idee! 😊','it':'Che bella idea! 😊'}[lang]
+        record(world,lang,actor,'you',reaction)
+        record(world,lang,actor,actor,{'es':'¡Gracias! ¿Quieres venir?','en':'Thanks! Would you like to come?','de':'Danke! Möchtest du mitkommen?','it':'Grazie! Vuoi venire?'}[lang])
+        social_bond(world,lang,actor,3);persist_and_rerun(world)
     with st.expander('🔔 Activité du réseau · Stories et défis',expanded=True):
         storycols=st.columns(min(4,len(people)))
         for i,person in enumerate(people[:4]):
@@ -482,6 +567,7 @@ def page():
                 try:response=v80.answer(lang,name,city,band,person[4],history,msg.strip(),world.get('memories',{}).get(key,[]))
                 except Exception:st.toast('IA indisponible : réponse scénarisée utilisée.')
             if response is None and asks_weather(msg):response=weather_reply(lang,city,weather)
+            if response is None and not any(w in msg.casefold() for w in RECALL_WORDS):response=social_context_reply(lang,msg,history,person)
             if response is None and not any(w in msg.casefold() for w in RECALL_WORDS):response=social_quick_response(lang,msg,person)
             if response is None:response=reply(lang,msg.strip(),person,world)
             social_bond(world,lang,name,3);record(world,lang,name,'you',msg.strip()[:500]);v80.remember(world,lang,name,msg.strip());record(world,lang,name,name,response)
@@ -499,6 +585,9 @@ def page():
                     record(world,lang,name,'you',phrase);record(world,lang,name,name,reply(lang,phrase,person,world));persist_and_rerun(world)
     with feed:
         st.markdown('<div class="v68-title">📸 Fil de vie</div>',unsafe_allow_html=True)
+        recent_news=[x for x in world.get('v83_event_news',[]) if x.get('city')==city][-2:]
+        for news in reversed(recent_news):
+            st.markdown(f'<div class="v83-panel"><strong>✨ Actualité de tes amis</strong><p>{html.escape(news["friend"])} · {html.escape(news["event"])} · {html.escape(news["day"])}</p></div>',unsafe_allow_html=True)
         st.caption('Tes amis publient et commentent, même si tu préfères observer.')
         for offset in range(3):
             day=date.today()-timedelta(days=offset)
@@ -580,7 +669,7 @@ def page():
                 friend=next(p for p in people if p[0]==e['friend']);idx=e['idx'];prompt=['invite','conflict','pet','family','trip'][idx];message=WORDS[lang][prompt]
                 if idx==4:message=message.format(city=cities[(current+1)%len(cities)][0])
                 if idx==2:message=message.format(pet=friend[4])
-                record(world,lang,friend[0],friend[0],message);world['event_done'].append(e['id'])
+                record(world,lang,friend[0],friend[0],message);world['event_done'].append(e['id']);world.setdefault('v83_event_news',[]).append({'city':city,'friend':friend[0],'event':e['name'],'day':date.today().isoformat()});world['v83_event_news']=world['v83_event_news'][-20:]
                 social_bond(world,lang,friend[0],5);st.session_state[f'v65_selected_{lang}']=people.index(friend);persist_and_rerun(world)
     st.caption('ℹ️ V82 : simulation locale, activités datées et météo Open-Meteo. Pas de simulation en arrière-plan · V80 : IA facultative selon configuration ; sinon moteur scénarisé. Niveau CECRL indicatif. Sauvegarde durable uniquement avec base externe et profil chargé.')
     # Save the world after all widgets have been processed. Avoid database calls on every rerun
