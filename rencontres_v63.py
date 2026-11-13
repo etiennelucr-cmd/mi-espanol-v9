@@ -38,28 +38,76 @@ def record(world,lang,name,speaker,text):
     world['log'].setdefault(key,[]).append({'who':speaker,'text':text})
     world['log'][key]=world['log'][key][-40:]
 
-def remembered_pet(world,lang,name):
-    """Read explicitly stated pet names from saved chat; no external AI."""
-    key=f'{lang}:{name}'
-    patterns=(
-        r'\b(?:(?:tengo|tengo un|tengo una|i have a|i have an|ich habe eine|ho un|ho una)\s+)?(?:mi|my|mein(?:e)?|il mio|la mia|un|una|a|an|einen|eine)\s+(?:gato|gata|chat|cat|katze|gatto|gatta|perro|dog|hund|cane)\s+(?:que\s+)?(?:se\s+llama|s\x27appelle|is called|named|heisst|heißt|si chiama)\s+([A-Za-zÀ-ÿ][\wÀ-ÿ-]{1,24})',
-        r'\b(?:mi|my|mein(?:e)?|il mio|la mia)\s+(?:gato|gata|chat|cat|katze|gatto|gatta|perro|dog|hund|cane)\s+(?:es|is|ist|è)\s+(?:llamado|named)\s+([A-Za-zÀ-ÿ][\wÀ-ÿ-]{1,24})',
-    )
-    for item in reversed(world.get('log',{}).get(key,[])):
-        if item.get('who')!='you':continue
-        for pattern in patterns:
-            match=re.search(pattern,item.get('text',''),flags=re.IGNORECASE)
-            if match:return match.group(1)
-    return None
+# Mémoire sociale V81 : 10 améliorations, sans API ni nouveau secret.
+# Les souvenirs sont extraits uniquement des messages de l'utilisateur, par personnage.
+MEMORY_RULES = {
+ 'pet': [r"(?:mi|my|mein(?:e)?|il mio|la mia|un|una|a|an)\s+(?:gato|gata|cat|katze|gatto|gatta|perro|dog|hund|cane)\s+(?:que\s+)?(?:se\s+llama|is called|named|heißt|heisst|si chiama)\s+([\wÀ-ÿ-]{2,25})"],
+ 'name': [r"(?:me llamo|mi nombre es|my name is|ich heiße|ich heisse|mi chiamo)\s+([\wÀ-ÿ-]{2,25})"],
+ 'city': [r"(?:vivo en|vivo a|i live in|ich wohne in|abito a|abito in)\s+([\wÀ-ÿ-]{2,30})"],
+ 'job': [r"(?:trabajo como|soy|i work as|i am a|ich bin|lavoro come|sono)\s+(?:un |una |a |an )?(profesor(?:a)?|maestr[oa]|médic[oa]|doctor|teacher|engineer|ingenier[oa]|student|estudiante|étudiant|studentessa|studente|developer|développeur|enfermer[oa]|nurse|chef|cocinero|koch|lehrer(?:in)?)\b"],
+ 'hobby': [r"(?:me gusta|me encanta|i like|i love|ich mag|ich liebe|mi piace|adoro)\s+(?:mucho\s+)?(?:el |la |los |las |the )?(leer|reading|read|lesen|leggere|bailar|dancing|dance|tanzen|ballare|cocinar|cooking|cook|kochen|cucinare|música|music|musik|musica|fútbol|football|fußball|calcio|viajar|travel|reisen|viaggiare)\b"],
+ 'birthday': [r"(?:mi cumpleaños es|my birthday is|mein geburtstag ist|il mio compleanno è)\s+(?:el |on |am |il )?([\wÀ-ÿ0-9 /-]{3,30})"],
+ 'friend': [r"(?:mi (?:mejor )?amig[oa]|my (?:best )?friend|mein(?:e)? freund(?:in)?|il mio amico|la mia amica)\s+(?:se llama|is called|heißt|heisst|si chiama)\s+([\wÀ-ÿ-]{2,25})"],
+ 'family': [r"(?:mi (?:herman[oa]|madre|padre)|my (?:brother|sister|mother|father)|mein(?:e)? (?:bruder|schwester|mutter|vater)|mi[oa] (?:fratello|sorella|madre|padre))\s+(?:se llama|is called|heißt|heisst|si chiama)\s+([\wÀ-ÿ-]{2,25})"],
+}
+MEMORY_LABELS={'pet':'🐾 Animal','name':'👋 Prénom','city':'🏙️ Ville','job':'💼 Métier','hobby':'❤️ Passion','birthday':'🎂 Anniversaire','friend':'🤝 Ami(e)','family':'👨‍👩‍👧 Famille'}
+MEMORY_TRIGGERS={
+ 'pet':('gato','gata','perro','mascota','animal','cat','dog','pet','katze','hund','gatto','cane'),
+ 'name':('nombre','llamo','name','heiße','heisse','nome','chiamo'),
+ 'city':('vivo','ciudad','donde vivo','live','city','wohne','stadt','abito','città'),
+ 'job':('trabajo','profesión','oficio','work','job','beruf','arbeit','lavoro'),
+ 'hobby':('gusta','encanta','afición','hobby','like','love','mag','piace','passion'),
+ 'birthday':('cumpleaños','birthday','geburtstag','compleanno'),
+ 'friend':('amigo','amiga','friend','freund','amico','amica'),
+ 'family':('familia','hermano','hermana','madre','padre','family','brother','sister','familie','fratello','sorella'),
+}
+RECALL_WORDS=('recuerdas','acuerdas','recuerda','sabes','remember','recall','weißt','weisst','erinner','ricordi','ricorda','sai')
+
+def social_memories(world,lang,name):
+    """Reconstruit la mémoire à partir de l'historique sauvegardé (sans migration DB)."""
+    facts={}; key=f'{lang}:{name}'
+    for entry in world.get('log',{}).get(key,[]):
+        if entry.get('who')!='you':continue
+        msg=str(entry.get('text',''))[:500]
+        # Permet de rectifier un souvenir : « olvida mi gato », etc.
+        low=msg.casefold()
+        if any(w in low for w in ('olvida ', 'forget ', 'vergiss ', 'dimentica ')):
+            for kind,words in MEMORY_TRIGGERS.items():
+                if any(w in low for w in words):facts.pop(kind,None)
+            if any(w in low for w in ('todo','everything','alles','tutto')):facts.clear()
+            continue
+        for kind,patterns in MEMORY_RULES.items():
+            for pattern in patterns:
+                m=re.search(pattern,msg,re.IGNORECASE)
+                if m:
+                    value=m.group(1).strip(' .,!?;:')
+                    if value and len(value)<=35:facts[kind]=value
+                    break
+    return facts
+
+def memory_response(lang,kind,value):
+    lines={
+     'es':f'¡Claro que me acuerdo! 😊 {MEMORY_LABELS[kind].split(" ",1)[1]}: {value}. ¿Quieres contarme más?',
+     'en':f'Of course I remember! 😊 {value}. Would you like to tell me more?',
+     'de':f'Natürlich erinnere ich mich! 😊 {value}. Magst du mir mehr erzählen?',
+     'it':f'Certo che mi ricordo! 😊 {value}. Vuoi raccontarmi di più?',
+    }
+    if kind=='pet':lines['es']=f'¡Claro que me acuerdo de {value}! 🐾 ¿Cómo está {value} hoy?'
+    return lines[lang]
 
 def reply(lang,text,person,world):
-    lower=text.lower(); d=WORDS[lang]; name,emoji,home,pettype,pet=person
-    pet_memory=remembered_pet(world,lang,name)
-    if pet_memory and any(x in lower for x in ('mi gato','mi gata','mi perro','my cat','my dog','mein hund','meine katze','mio gatto','mio cane','mi mascota','my pet','recuerdas','te acuerdas')):
-        if lang=='es':return f'¡Claro que me acuerdo de {pet_memory}! 🐾 ¿Cómo está {pet_memory} hoy?'
-        if lang=='en':return f'Of course I remember {pet_memory}! 🐾 How is {pet_memory} today?'
-        if lang=='de':return f'Natürlich erinnere ich mich an {pet_memory}! 🐾 Wie geht es {pet_memory} heute?'
-        if lang=='it':return f'Certo che mi ricordo di {pet_memory}! 🐾 Come sta {pet_memory} oggi?'
+    lower=text.casefold(); d=WORDS[lang]; name,emoji,home,pettype,pet=person
+    facts=social_memories(world,lang,name)
+    # 1-8 : souvenirs personnels ; 9 : rappel ciblé ; 10 : correction/oubli.
+    if any(x in lower for x in ('olvida ','forget ','vergiss ','dimentica ')):
+        return {'es':'Entendido, no volveré a mencionar ese recuerdo. 💙','en':'Understood, I will not mention that memory again. 💙','de':'Verstanden, ich werde diese Erinnerung nicht mehr erwähnen. 💙','it':'Capito, non menzionerò più quel ricordo. 💙'}[lang]
+    recall=any(x in lower for x in RECALL_WORDS)
+    if recall:
+        for kind,words in MEMORY_TRIGGERS.items():
+            if any(x in lower for x in words) and kind in facts:return memory_response(lang,kind,facts[kind])
+        if any(x in lower for x in ('de mí','sobre mí','about me','über mich','di me','sabes de','know about')):
+            if facts:return {'es':'Recuerdo esto: ','en':'I remember: ','de':'Ich erinnere mich an: ','it':'Ricordo: '}[lang]+'; '.join(f'{MEMORY_LABELS[k]}: {v}' for k,v in facts.items())+'. 😊'
+        return {'es':'Todavía no recuerdo ese dato. ¿Me lo cuentas?','en':'I do not remember that detail yet. Can you tell me?','de':'Daran erinnere ich mich noch nicht. Erzählst du es mir?','it':'Non ricordo ancora quel dettaglio. Me lo racconti?'}[lang]
     if any(x in lower for x in ['aide','help','ayud','helf','aiut','désolé','sorry','perdón','scusa']):
         world['friends'][f'{lang}:{name}']=min(10,world['friends'].get(f'{lang}:{name}',2)+1)
         return d['thanks']
@@ -266,6 +314,13 @@ def page():
             if response is None:response=reply(lang,msg.strip(),person,world)
             record(world,lang,name,'you',msg.strip()[:500]);v80.remember(world,lang,name,msg.strip());record(world,lang,name,name,response)
             counts=st.session_state.setdefault('v65_free_messages',{});counts[lang]=counts.get(lang,0)+1;persist_and_rerun(world)
+        # Panneau consultable : 8 types de souvenirs, propres à ce contact.
+        with st.expander('🧠 Ce que ce personnage retient de moi'):
+            known=social_memories(world,lang,name)
+            if known:
+                for kind,value in known.items():st.caption(f'{MEMORY_LABELS[kind]} : {value}')
+            else:st.caption('Aucun souvenir personnel reconnu pour ce personnage.')
+            st.caption('Pour corriger : redonne une information. Pour oublier : « olvida mi gato » (ou « olvida todo »).')
         with st.expander('💡 Traduction / réponses guidées'):
             for i,phrase in enumerate(GUIDES[lang]):
                 if st.button(phrase,key=f'v68_guide_{lang}_{selected}_{i}',use_container_width=True):
