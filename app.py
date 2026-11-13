@@ -657,7 +657,7 @@ if 'v47_page' not in st.session_state:
     st.session_state.v47_page='🏙️ Visiter les villes'
 # Choix du mode : les quatre cartes restent identiques sur mobile et ordinateur.
 menu=[('🗺️ Explorer les villes','🏙️ Visiter les villes'),('🎮 Mes défis','🎮 Aventure multilingue'),
-      ('📖 Apprendre','📖 Apprendre'),('🏆 Ma progression','🌍 Mes langues & mes capacités')]
+      ('💬 Mes rencontres','💬 Mes rencontres'),('📖 Apprendre','📖 Apprendre'),('🏆 Ma progression','🌍 Mes langues & mes capacités')]
 cols=st.columns(2,gap='small')
 for i,(label,target) in enumerate(menu):
     with cols[i%2]:
@@ -683,7 +683,7 @@ if st.session_state.v47_page=='📖 Apprendre':
                     st.session_state.v47_page=label
                     st.session_state.voyage_section=section
                     st.rerun()
-if st.session_state.v47_page not in ('🏙️ Visiter les villes','🎮 Aventure multilingue','🌍 Mes langues & mes capacités'):
+if st.session_state.v47_page not in ('🏙️ Visiter les villes','🎮 Aventure multilingue','🌍 Mes langues & mes capacités','💬 Mes rencontres'):
     with st.expander('⚙️ Autres activités et outils classiques (facultatif)'):
         selected_legacy=st.selectbox('Choisir une activité',list(legacy),key='v56_legacy_choice')
         if st.button('Ouvrir cette activité',key='v56_open_legacy'):
@@ -697,6 +697,9 @@ try:
     if st.session_state.v47_page=='🏙️ Visiter les villes':
         import carte_v57
         carte_v57.page()
+    elif st.session_state.v47_page=='💬 Mes rencontres':
+        import rencontres_v63
+        rencontres_v63.page()
     elif st.session_state.v47_page=='🎮 Aventure multilingue':
         import aventure_multilingue_v50
         aventure_multilingue_v50.page()
