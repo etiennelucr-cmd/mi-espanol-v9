@@ -328,6 +328,32 @@ TRAVEL_SCENES = {
  'de':[('☕ Café','Einen Kaffee, bitte.','Gerne! Mit Milch?',['Mit Milch, bitte.','Ohne Milch, danke.']),('🚇 Verkehr','Wo ist der Bahnhof?','Gehen Sie geradeaus.',['Danke.','Ist es weit?']),('🧭 Weg','Wie komme ich ins Zentrum?','Biegen Sie rechts ab.',['Danke.','Nach rechts?']),('🛍️ Einkaufen','Wie viel kostet das?','Fünf Euro.',['Danke.','Das ist teuer.']),('🏨 Hotel','Ich habe eine Reservierung.','Willkommen! Wie heißen Sie?',['Ich heiße Alex.','Hier ist meine Buchung.']),('🆘 Hilfe','Ich brauche Hilfe.','Natürlich. Was brauchen Sie?',['Ich habe mich verlaufen.','Ich verstehe nicht.'])],
  'it':[('☕ Caffè','Un caffè, per favore.','Certo! Con latte?',['Con latte, grazie.','Senza latte, grazie.']),('🚇 Trasporti','Dov’è la stazione?','Vai sempre dritto.',['Grazie.','È lontano?']),('🧭 Indicazioni','Come arrivo in centro?','Gira a destra.',['Grazie.','A destra?']),('🛍️ Acquisti','Quanto costa questo?','Cinque euro.',['Grazie.','È caro.']),('🏨 Hotel','Ho una prenotazione.','Benvenuto! Come ti chiami?',['Mi chiamo Alex.','Ecco la prenotazione.']),('🆘 Aiuto','Ho bisogno di aiuto.','Certo. Di cosa hai bisogno?',['Mi sono perso.','Non capisco.'])]
 }
+# V83+ : dialogues de voyage à plusieurs étapes, sans API.
+# Chaque étape accepte une réponse libre ou une réponse guidée.
+TRAVEL_DIALOGUES = {
+ 'es': [
+  [('👨‍🍳 Camarero','¡Hola! ¿Qué quieres tomar?','Bonjour ! Que veux-tu boire ?',('cafe','café','agua','té','te','zumo','quiero','quisiera','me gustaría'),'Quiero un café, por favor.'),('👨‍🍳 Camarero','¿Con leche o solo?','Avec du lait ou noir ?',('leche','solo','sin','con'),'Con leche, por favor.'),('👨‍🍳 Camarero','Son tres euros. ¿Cómo quieres pagar?','Cela fait trois euros. Comment veux-tu payer ?',('tarjeta','efectivo','pagar','euros','cash'),'Con tarjeta, por favor.'),('👨‍🍳 Camarero','¡Gracias! Aquí tienes tu café.','Merci ! Voici ton café.',('gracias','hasta','adios','adiós'),'¡Muchas gracias!')],
+  [('🚇 Agente','¿Adónde quieres ir?','Où veux-tu aller ?',('centro','estación','hotel','museo','quiero','voy'),'Quiero ir al centro.'),('🚇 Agente','¿Quieres un billete de ida o de ida y vuelta?','Un aller simple ou un aller-retour ?',('ida','vuelta','billete'),'Solo ida, por favor.'),('🚇 Agente','Cuesta dos euros. ¿Está bien?','Cela coûte deux euros. Ça te va ?',('si','sí','vale','bien','gracias'),'Sí, gracias.'),('🚇 Agente','El tren sale del andén dos.','Le train part du quai deux.',('gracias','andén','dos'),'Gracias, ¿el andén dos?')],
+  [('🧭 Habitante','¡Hola! ¿Qué buscas?','Bonjour ! Que cherches-tu ?',('centro','plaza','museo','hotel','busco','donde','dónde'),'Busco el centro, por favor.'),('🧭 Habitante','Sigue recto y gira a la izquierda.','Continue tout droit et tourne à gauche.',('izquierda','recto','gracias'),'¿A la izquierda?'),('🧭 Habitante','Sí, son cinco minutos a pie.','Oui, à cinq minutes à pied.',('gracias','minutos','bien'),'Muchas gracias.')],
+  [('🛍️ Vendedora','¡Hola! ¿Qué te interesa?','Bonjour ! Qu’est-ce qui t’intéresse ?',('esto','camiseta','agua','recuerdo','quiero','precio'),'¿Cuánto cuesta esto?'),('🛍️ Vendedora','Son ocho euros. ¿Lo quieres?','Huit euros. Tu le veux ?',('si','sí','quiero','no','caro','vale'),'Sí, lo quiero.'),('🛍️ Vendedora','¿Pagas con tarjeta o en efectivo?','Tu paies par carte ou en espèces ?',('tarjeta','efectivo','pago'),'Con tarjeta, gracias.')],
+  [('🏨 Recepción','Buenas tardes. ¿Tienes una reserva?','Bonsoir. Tu as une réservation ?',('si','sí','reserva','tengo'),'Sí, tengo una reserva.'),('🏨 Recepción','¿Cómo te llamas?','Comment t’appelles-tu ?',('llamo','nombre','soy'),'Me llamo Alex.'),('🏨 Recepción','Tu habitación es la 204. ¿Necesitas algo?','Ta chambre est la 204. Tu as besoin de quelque chose ?',('gracias','wifi','llave','no','desayuno'),'¿Cuál es la contraseña del wifi?')],
+  [('🆘 Habitante','¿Qué pasa? ¿Necesitas ayuda?','Que se passe-t-il ? Tu as besoin d’aide ?',('ayuda','perdido','perdida','problema','necesito'),'Sí, necesito ayuda.'),('🆘 Habitante','¿Estás perdido o necesitas un médico?','Tu es perdu ou tu as besoin d’un médecin ?',('perdido','perdida','médico','medico','hospital'),'Estoy perdido.'),('🆘 Habitante','La oficina de información está cerca.','Le bureau d’information est proche.',('gracias','donde','dónde','ayuda'),'Muchas gracias por tu ayuda.')]
+ ],
+}
+
+def travel_dialogue(lang,idx):
+    if lang=='es':return TRAVEL_DIALOGUES['es'][idx]
+    # Traductions pédagogiques basées sur les expressions A1 déjà présentes.
+    theme,opening,answer,options=TRAVEL_SCENES[lang][idx]
+    return [('🏪 Personne sur place',answer,'Réponds à cette personne.',tuple(x.casefold().split()[0].strip('.,!?') for x in options),options[0]),
+            ('🏪 Personne sur place',answer,'Tu peux répondre autrement.',tuple(x.casefold().split()[0].strip('.,!?') for x in options),options[-1])]
+
+def travel_match(message,keywords):
+    import unicodedata
+    def norm(t):return ''.join(c for c in unicodedata.normalize('NFKD',t.casefold()) if not unicodedata.combining(c))
+    text=norm(message)
+    return any(re.search(r'(?<!\w)'+re.escape(norm(word))+r'(?!\w)',text) for word in keywords)
+
 TRAVEL_DAYS={2:'Week-end (2 jours)',3:'Long week-end (3 jours)',7:'Semaine (7 jours)'}
 
 def trip_missions(lang,city,days):
@@ -470,15 +496,51 @@ def page():
     with st.expander('🗣️ Situations réelles · Entraînement A1',expanded=False):
         scene_idx=st.selectbox('Choisis une situation',range(len(TRAVEL_SCENES[lang])),format_func=lambda i:TRAVEL_SCENES[lang][i][0],key=f'v83_scene_{lang}')
         theme,opening,answer,options=TRAVEL_SCENES[lang][scene_idx]
-        st.markdown(f'**🗨️ Toi :** {opening}')
-        st.markdown(f'**🏪 Personne sur place :** {answer}')
-        choice=st.radio('Ta réponse',options,key=f'v83_choice_{lang}_{scene_idx}')
-        if st.button('💬 Répondre dans la situation',key=f'v83_scene_send_{lang}_{scene_idx}'):
-            st.success('¡Muy bien! ⭐' if lang=='es' else 'Bien joué ! ⭐')
-            world.setdefault('v83_practice',{}).setdefault(lang,[]).append({'city':city,'scene':theme,'answer':choice,'day':date.today().isoformat()})
-            world['v83_practice'][lang]=world['v83_practice'][lang][-50:]
-            # No rerun here: the successful practice feedback stays visible.
-        st.caption('Simulation pédagogique : les réponses sont des exemples A1, pas une évaluation automatique de prononciation.')
+        st.caption(f'📍 {city} · {theme} · Niveau {band} · Dialogue interactif gratuit')
+        mode=st.radio('Mode de pratique',['✍️ Écrire librement','🧩 Réponses guidées'],horizontal=True,key=f'v83_mode_{lang}_{scene_idx}')
+        dialogue=travel_dialogue(lang,scene_idx)
+        progress=world.setdefault('v83_dialogue_progress',{})
+        scene_key=f'{lang}:{city}:{scene_idx}'
+        state=progress.setdefault(scene_key,{'step':0,'history':[],'completed':False})
+        step=min(int(state.get('step',0)),len(dialogue))
+        st.progress(step/len(dialogue),text=f'Étape {step}/{len(dialogue)}')
+        for entry in state.get('history',[])[-8:]:
+            st.markdown(f'**{html.escape(str(entry.get("speaker","")))} :** {html.escape(str(entry.get("text","")))}')
+        if step<len(dialogue):
+            speaker,line,translation,keywords,suggestion=dialogue[step]
+            st.markdown(f'**{speaker} :** {line}')
+            if st.checkbox('🇫🇷 Afficher la traduction',key=f'v83_translate_{scene_key}_{step}'):
+                st.caption(translation)
+            with st.form(key=f'v83_dialogue_form_{scene_key}_{step}',clear_on_submit=False):
+                if mode.startswith('✍️'):
+                    response=st.text_input('Ta réponse',placeholder='Réponds dans la langue étudiée…',key=f'v83_free_{scene_key}_{step}')
+                else:
+                    guided=options if step==0 else (suggestion,TRAVEL_SCENES[lang][scene_idx][3][-1])
+                    response=st.radio('Choisis une réponse',list(dict.fromkeys(guided)),key=f'v83_guided_{scene_key}_{step}')
+                show_hint=st.checkbox('💡 Voir un indice',key=f'v83_hint_{scene_key}_{step}')
+                if show_hint:st.caption('Exemple possible : '+suggestion)
+                sent=st.form_submit_button('💬 Répondre et continuer',type='primary')
+            if sent:
+                if not response.strip():st.warning('Écris une réponse pour continuer.')
+                elif travel_match(response,keywords) or (mode.startswith('🧩') and response in options):
+                    state['history'].extend([{'speaker':speaker,'text':line},{'speaker':'🧳 Toi','text':response.strip()[:180]}])
+                    state['step']=step+1
+                    if state['step']==len(dialogue):
+                        state['completed']=True
+                        practices=world.setdefault('v83_practice',{}).setdefault(lang,[])
+                        practices.append({'city':city,'scene':theme,'answer':response.strip()[:180],'day':date.today().isoformat(),'steps':len(dialogue)})
+                        world['v83_practice'][lang]=practices[-50:]
+                        world.setdefault('v83_trip_done',{})[f'{lang}:{city}:{st.session_state.get(f"v83_trip_length_{lang}",2)}:{scene_idx+1}']=True
+                    persist_and_rerun(world)
+                else:
+                    st.info('💡 Essaie une phrase simple. Exemple : '+suggestion+' Tu peux aussi choisir le mode guidé.')
+        else:
+            st.success('🏆 Mission réussie ! Tu as terminé le dialogue. ¡Muy bien!')
+            st.caption('Expressions pratiquées : '+ ' · '.join(item[4] for item in dialogue))
+        if st.button('🔄 Recommencer cette scène',key=f'v83_restart_{scene_key}'):
+            progress[scene_key]={'step':0,'history':[],'completed':False}
+            persist_and_rerun(world)
+        st.caption('Simulation pédagogique à règles : elle reconnaît plusieurs formulations simples, mais ne comprend pas toutes les réponses possibles et ne juge pas la prononciation.')
     with st.expander('📍 Guide express · Phrases utiles sur place',expanded=False):
         st.markdown(f'**{city}** · '+('🌧️ Prévois un endroit couvert.' if weather and 'pluie' in weather['label'].casefold() else '🌤️ Vérifie la météo avant de sortir.'))
         for theme,opening,answer,options in TRAVEL_SCENES[lang]:
