@@ -136,116 +136,118 @@ def social_post(world,lang,people,city,day,band):
     world.setdefault('post_comments',{}).setdefault(pid,[{'who':people[(seed+1)%len(people)][0],'text':base[1]},{'who':people[(seed+2)%len(people)][0],'text':base[2]}])
     return pid,person,topic,text
 
+
 def page():
+    """V68: three genuinely distinct social panels, no duplicate contact buttons."""
     world=store(); keys=list(CITIES)
     default=next((i for i,k in enumerate(keys) if k==st.session_state.get('v57_lang')),0)
-    with st.container(key='rencontres_social'):
-        st.markdown('''<style>
-        /* Restricted to the social page: the rest of Mi Español keeps its theme. */
-        .st-key-rencontres_social{--social-blue:#0866ff;--social-pale:#e9f1ff}
-        .st-key-rencontres_social [data-testid="stButton"] button[kind="primary"],
-        .st-key-rencontres_social button[data-testid="stBaseButton-primary"]{background:#0866ff!important;border-color:#0866ff!important;color:white!important}
-        .st-key-rencontres_social [data-testid="stButton"] button:hover{border-color:#0866ff!important;color:#0866ff!important}
-        .st-key-rencontres_social [data-testid="stButton"] button[kind="primary"]:hover{color:white!important;background:#0055d8!important}
-        .st-key-rencontres_social [data-testid="stTextInput"] input:focus,
-        .st-key-rencontres_social textarea:focus{border-color:#0866ff!important;box-shadow:0 0 0 1px #0866ff!important}
-        .v65-head{background:linear-gradient(105deg,#0866ff,#6d83ff);color:white;padding:12px 16px;border-radius:16px;margin:4px 0 12px}
-        .v65-head h2{color:white!important;margin:0!important;font-size:1.45rem!important}
-        .v65-head small{color:#f1f5ff}
-        .v65-person{background:#fff;border:1px solid #d9e5ff;border-radius:12px;padding:6px 10px;margin:3px 0;color:#1b315a;font-size:14px}
-        .v65-bubble{border-radius:18px;padding:11px 14px;margin:8px 0;max-width:88%;line-height:1.5;overflow-wrap:anywhere;font-size:15px}
-        .v65-them{background:#f0f2f5;margin-right:auto;color:#1c1e21}
-        .v65-me{background:#0866ff;margin-left:auto;color:white}
-        .v65-post{background:#fff;border:1px solid #d9e5ff;border-radius:16px;padding:13px 15px;margin:9px 0;color:#172d51}
-        .v65-small{color:#65758f;font-size:12px}
-        .v65-comment{background:#edf2fa;border-radius:13px;padding:8px 11px;margin:5px 0;color:#23334c}
-        .v65-event{background:#fff;border:1px solid #d9e5ff;border-radius:14px;padding:12px 14px;margin:9px 0;color:#1b315a}
-        @media(max-width:700px){.v65-head{padding:14px}.v65-bubble{max-width:96%}}
-        </style>''',unsafe_allow_html=True)
-        lang_label=st.selectbox('🌍 Langue de ton immersion',keys,index=default,format_func=lambda k:{'es':'🇪🇸 Espagnol','en':'🇬🇧 Anglais','de':'🇩🇪 Allemand','it':'🇮🇹 Italien'}.get(language_key(k),str(k)),key='v65_lang')
-        lang=language_key(lang_label);cities=CITIES[lang_label];people=PEOPLE[lang]
-        current=world['city'].setdefault(lang,st.session_state.get('v57_city',0) if lang_label==st.session_state.get('v57_lang') else 0)
-        current=max(0,min(current,len(cities)-1));city=cities[current][0]
-        band,provisional=social_band(lang)
-        st.markdown(f'<div class="v65-head"><h2>💬 Mes rencontres · {html.escape(city)}</h2><small>📅 {date.today().strftime("%d/%m/%Y")} · Immersion {html.escape(lang.upper())} · Difficulté {band}{" (provisoire)" if provisional else " (indicative)"}</small></div>',unsafe_allow_html=True)
-        with st.expander('🚆 Voyager ou déménager'):
-            dest=st.selectbox('Destination',range(len(cities)),index=current,format_func=lambda i:cities[i][0],key=f'v65_dest_{lang}')
-            a,b=st.columns(2)
-            for column,action in ((a,'Voyager'),(b,'Déménager')):
-                with column:
-                    if st.button(('🧳 ' if action=='Voyager' else '🏡 ')+action,key=f'v65_{action}_{lang}',use_container_width=True):
-                        world['city'][lang]=dest;st.session_state.v57_lang=lang_label;st.session_state.v57_city=dest;st.session_state.pop('v57_place',None);st.rerun()
-        events=daily_update(world,lang,people,cities)
-        left,right=st.columns([1.08,.92],gap='large')
-        with left:
-            st.markdown('### 💬 Messages privés')
-            selected=min(st.session_state.get(f'v65_selected_{lang}',0),len(people)-1)
-            for i,person in enumerate(people):
-                name,emoji,home,animal,pet=person;key=f'{lang}:{name}'
-                if not world['log'].get(key):record(world,lang,name,name,WORDS[lang]['hello'])
-                last=world['log'][key][-1]['text']
-                st.markdown(f'<div class="v65-person">{emoji} <b>{html.escape(name)}</b> · 🐾 {html.escape(pet)}<div class="v65-small">{html.escape(last[:90])}</div></div>',unsafe_allow_html=True)
-                if st.button(('🔵 ' if selected==i else '💬 ')+f'Discuter avec {name}',key=f'v65_pick_{lang}_{i}',use_container_width=True):
-                    st.session_state[f'v65_selected_{lang}']=i;st.rerun()
-            person=people[selected];name=person[0];key=f'{lang}:{name}'
-            st.markdown(f'#### {person[1]} {name}')
-            with st.container(height=240,border=True):
-                for item in world['log'][key][-18:]:
-                    css='v65-me' if item['who']=='you' else 'v65-them'
-                    st.markdown(f'<div class="v65-bubble {css}">{html.escape(item["text"])}</div>',unsafe_allow_html=True)
-            with st.form(key=f'v65_message_{lang}_{selected}',clear_on_submit=True):
-                msg=st.text_input('Écrire un message',placeholder='Ton message dans la langue apprise…')
-                send=st.form_submit_button('📨 Envoyer',type='primary',use_container_width=True)
-            if send and msg.strip():
-                record(world,lang,name,'you',msg.strip()[:500]);record(world,lang,name,name,reply(lang,msg.strip(),person,world))
-                counts=st.session_state.setdefault('v65_free_messages',{});counts[lang]=counts.get(lang,0)+1
-                st.rerun()
-            with st.expander('💡 Je bloque : phrases utiles'):
-                for i,phrase in enumerate(GUIDES[lang]):
-                    if st.button(phrase,key=f'v65_guide_{lang}_{selected}_{i}',use_container_width=True):
-                        record(world,lang,name,'you',phrase);record(world,lang,name,name,reply(lang,phrase,person,world));st.rerun()
-        with right:
-            st.markdown('### 📸 Fil de vie & commentaires')
-            st.caption('Les amis publient et se répondent, même sans toi. Tu peux simplement regarder.')
-            for offset in range(2):
-                day=date.today()-timedelta(days=offset)
-                pid,person,topic,post=social_post(world,lang,people,city,day,band)
-                st.markdown(f'<div class="v65-post"><b>{person[1]} {html.escape(person[0])}</b> <span class="v65-small">· {day.strftime("%d/%m")}</span><p>{html.escape(post)}</p><span class="v65-small">{"🎉 Sortie entre amis" if topic==1 else "🐾 Vie quotidienne" if topic==2 else "☀️ Dans la ville"}</span></div>',unsafe_allow_html=True)
-                likes=world.setdefault('post_likes',{})
-                if st.button(('💙 Aimé' if likes.get(pid) else '🤍 J’aime'),key=f'v65_like_{pid}'):
-                    likes[pid]=not likes.get(pid,False);st.rerun()
-                comments=world['post_comments'][pid]
-                with st.expander(f'💬 {len(comments)} commentaires · Lire / répondre',expanded=(offset==0)):
-                    for j,item in enumerate(comments[-20:]):
-                        st.markdown(f'<div class="v65-comment"><b>{html.escape(item["who"])}</b> · {html.escape(item["text"])}</div>',unsafe_allow_html=True)
-                        if item['who']!='Toi' and st.button('↪ Répondre',key=f'v65_replyto_{pid}_{j}'):
-                            st.session_state[f'v65_replytarget_{pid}']=item['who'];st.rerun()
-                    target=st.session_state.get(f'v65_replytarget_{pid}')
-                    if target:st.caption(f'↪ Réponse à {target}')
-                    with st.form(f'v65_comment_form_{pid}',clear_on_submit=True):
-                        comment=st.text_input('Ton commentaire',key=f'v65_comment_{pid}',placeholder='Commenter dans la langue apprise…')
-                        posted=st.form_submit_button('Publier',type='primary')
-                    if posted and comment.strip():
-                        body=(f'@{target} ' if target else '')+comment.strip()[:350]
-                        comments.append({'who':'Toi','text':body})
-                        st.session_state.pop(f'v65_replytarget_{pid}',None)
-                        counts=st.session_state.setdefault('v65_free_messages',{});counts[lang]=counts.get(lang,0)+1
-                        st.rerun()
-                    with st.expander('💡 Une idée de commentaire ?'):
-                        for i,suggestion in enumerate(POST_LINES[lang][topic][1:]):
-                            if st.button(suggestion,key=f'v65_suggest_{pid}_{i}'):
-                                comments.append({'who':'Toi','text':suggestion});st.rerun()
-            st.markdown(f'### 🎉 À {city}')
-            st.caption('Invitations selon la date. Certains jours, rien de prévu.')
-            if not events:st.info('🌤️ Rien de prévu pour le moment.')
-            for e in events[:4]:
-                day=e['date'];label='Aujourd’hui' if day==date.today() else 'Demain' if day==date.today()+timedelta(days=1) else day.strftime('%d/%m')
-                st.markdown(f'<div class="v65-event"><b>{html.escape(e["name"])}</b><div class="v65-small">📅 {label} · {html.escape(e["friend"])} · {html.escape(city)}</div></div>',unsafe_allow_html=True)
-                if st.button('✨ Participer',key='v65_event_'+e['id'],use_container_width=True):
-                    friend=next(p for p in people if p[0]==e['friend']);idx=e['idx'];prompt=['invite','conflict','pet','family','trip'][idx];message=WORDS[lang][prompt]
-                    if idx==4:message=message.format(city=cities[(current+1)%len(cities)][0])
-                    if idx==2:message=message.format(pet=friend[4])
-                    done=world.setdefault('event_done',[])
-                    if e['id'] not in done:record(world,lang,friend[0],friend[0],message);done.append(e['id'])
-                    st.session_state[f'v65_selected_{lang}']=people.index(friend);st.rerun()
-        st.caption('ℹ️ Simulation locale scénarisée : les réponses libres sont reconnues de façon limitée. Les niveaux affichés sont indicatifs, non certifiés. Messages et publications conservés pendant la session ; un stockage externe est nécessaire pour une mémoire durable sur Streamlit Cloud.')
+    st.markdown("""<style>
+    .stApp{background:linear-gradient(160deg,#f4f8ff,#eaf2ff)!important}
+    .block-container{max-width:1700px!important;padding-top:.4rem!important}
+    .v68-head{background:linear-gradient(105deg,#0866ff,#6782f8);color:#fff;padding:13px 18px;border-radius:17px;margin:6px 0 12px}
+    .v68-head strong{font-size:1.2rem}.v68-head small{display:block;margin-top:4px;color:#e9efff}
+    .v68-title{color:#164c9e;font-weight:800;font-size:1.07rem;margin:5px 0 10px}
+    .v68-contact{border-radius:12px;padding:6px 10px;background:#eef4ff;border:1px solid #d7e4ff;color:#15315c;font-size:.86rem}
+    .v68-muted{color:#667c9f;font-size:.74rem}
+    .v68-bubble{border-radius:16px;padding:10px 13px;margin:7px 0;max-width:91%;font-size:.9rem;line-height:1.45;overflow-wrap:anywhere}
+    .v68-them{background:#e8edf5;color:#1c2b44;margin-right:auto}
+    .v68-me{background:#0866ff;color:white;margin-left:auto}
+    .v68-post{background:#fff;border:1px solid #dbe6fb;border-radius:15px;padding:13px;margin:8px 0;color:#1b315a}
+    .v68-comment{background:#eef3fc;border-radius:12px;padding:8px 10px;margin:5px 0;font-size:.85rem;color:#203454}
+    .v68-event{background:#fff;border:1px solid #dbe6fb;border-radius:14px;padding:11px;margin:8px 0;color:#1b315a}
+    div[data-testid="stForm"]{border-radius:14px!important}
+    div[data-testid="stButton"] button{min-height:36px!important}
+    div[data-testid="stButton"] button[kind="primary"]{background:#0866ff!important;border-color:#0866ff!important;color:white!important}
+    @media(max-width:900px){.v68-head{padding:12px}.v68-bubble{max-width:96%}}
+    </style>""",unsafe_allow_html=True)
+    language=st.selectbox('🌍 Langue de ton immersion',keys,index=default,format_func=lambda k:{'es':'🇪🇸 Espagnol','en':'🇬🇧 Anglais','de':'🇩🇪 Allemand','it':'🇮🇹 Italien'}.get(language_key(k),str(k)),key='v68_lang')
+    lang=language_key(language);cities=CITIES[language];people=PEOPLE[lang]
+    current=world['city'].setdefault(lang,st.session_state.get('v57_city',0) if language==st.session_state.get('v57_lang') else 0)
+    current=max(0,min(current,len(cities)-1));city=cities[current][0]
+    band,provisional=social_band(lang)
+    st.markdown(f'<div class="v68-head"><strong>🌍 {html.escape(city)} · Ta vie sociale</strong><small>📅 {date.today().strftime("%d/%m/%Y")} · {html.escape(lang.upper())} · Niveau {band} {"(provisoire)" if provisional else "(indicatif)"}</small></div>',unsafe_allow_html=True)
+    with st.expander('🚆 Voyager ou déménager'):
+        dest=st.selectbox('Destination',range(len(cities)),index=current,format_func=lambda i:cities[i][0],key=f'v68_dest_{lang}')
+        ca,cb=st.columns(2)
+        for col,action in ((ca,'Voyager'),(cb,'Déménager')):
+            with col:
+                if st.button(('🧳 ' if action=='Voyager' else '🏡 ')+action,key=f'v68_{action}_{lang}',use_container_width=True):
+                    world['city'][lang]=dest;st.session_state.v57_lang=language;st.session_state.v57_city=dest;st.session_state.pop('v57_place',None);st.rerun()
+    # Ensure initial greetings are created before daily simulation; no repeated greetings on reruns.
+    for person in people:
+        key=f'{lang}:{person[0]}'
+        if not world['log'].get(key):record(world,lang,person[0],person[0],WORDS[lang]['hello'])
+    events=daily_update(world,lang,people,cities)
+    messages,feed,calendar=st.columns([1.05,1.08,.87],gap='medium')
+    with messages:
+        st.markdown('<div class="v68-title">💬 Messages</div>',unsafe_allow_html=True)
+        selected=min(st.session_state.get(f'v65_selected_{lang}',0),len(people)-1)
+        # Each contact is one tappable control; its label carries the last message.
+        for i,person in enumerate(people):
+            name,avatar,home,animal,pet=person
+            log=world['log'][f'{lang}:{name}'];last=log[-1]['text'].replace('\n',' ')
+            marker='🔵' if selected==i else avatar
+            label=f'{marker} {name}  ·  {last[:48]}'+('…' if len(last)>48 else '')
+            if st.button(label,key=f'v68_contact_{lang}_{i}',use_container_width=True,type='primary' if selected==i else 'secondary'):
+                st.session_state[f'v65_selected_{lang}']=i;st.rerun()
+        person=people[selected];name=person[0];key=f'{lang}:{name}'
+        st.markdown(f'<div class="v68-title">{person[1]} {html.escape(name)} <span class="v68-muted">· 🐾 {html.escape(person[4])}</span></div>',unsafe_allow_html=True)
+        # No fixed-height empty scroll panel: chat grows naturally with content.
+        for item in world['log'][key][-9:]:
+            css='v68-me' if item['who']=='you' else 'v68-them'
+            st.markdown(f'<div class="v68-bubble {css}">{html.escape(item["text"])}</div>',unsafe_allow_html=True)
+        with st.form(key=f'v68_msg_{lang}_{selected}',clear_on_submit=True):
+            msg=st.text_input('Ton message',placeholder='Écris dans la langue apprise…')
+            send=st.form_submit_button('➤ Envoyer',type='primary',use_container_width=True)
+        if send and msg.strip():
+            record(world,lang,name,'you',msg.strip()[:500]);record(world,lang,name,name,reply(lang,msg.strip(),person,world))
+            counts=st.session_state.setdefault('v65_free_messages',{});counts[lang]=counts.get(lang,0)+1;st.rerun()
+        with st.expander('💡 Traduction / réponses guidées'):
+            for i,phrase in enumerate(GUIDES[lang]):
+                if st.button(phrase,key=f'v68_guide_{lang}_{selected}_{i}',use_container_width=True):
+                    record(world,lang,name,'you',phrase);record(world,lang,name,name,reply(lang,phrase,person,world));st.rerun()
+    with feed:
+        st.markdown('<div class="v68-title">📸 Fil de vie</div>',unsafe_allow_html=True)
+        st.caption('Tes amis publient et commentent, même si tu préfères observer.')
+        for offset in range(3):
+            day=date.today()-timedelta(days=offset)
+            pid,person,topic,post=social_post(world,lang,people,city,day,band)
+            topic_label=('☀️ Dans la ville','🎉 Sortie entre amis','🐾 Animaux')[topic]
+            st.markdown(f'<div class="v68-post"><b>{person[1]} {html.escape(person[0])}</b> <span class="v68-muted">· {day.strftime("%d/%m")}</span><p>{html.escape(post)}</p><span class="v68-muted">{topic_label}</span></div>',unsafe_allow_html=True)
+            likes=world.setdefault('post_likes',{})
+            if st.button('💙 Aimé' if likes.get(pid) else '♡ J’aime',key=f'v68_like_{pid}'):
+                likes[pid]=not likes.get(pid,False);st.rerun()
+            comments=world['post_comments'][pid]
+            with st.expander(f'💬 {len(comments)} commentaires',expanded=(offset==0)):
+                for j,item in enumerate(comments[-16:]):
+                    st.markdown(f'<div class="v68-comment"><b>{html.escape(item["who"])}</b> · {html.escape(item["text"])}</div>',unsafe_allow_html=True)
+                    if item['who']!='Toi' and st.button('↪ Répondre',key=f'v68_reply_{pid}_{j}'):
+                        st.session_state[f'v68_target_{pid}']=item['who'];st.rerun()
+                target=st.session_state.get(f'v68_target_{pid}')
+                if target:st.caption(f'↪ Réponse à {target}')
+                with st.form(f'v68_comment_form_{pid}',clear_on_submit=True):
+                    comment=st.text_input('Ton commentaire',placeholder='Écrire un commentaire…')
+                    posted=st.form_submit_button('Publier',type='primary')
+                if posted and comment.strip():
+                    comments.append({'who':'Toi','text':(f'@{target} ' if target else '')+comment.strip()[:350]})
+                    st.session_state.pop(f'v68_target_{pid}',None)
+                    counts=st.session_state.setdefault('v65_free_messages',{});counts[lang]=counts.get(lang,0)+1;st.rerun()
+                with st.expander('💡 Idées de commentaires'):
+                    for i,suggestion in enumerate(POST_LINES[lang][topic][1:]):
+                        if st.button(suggestion,key=f'v68_suggest_{pid}_{i}'):
+                            comments.append({'who':'Toi','text':suggestion});st.rerun()
+    with calendar:
+        st.markdown('<div class="v68-title">🎉 Événements</div>',unsafe_allow_html=True)
+        st.caption(f'À {city} · Selon la date et les habitants')
+        if not events:st.info('🌤️ Rien de prévu pour le moment. Profite de la ville !')
+        for e in events[:5]:
+            day=e['date'];label='Aujourd’hui' if day==date.today() else 'Demain' if day==date.today()+timedelta(days=1) else day.strftime('%d/%m')
+            done=e['id'] in world.setdefault('event_done',[])
+            st.markdown(f'<div class="v68-event"><b>{html.escape(e["name"])}</b><div class="v68-muted">📅 {label} · {html.escape(e["friend"])}<br>📍 {html.escape(city)}</div></div>',unsafe_allow_html=True)
+            if st.button('✓ Invitation ouverte' if done else '✨ Participer',key='v68_event_'+e['id'],use_container_width=True,disabled=done):
+                friend=next(p for p in people if p[0]==e['friend']);idx=e['idx'];prompt=['invite','conflict','pet','family','trip'][idx];message=WORDS[lang][prompt]
+                if idx==4:message=message.format(city=cities[(current+1)%len(cities)][0])
+                if idx==2:message=message.format(pet=friend[4])
+                record(world,lang,friend[0],friend[0],message);world['event_done'].append(e['id'])
+                st.session_state[f'v65_selected_{lang}']=people.index(friend);st.rerun()
+    st.caption('ℹ️ Simulation sociale locale, sans IA générative. Les messages libres sont compris par mots-clés. Niveau indicatif ; mémoire limitée à la session Streamlit.')
