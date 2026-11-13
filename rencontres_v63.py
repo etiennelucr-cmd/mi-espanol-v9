@@ -1,5 +1,5 @@
 """V63 : simulation sociale légère, locale, sans service IA externe."""
-import json, os, re, uuid, hashlib, html
+import json, os, re, uuid, hashlib, html, urllib.parse, urllib.request, urllib.request, urllib.parse
 from datetime import date, timedelta
 from pathlib import Path
 import streamlit as st
@@ -214,6 +214,113 @@ def persist_and_rerun(world):
     st.rerun()
 
 
+# Données météo publiques Open-Meteo ; aucune clé ni dépendance supplémentaire.
+CITY_COORDS = {
+ 'Madrid':(40.4168,-3.7038),'Barcelona':(41.3874,2.1686),'Valencia':(39.4699,-0.3763),'London':(51.5072,-0.1276),'Edinburgh':(55.9533,-3.1883),'München':(48.1351,11.5820),'Münich':(48.1351,11.5820),'München':(48.1351,11.5820),'Roma':(41.9028,12.4964),'Firenze':(43.7696,11.2558),'Venezia':(45.4408,12.3155),'Venice':(45.4408,12.3155),'Barcelone':(41.3874,2.1686),'Valence':(39.4699,-0.3763),
+ 'Londres':(51.5072,-0.1276),'Édimbourg':(55.9533,-3.1883),'Dublin':(53.3498,-6.2603),
+ 'Berlin':(52.5200,13.4050),'Munich':(48.1351,11.5820),'Hambourg':(53.5511,9.9937),
+ 'Rome':(41.9028,12.4964),'Florence':(43.7696,11.2558),'Venise':(45.4408,12.3155)
+}
+
+def weather_label(code):
+    if code in (0,):return '☀️','Ensoleillé'
+    if code in (1,2):return '🌤️','Éclaircies'
+    if code in (3,):return '☁️','Nuageux'
+    if code in (45,48):return '🌫️','Brouillard'
+    if code in (51,53,55,56,57):return '🌦️','Bruine'
+    if code in (61,63,65,66,67,80,81,82):return '🌧️','Pluie'
+    if code in (71,73,75,77,85,86):return '❄️','Neige'
+    if code in (95,96,99):return '⛈️','Orage'
+    return '🌡️','Météo variable'
+
+@st.cache_data(ttl=1200,show_spinner=False)
+def city_weather(city):
+    coords=CITY_COORDS.get(city)
+    if not coords:return None
+    lat,lon=coords
+    url='https://api.open-meteo.com/v1/forecast?'+urllib.parse.urlencode({
+        'latitude':lat,'longitude':lon,'current':'temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m',
+        'timezone':'auto'})
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'MiEspanol/1.0'}),timeout=3) as response:
+            data=json.load(response)['current']
+        icon,label=weather_label(int(data['weather_code']))
+        return {'temp':round(float(data['temperature_2m'])),'icon':icon,'label':label,
+                'humidity':round(float(data['relative_humidity_2m'])),
+                'wind':round(float(data['wind_speed_10m']))}
+    except (OSError,ValueError,KeyError,TypeError):return None
+
+def weather_reply(lang,city,weather):
+    if not weather:return None
+    t=weather['temp'];label=weather['label'].lower()
+    templates={
+      'es':f'¡En {city} tenemos {t} °C y tiempo {label}! {"¿Prefieres un paseo o un café calentito?" if t<17 else "¿Salimos a dar un paseo?"}',
+      'en':f'It is {t} °C in {city} right now ({label}). Shall we go for a walk?',
+      'de':f'In {city} sind es gerade {t} °C ({label}). Wollen wir spazieren gehen?',
+      'it':f'A {city} ci sono {t} °C ({label}). Facciamo una passeggiata?'
+    }
+    return templates.get(lang,templates['es'])
+
+def asks_weather(text):
+    return bool(re.search(r'\b(?:tiempo|clima|temperatura|grados|llueve|sol|weather|temperature|rain|sunny|wetter|temperatur|regen|sonne|meteo|tempo|piove|caldo|frío|frio)\b',text.lower()))
+
+# V82 : micro-activités sociales locales, déterministes et sans API.
+SOCIAL_PROMPTS={
+ 'es':['¿Cómo estás hoy?','¿Qué haces esta tarde?','¿Te gusta esta ciudad?','¿Vamos a tomar un café?','¿Cómo está tu mascota?','¿Qué música te gusta?'],
+ 'en':['How are you today?','What are you doing?','Do you like this city?','Shall we get coffee?','How is your pet?','What music do you like?'],
+ 'de':['Wie geht es dir?','Was machst du heute?','Magst du die Stadt?','Gehen wir ins Café?','Wie geht es deinem Tier?','Welche Musik magst du?'],
+ 'it':['Come stai oggi?','Che fai oggi?','Ti piace la città?','Prendiamo un caffè?','Come sta il tuo animale?','Che musica ti piace?']}
+SOCIAL_STORIES={
+ 'es':['☕ Un café con amigos','🐾 Paseo con mi mascota','🎵 Escuchando música','🌇 Una tarde preciosa','📚 Aprendiendo algo nuevo','🍕 ¡Qué hambre!'],
+ 'en':['☕ Coffee with friends','🐾 Walking my pet','🎵 Listening to music','🌇 Lovely afternoon','📚 Learning something new','🍕 So hungry!'],
+ 'de':['☕ Kaffee mit Freunden','🐾 Mit meinem Tier spazieren','🎵 Musik hören','🌇 Schöner Nachmittag','📚 Etwas Neues lernen','🍕 Ich habe Hunger!'],
+ 'it':['☕ Caffè con amici','🐾 A passeggio','🎵 Ascolto musica','🌇 Bel pomeriggio','📚 Imparo qualcosa','🍕 Che fame!']}
+SOCIAL_POLL={
+ 'es':('¿Qué prefieres hoy?','☕ Café','🌳 Parque'),
+ 'en':('What do you prefer today?','☕ Coffee','🌳 Park'),
+ 'de':('Was magst du heute?','☕ Kaffee','🌳 Park'),
+ 'it':('Cosa preferisci oggi?','☕ Caffè','🌳 Parco')}
+SOCIAL_REACTIONS=['❤️','😂','👏','😮']
+
+def social_score(world,lang,name):
+    return max(0,min(100,int(world.setdefault('social_affinity',{}).get(f'{lang}:{name}',20))))
+
+def social_bond(world,lang,name,points=2):
+    key=f'{lang}:{name}'; scores=world.setdefault('social_affinity',{})
+    scores[key]=max(0,min(100,int(scores.get(key,20))+points))
+
+def social_day(world,lang,people):
+    # At most one ambient message per character and day, generated on return.
+    today=date.today().isoformat(); stamps=world.setdefault('social_ambient_days',{})
+    for person in people:
+        name=person[0];key=f'{lang}:{name}'
+        if stamps.get(key)==today:continue
+        stamps[key]=today
+        log=world.get('log',{}).get(key,[])
+        if log and stable_number(today,lang,name,'ambient')%3==0:
+            prompt=SOCIAL_PROMPTS[lang][stable_number(today,name,'topic')%len(SOCIAL_PROMPTS[lang])]
+            record(world,lang,name,name,prompt)
+
+def social_metrics(world,lang):
+    logs=world.get('log',{})
+    count=sum(sum(1 for m in items if m.get('who')=='you') for key,items in logs.items() if key.startswith(lang+':'))
+    days=set(m.get('day') for key,items in logs.items() if key.startswith(lang+':') for m in items if m.get('who')=='you' and m.get('day'))
+    streak=0;d=date.today()
+    if d.isoformat() not in days:d-=timedelta(days=1)
+    while d.isoformat() in days:
+        streak+=1;d-=timedelta(days=1)
+    return count,streak
+
+def social_quick_response(lang,txt,person):
+    t=txt.casefold()
+    if any(w in t for w in ('hola','hello','hallo','ciao','salut')):
+        return {'es':'¡Hola! 😊 ¡Qué alegría verte!','en':'Hi! 😊 Great to see you!','de':'Hallo! 😊 Schön, dich zu sehen!','it':'Ciao! 😊 Che bello vederti!'}[lang]
+    if any(w in t for w in ('gracias','thank','danke','grazie')):
+        return {'es':'¡De nada! 💙','en':'You are welcome! 💙','de':'Gern geschehen! 💙','it':'Prego! 💙'}[lang]
+    if any(w in t for w in ('café','cafe','coffee','kaffee','caffè')):
+        return {'es':'¡Sí! ☕ ¿A qué hora?','en':'Yes! ☕ What time?','de':'Ja! ☕ Um wie viel Uhr?','it':'Sì! ☕ A che ora?'}[lang]
+    return None
+
 def page():
     """V68: three genuinely distinct social panels, no duplicate contact buttons."""
     world=store(); keys=list(CITIES)
@@ -251,7 +358,23 @@ def page():
     st.markdown("""<style>
     .stApp{background:linear-gradient(160deg,#f4f8ff,#eaf2ff)!important}
     .block-container{max-width:1700px!important;padding-top:.4rem!important}
-    .v68-head{background:linear-gradient(105deg,#0866ff,#6782f8);color:#fff;padding:13px 18px;border-radius:17px;margin:6px 0 12px}
+    /* 1. Fond doux et profondeur */
+    .stApp{background:radial-gradient(circle at 12% 8%,#f8e7ff 0,transparent 34%),linear-gradient(155deg,#f8fbff,#eaf2ff)!important}
+    /* 2. En-tête premium */
+    .v68-head{background:linear-gradient(115deg,#1746b9,#477cff 68%,#8d77f2);color:#fff;padding:18px 22px;border-radius:22px;margin:6px 0 12px;box-shadow:0 12px 28px rgba(35,75,165,.19)}
+    /* 3. Bulles plus lisibles */
+    .v68-bubble{box-shadow:0 3px 12px rgba(28,64,130,.08);border:1px solid rgba(110,150,210,.10)}
+    /* 4. Cartes du fil et événements */
+    .v68-post,.v68-event{box-shadow:0 5px 18px rgba(40,72,125,.07);transition:transform .16s,box-shadow .16s}
+    .v68-post:hover,.v68-event:hover{transform:translateY(-2px);box-shadow:0 9px 22px rgba(40,72,125,.12)}
+    /* 5. Boutons et champs harmonisés */
+    div[data-testid="stButton"] button{border-radius:12px!important;transition:filter .15s,transform .15s}
+    div[data-testid="stButton"] button:hover:not(:disabled){filter:brightness(1.04);transform:translateY(-1px)}
+    div[data-testid="stTextInput"] input{border-radius:12px!important}
+    .v81-weather{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:rgba(255,255,255,.88);border:1px solid #dce7ff;border-radius:17px;padding:13px 17px;margin:0 0 14px;box-shadow:0 5px 16px rgba(40,72,125,.07);color:#20395d}
+    .v81-weather .temp{font-size:1.8rem;font-weight:800;color:#1b4fbb}
+    .v81-weather .muted{font-size:.78rem;color:#61738e}
+    
     .v68-head strong{font-size:1.2rem}.v68-head small{display:block;margin-top:4px;color:#e9efff}
     .v68-title{color:#164c9e;font-weight:800;font-size:1.07rem;margin:5px 0 10px}
     .v68-contact{border-radius:12px;padding:6px 10px;background:#eef4ff;border:1px solid #d7e4ff;color:#15315c;font-size:.86rem}
@@ -266,6 +389,12 @@ def page():
     div[data-testid="stButton"] button{min-height:36px!important}
     div[data-testid="stButton"] button[kind="primary"]{background:#0866ff!important;border-color:#0866ff!important;color:white!important}
     @media(max-width:900px){.v68-head{padding:12px}.v68-bubble{max-width:96%}}
+    .v82-stats{background:#fff;border:1px solid #dce7ff;border-radius:14px;padding:11px 16px;margin:9px 0;color:#254477;font-weight:700;box-shadow:0 3px 12px rgba(30,70,120,.05)}
+    .v82-story{background:linear-gradient(145deg,#fff,#f2f5ff);border:1px solid #e3d6ff;border-radius:16px;padding:10px;min-height:105px;box-shadow:0 3px 10px rgba(42,58,130,.07);color:#243f75}
+    .v82-story small{display:block;color:#8b68ba;font-size:.7rem}.v82-story p{font-size:.84rem;margin:8px 0 0}
+    .v68-post,.v68-event{box-shadow:0 5px 18px rgba(48,65,105,.07)}
+    .v68-bubble{box-shadow:0 2px 8px rgba(30,58,110,.06)}
+    @media(max-width:900px){.v82-story{min-height:110px;padding:6px}.v82-story p{font-size:.75rem}}
     </style>""",unsafe_allow_html=True)
     language=st.selectbox('🌍 Langue de ton immersion',keys,index=default,format_func=lambda k:{'es':'🇪🇸 Espagnol','en':'🇬🇧 Anglais','de':'🇩🇪 Allemand','it':'🇮🇹 Italien'}.get(language_key(k),str(k)),key='v68_lang')
     lang=language_key(language);cities=CITIES[language];people=PEOPLE[lang]
@@ -273,6 +402,12 @@ def page():
     current=max(0,min(current,len(cities)-1));city=cities[current][0]
     band,provisional=social_band(lang)
     st.markdown(f'<div class="v68-head"><strong>🌍 {html.escape(city)} · Ta vie sociale</strong><small>📅 {date.today().strftime("%d/%m/%Y")} · {html.escape(lang.upper())} · Niveau {band} {"(provisoire)" if provisional else "(indicatif)"}</small></div>',unsafe_allow_html=True)
+    weather=city_weather(city)
+    if weather:
+        st.markdown(f'<div class="v81-weather"><div><strong>📍 {html.escape(city)} · Météo en direct</strong><div class="muted">{weather["icon"]} {html.escape(weather["label"])} · 💧 {weather["humidity"]}% humidité · 💨 {weather["wind"]} km/h</div></div><div class="temp">{weather["temp"]} °C</div></div>',unsafe_allow_html=True)
+        st.caption('💬 Idée de conversation : « ¿Qué tiempo hace hoy? » · Source : Open-Meteo (actualisation toutes les 20 min)')
+    else:
+        st.caption(f'🌤️ Météo de {city} momentanément indisponible · La conversation reste accessible.')
     with st.expander('🚆 Voyager ou déménager'):
         dest=st.selectbox('Destination',range(len(cities)),index=current,format_func=lambda i:cities[i][0],key=f'v68_dest_{lang}')
         ca,cb=st.columns(2)
@@ -285,6 +420,24 @@ def page():
         key=f'{lang}:{person[0]}'
         if not world['log'].get(key):record(world,lang,person[0],person[0],WORDS[lang]['hello'])
     events=daily_update(world,lang,people,cities)
+    social_day(world,lang,people)
+    count,streak=social_metrics(world,lang)
+    st.markdown(f'<div class="v82-stats">📨 {count} messages · 🔥 {streak} jour(s) de suite · 🎯 Niveau {html.escape(band)} · 🟢 {len(people)} contacts</div>',unsafe_allow_html=True)
+    with st.expander('🔔 Activité du réseau · Stories et défis',expanded=True):
+        storycols=st.columns(min(4,len(people)))
+        for i,person in enumerate(people[:4]):
+            name=person[0];story=SOCIAL_STORIES[lang][stable_number(date.today(),lang,name)%len(SOCIAL_STORIES[lang])]
+            with storycols[i]:
+                st.markdown(f'<div class="v82-story"><b>{person[1]} {html.escape(name)}</b><small>● Story du jour</small><p>{html.escape(story)}</p></div>',unsafe_allow_html=True)
+                if st.button('👀 Voir',key=f'v82_story_{lang}_{i}'):
+                    st.session_state[f'v65_selected_{lang}']=i
+                    social_bond(world,lang,name,1)
+                    persist_and_rerun(world)
+        st.caption('🗓️ Les stories changent chaque jour · 📩 Les messages spontanés apparaissent lors de tes visites.')
+    with st.expander('🎯 Défi du jour · niveau adapté'):
+        challenge=SOCIAL_PROMPTS[lang][stable_number(date.today(),lang,'challenge')%len(SOCIAL_PROMPTS[lang])]
+        st.write('💬 '+challenge)
+        st.caption('Essaie cette phrase dans une conversation. Aucune pénalité si tu fais une erreur.')
     messages,feed,calendar=st.columns([1.05,1.08,.87],gap='medium')
     with messages:
         st.markdown('<div class="v68-title">💬 Messages</div>',unsafe_allow_html=True)
@@ -298,7 +451,24 @@ def page():
             if st.button(label,key=f'v68_contact_{lang}_{i}',use_container_width=True,type='primary' if selected==i else 'secondary'):
                 st.session_state[f'v65_selected_{lang}']=i;persist_and_rerun(world)
         person=people[selected];name=person[0];key=f'{lang}:{name}'
-        st.markdown(f'<div class="v68-title">{person[1]} {html.escape(name)} <span class="v68-muted">· 🐾 {html.escape(person[4])}</span></div>',unsafe_allow_html=True)
+        st.markdown(f'<div class="v68-title">{person[1]} {html.escape(name)} <span class="v68-muted">· 🐾 {html.escape(person[4])} · 💙 Amitié {social_score(world,lang,name)}/100 · 🟢 Actif dans le jeu</span></div>',unsafe_allow_html=True)
+        with st.expander('⚡ Actions rapides avec ce contact'):
+            actioncols=st.columns(3)
+            for i,(emoji,topic) in enumerate([('👋',SOCIAL_PROMPTS[lang][0]),('☕',SOCIAL_PROMPTS[lang][3]),('🐾',SOCIAL_PROMPTS[lang][4])]):
+                with actioncols[i]:
+                    if st.button(emoji+' '+('Saluer','Inviter','Animal')[i],key=f'v82_action_{lang}_{selected}_{i}',use_container_width=True):
+                        record(world,lang,name,'you',topic)
+                        record(world,lang,name,name,social_quick_response(lang,topic,person) or reply(lang,topic,person,world))
+                        social_bond(world,lang,name,2)
+                        persist_and_rerun(world)
+        with st.expander('🎁 Petit cadeau virtuel'):
+            gifts=['🌷 Fleur','🍫 Chocolat','📚 Livre']
+            gift=st.radio('Choisir un cadeau',gifts,horizontal=True,key=f'v82_gift_{lang}_{selected}')
+            if st.button('🎁 Offrir',key=f'v82_sendgift_{lang}_{selected}'):
+                record(world,lang,name,'you','🎁 '+gift)
+                record(world,lang,name,name,{'es':'¡Muchas gracias! 💝','en':'Thank you so much! 💝','de':'Vielen Dank! 💝','it':'Grazie mille! 💝'}[lang])
+                social_bond(world,lang,name,4)
+                persist_and_rerun(world)
         # No fixed-height empty scroll panel: chat grows naturally with content.
         for item in world['log'][key][-9:]:
             css='v68-me' if item['who']=='you' else 'v68-them'
@@ -311,8 +481,10 @@ def page():
             if v80.ai_enabled():
                 try:response=v80.answer(lang,name,city,band,person[4],history,msg.strip(),world.get('memories',{}).get(key,[]))
                 except Exception:st.toast('IA indisponible : réponse scénarisée utilisée.')
+            if response is None and asks_weather(msg):response=weather_reply(lang,city,weather)
+            if response is None and not any(w in msg.casefold() for w in RECALL_WORDS):response=social_quick_response(lang,msg,person)
             if response is None:response=reply(lang,msg.strip(),person,world)
-            record(world,lang,name,'you',msg.strip()[:500]);v80.remember(world,lang,name,msg.strip());record(world,lang,name,name,response)
+            social_bond(world,lang,name,3);record(world,lang,name,'you',msg.strip()[:500]);v80.remember(world,lang,name,msg.strip());record(world,lang,name,name,response)
             counts=st.session_state.setdefault('v65_free_messages',{});counts[lang]=counts.get(lang,0)+1;persist_and_rerun(world)
         # Panneau consultable : 8 types de souvenirs, propres à ce contact.
         with st.expander('🧠 Ce que ce personnage retient de moi'):
@@ -336,6 +508,19 @@ def page():
             likes=world.setdefault('post_likes',{})
             if st.button('💙 Aimé' if likes.get(pid) else '♡ J’aime',key=f'v68_like_{pid}'):
                 likes[pid]=not likes.get(pid,False);persist_and_rerun(world)
+            # Reactions distinctes des likes, conservées dans le profil.
+            reactions=world.setdefault('social_reactions',{})
+            rc=st.columns(4)
+            for j,emoji in enumerate(SOCIAL_REACTIONS):
+                with rc[j]:
+                    if st.button(emoji,key=f'v82_react_{pid}_{j}',use_container_width=True):
+                        reactions[pid]=emoji;persist_and_rerun(world)
+            if reactions.get(pid):st.caption('Ta réaction : '+reactions[pid])
+            saved_posts=world.setdefault('social_bookmarks',[])
+            if st.button('🔖 Enregistré' if pid in saved_posts else '🔖 Garder ce post',key=f'v82_bookmark_{pid}'):
+                if pid in saved_posts:saved_posts.remove(pid)
+                else:saved_posts.append(pid)
+                persist_and_rerun(world)
             comments=world['post_comments'][pid]
             with st.expander(f'💬 {len(comments)} commentaires',expanded=(offset==0)):
                 for j,item in enumerate(comments[-16:]):
@@ -358,6 +543,34 @@ def page():
     with calendar:
         st.markdown('<div class="v68-title">🎉 Événements</div>',unsafe_allow_html=True)
         st.caption(f'À {city} · Selon la date et les habitants')
+        with st.expander('📊 Sondage du jour',expanded=True):
+            question,opt1,opt2=SOCIAL_POLL[lang]
+            st.write(question)
+            pollid=f'{lang}:{city}:{date.today().isoformat()}'
+            votes=world.setdefault('social_polls',{})
+            chosen=votes.get(pollid)
+            if chosen:
+                st.success('🗳️ '+chosen)
+                seed=stable_number(pollid,'poll')
+                first=2+seed%9;second=2+(seed//7)%9
+                if chosen==opt1:first+=1
+                else:second+=1
+                st.progress(first/(first+second),text=f'{opt1} · {round(first/(first+second)*100)} %')
+                st.caption('Résultats simulés pour les personnages, plus ton vote.')
+            else:
+                for i,opt in enumerate((opt1,opt2)):
+                    if st.button(opt,key=f'v82_poll_{pollid}_{i}',use_container_width=True):
+                        votes[pollid]=opt;persist_and_rerun(world)
+        with st.expander('📅 Agenda social · 7 jours'):
+            for offset in range(7):
+                day=date.today()+timedelta(days=offset)
+                seed=stable_number(lang,city,day,'agenda')
+                name=EVENT_NAMES[seed%len(EVENT_NAMES)]
+                st.caption(f'{day.strftime("%d/%m")} · {name} · {people[(seed//5)%len(people)][0]}')
+        with st.expander('🏆 Mon activité'):
+            st.metric('Messages envoyés',count)
+            st.metric('Série de jours',streak)
+            st.caption('💙 Les amitiés progressent avec les messages, les stories et les cadeaux.')
         if not events:st.info('🌤️ Rien de prévu pour le moment. Profite de la ville !')
         for e in events[:5]:
             day=e['date'];label='Aujourd’hui' if day==date.today() else 'Demain' if day==date.today()+timedelta(days=1) else day.strftime('%d/%m')
@@ -368,8 +581,8 @@ def page():
                 if idx==4:message=message.format(city=cities[(current+1)%len(cities)][0])
                 if idx==2:message=message.format(pet=friend[4])
                 record(world,lang,friend[0],friend[0],message);world['event_done'].append(e['id'])
-                st.session_state[f'v65_selected_{lang}']=people.index(friend);persist_and_rerun(world)
-    st.caption('ℹ️ V80 : IA facultative selon configuration ; sinon moteur scénarisé. Niveau CECRL indicatif. Sauvegarde durable uniquement avec base externe et profil chargé.')
+                social_bond(world,lang,friend[0],5);st.session_state[f'v65_selected_{lang}']=people.index(friend);persist_and_rerun(world)
+    st.caption('ℹ️ V82 : simulation locale, activités datées et météo Open-Meteo. Pas de simulation en arrière-plan · V80 : IA facultative selon configuration ; sinon moteur scénarisé. Niveau CECRL indicatif. Sauvegarde durable uniquement avec base externe et profil chargé.')
     # Save the world after all widgets have been processed. Avoid database calls on every rerun
     # by using a digest of the serialized social state.
     if st.session_state.get('v80_profile') and v80.db_enabled():
