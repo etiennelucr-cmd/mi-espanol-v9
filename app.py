@@ -16,7 +16,7 @@ import parcours_v10 as pv
 import exercices_v11 as ev
 import apprentissage_v16 as v16
 
-st.set_page_config(page_title='Mi Español V42 · Édition España',page_icon='🇪🇸',layout='wide')
+st.set_page_config(page_title='Mi Español · Guide de survie',page_icon='🇪🇸',layout='wide')
 st.markdown('''<style>
 .stApp {background: linear-gradient(160deg,#fffaf0 0%,#fff4e4 100%);}
 [data-testid="stSidebar"] {background: #fff0d5; border-right: 1px solid #edc76d;}
@@ -558,6 +558,7 @@ def controles_et_revisions():
     else:
         revisions()
 
+import voyage_survie_v43
 import aventure_v18 as aventure
 import accueil_v19
 import accueil_v20
@@ -568,7 +569,7 @@ import mini_jeux_v41
 import bilan_unifie_v41
 import v40_theme
 import projection_cecrl_v25
-pages={'🇪🇸 Mon aventure V42':accueil_v19.page,'🏡 Mon aventure V19':accueil_v19.page,'📅 Ma progression et mes objectifs':projection_cecrl_v25.page,'🗺️ Carte de progression CECRL':progression_v40.page,'🌳 Arbre de compétences':arbre_v18.tree,'📊 Bilans jour/semaine/mois':arbre_v18.progress,'🎲 Mini-jeux V42':mini_jeux_v41.page,'📊 Tableau de bord V42':bilan_unifie_v41.page,'🎮 Jouer et apprendre':aventure.page,'🌍 Aventure CECRL A1–C2':aventure_cecrl.page,'📅 Planning de la semaine':pa.page,'🎯 Programme du jour':ext.programme,'🗺️ Parcours CECRL':ext.parcours,'✍️ Expression écrite':ext.expression,'🎧 Écoute et expression orale':ext.oral,'📚 Cours':cours,'🧪 Contrôles et révisions':controles_et_revisions,'🎓 Examens blancs':lambda:__import__('examens_v17').page(),'📖 Lexique':lexique,'📗 Verbes et conjugaisons':cp.page,'🤖 Coach IA':coach,'🏆 Défis':defis,'🧠 Répétition espacée':lambda:v16.repetition(m.preference('niveau_suivi','A1')),'📈 Maîtrise durable':lambda:v16.maitrise(m.preference('niveau_suivi','A1'))}
+pages={'🧳 Espagnol de survie · 7 jours':voyage_survie_v43.page,'🇪🇸 Mon aventure V42':accueil_v19.page,'🏡 Mon aventure V19':accueil_v19.page,'📅 Ma progression et mes objectifs':projection_cecrl_v25.page,'🗺️ Carte de progression CECRL':progression_v40.page,'🌳 Arbre de compétences':arbre_v18.tree,'📊 Bilans jour/semaine/mois':arbre_v18.progress,'🎲 Mini-jeux V42':mini_jeux_v41.page,'📊 Tableau de bord V42':bilan_unifie_v41.page,'🎮 Jouer et apprendre':aventure.page,'🌍 Aventure CECRL A1–C2':aventure_cecrl.page,'📅 Planning de la semaine':pa.page,'🎯 Programme du jour':ext.programme,'🗺️ Parcours CECRL':ext.parcours,'✍️ Expression écrite':ext.expression,'🎧 Écoute et expression orale':ext.oral,'📚 Cours':cours,'🧪 Contrôles et révisions':controles_et_revisions,'🎓 Examens blancs':lambda:__import__('examens_v17').page(),'📖 Lexique':lexique,'📗 Verbes et conjugaisons':cp.page,'🤖 Coach IA':coach,'🏆 Défis':defis,'🧠 Répétition espacée':lambda:v16.repetition(m.preference('niveau_suivi','A1')),'📈 Maîtrise durable':lambda:v16.maitrise(m.preference('niveau_suivi','A1'))}
 # Le thème V26 est optionnel : ne jamais bloquer le démarrage si
 # Streamlit Cloud possède un ancien v18_style.py dans son déploiement.
 try:
@@ -584,69 +585,67 @@ apply_v26_global()
 v40_theme.apply()
 import v42_theme
 v42_theme.apply()
-sidebar_start=time.perf_counter()
-with st.sidebar:
-    _t_header=time.perf_counter()
-    v16.entete()
-    st.caption('🇪🇸 Mi Español V42 · Édition España')
-    diagnostic.record('En-tête Streamlit',time.perf_counter()-_t_header)
-    niveau_enregistre=m.preference('niveau_suivi','A1')
-    niveaux_accessibles=progression_v40.accessible_levels()
-    if niveau_enregistre not in niveaux_accessibles:
-        niveau_enregistre=niveaux_accessibles[-1]
-        m.definir_preference('niveau_suivi',niveau_enregistre)
-    if st.session_state.get('sidebar_niveau') not in niveaux_accessibles:
-        st.session_state['sidebar_niveau']=niveau_enregistre
-    niveau_suivi=st.selectbox('Niveau suivi (validé)',niveaux_accessibles,index=niveaux_accessibles.index(niveau_enregistre),key='sidebar_niveau')
-    if niveau_enregistre!=niveau_suivi:m.definir_preference('niveau_suivi',niveau_suivi)
-    _t_progression=time.perf_counter()
-    valides,total=pv.progression(niveau_suivi)
-    diagnostic.record('Progression des thèmes',time.perf_counter()-_t_progression)
-    pourcentage=100*valides/total if total else 0
-     # Synthèse compacte : garder le calcul de validation existant intact.
-    st.markdown('### 🎯 Mon parcours')
-    st.caption(f'Niveau actuel · **{niveau_suivi}**')
-    st.progress(valides/total if total else 0)
-    st.markdown(f'**{pourcentage:.1f} %** du parcours validé · {valides}/{total} thèmes' if total else 'Aucun thème disponible')
-    prochain=m.NIVEAUX[m.NIVEAUX.index(niveau_suivi)+1] if niveau_suivi!=m.NIVEAUX[-1] else None
-    if prochain:
-        if total and valides == total:
-            st.success(f'🎉 Parcours terminé ! {prochain} est accessible.')
-        else:
-            st.caption(f'🏁 Prochain objectif : {prochain}')
-            st.caption('Les validations suivent encore la règle historique du Coach IA (19/20).')
-    else:
-        st.caption('🏆 C2 · dernier niveau du parcours')
-    with st.expander('📈 Détails et prévision', expanded=False):
-        st.write(f'Thèmes validés : **{valides} sur {total}**')
-        st.caption('Ce pourcentage mesure les thèmes validés, pas la maîtrise complète de la langue.')
-        st.caption('La validation actuelle exige 19/20 au Coach IA. Un assouplissement nécessite une modification cohérente du moteur et des contrôles.')
-        if prochain:
-            if st.button('Calculer ma date indicative', key='sidebar_projection_v18'):
-                projection=m.projection_globale(niveau_suivi)
-                if projection and projection.get('atteint'):
-                    st.success('Objectif de validation atteint.')
-                elif projection:
-                    st.info('Estimation : '+str(projection.get('centre','indisponible')))
-                else:
-                    st.info('Prévision indisponible : au moins 7 jours de progression mesurable sont nécessaires.')
-    st.divider()
-    st.markdown('### 🧭 Explorer')
-    groupes = {
-        '🏠 Accueil': ['🇪🇸 Mon aventure V42','🎲 Mini-jeux V42','🎮 Jouer et apprendre','🎯 Programme du jour','📅 Planning de la semaine','🤖 Coach IA'],
-        '🗺️ Parcours CECRL': ['🗺️ Carte de progression CECRL','📊 Tableau de bord V42','📅 Ma progression et mes objectifs','🌳 Arbre de compétences','🌍 Aventure CECRL A1–C2','🗺️ Parcours CECRL','📚 Cours','📖 Lexique','📗 Verbes et conjugaisons'],
-        '🎮 Jouer et pratiquer': ['🏆 Défis','✍️ Expression écrite','🎧 Écoute et expression orale'],
-        '🧠 Mes révisions': ['🧪 Contrôles et révisions','🧠 Répétition espacée','📈 Maîtrise durable'],
-        '📊 Mes progrès': ['📊 Bilans jour/semaine/mois','🎓 Examens blancs'],
-    }
-    rubrique = st.radio('Rubrique', list(groupes), key='v18_rubrique')
-    sous_pages = groupes[rubrique]
-    page = st.selectbox('Activité', sous_pages, key='v18_activite') if len(sous_pages)>1 else sous_pages[0]
-    st.caption('💛 À ton rythme · CECRL A1–C2')
-diagnostic.record("Barre latérale et navigation",time.perf_counter()-sidebar_start)
+# V47: navigation centrale, guide prioritaire. Les anciennes pages restent accessibles.
+st.markdown("""<style>
+[data-testid="stSidebar"], [data-testid="collapsedControl"] {display:none!important;}
+.block-container {max-width:1080px!important;margin:auto!important;padding-top:1.5rem!important;}
+.v47-hero{text-align:center;padding:18px 10px 10px}
+.v47-hero h1{font-size:2.3rem;margin-bottom:0.2rem}
+.v47-hero p{color:#856a57;font-size:1.05rem}
+div.stButton>button {min-height:58px;border-radius:16px;border:1px solid #e9c58f;background:#fffaf2;white-space:normal;}
+</style>""",unsafe_allow_html=True)
+st.markdown('<div class="v47-hero"><h1>🇪🇸 Mi Español</h1><p>Le guide de survie pour voyager en Espagne · 7 jours</p></div>',unsafe_allow_html=True)
+if 'v47_page' not in st.session_state:
+    st.session_state.v47_page='🧳 Programme 7 jours'
+nav_items=[('🧳 Programme 7 jours','🧳 Espagnol de survie · 7 jours','📅 Mon itinéraire · 7 jours'),
+ ('💬 Phrases utiles','🧳 Espagnol de survie · 7 jours','🧰 Expressions de survie'),
+ ('📚 Vocabulaire','🧳 Espagnol de survie · 7 jours','🧰 Expressions de survie'),
+ ('✏️ Exercices','🧳 Espagnol de survie · 7 jours','📅 Mon itinéraire · 7 jours'),
+ ('🗺️ Situations réelles','🧳 Espagnol de survie · 7 jours','🧰 Expressions de survie'),
+ ('🏡 Vie quotidienne','🧳 Espagnol de survie · 7 jours','🧰 Expressions de survie')]
+for start in (0,3):
+    cols=st.columns(3,gap='small')
+    for col,(label,target,section) in zip(cols,nav_items[start:start+3]):
+        with col:
+            if st.button(label,key='v47_nav_'+str(start)+label,use_container_width=True):
+                st.session_state.v47_page=label
+                st.session_state.voyage_section=section
+                st.rerun()
+st.divider()
+if st.button('🏙️ Visiter les villes · aventures interactives',key='v52_open',use_container_width=True,type='primary'):
+    st.session_state.v47_page='🏙️ Visiter les villes'
+    st.rerun()
+if st.button('🎮 Explorer les 12 univers · aventure multilingue',key='v50_open',use_container_width=True,type='primary'):
+    st.session_state.v47_page='🎮 Aventure multilingue'
+    st.rerun()
+if st.button('🌍 Mes langues & mes capacités · suivi automatique', key='v48_langues', use_container_width=True):
+    st.session_state.v47_page='🌍 Mes langues & mes capacités'
+    st.rerun()
+st.divider()
+legacy={'🇪🇸 Mon aventure V42':'🇪🇸 Mon aventure V42','🎲 Mini-jeux':'🎲 Mini-jeux V42',
+ '📖 Lexique complet':'📖 Lexique','🗺️ Parcours CECRL':'🗺️ Carte de progression CECRL',
+ '📊 Bilans':'📊 Tableau de bord V42','🤖 Coach IA':'🤖 Coach IA',
+ '📚 Cours classiques':'📚 Cours','✍️ Expression écrite':'✍️ Expression écrite',
+ '🎧 Écoute et oral':'🎧 Écoute et expression orale','💾 Révisions':'🧪 Contrôles et révisions'}
+with st.expander('⚙️ Autres activités et outils classiques (facultatif)'):
+    selected_legacy=st.selectbox('Choisir une ancienne activité',list(legacy),key='v47_legacy_choice')
+    if st.button('Ouvrir cette activité',key='v47_open_legacy'):
+        st.session_state.v47_page=selected_legacy
+        st.rerun()
+page=legacy.get(st.session_state.v47_page,'🧳 Espagnol de survie · 7 jours')
 page_start=time.perf_counter()
 try:
-    pages[page]()
+    if st.session_state.v47_page=='🏙️ Visiter les villes':
+        import villes_interactives_v52
+        villes_interactives_v52.page()
+    elif st.session_state.v47_page=='🎮 Aventure multilingue':
+        import aventure_multilingue_v50
+        aventure_multilingue_v50.page()
+    elif st.session_state.v47_page=='🌍 Mes langues & mes capacités':
+        import suivi_langues_v48
+        suivi_langues_v48.page()
+    else:
+        pages[page]()
 finally:
     diagnostic.record("Page sélectionnée",time.perf_counter()-page_start)
     diagnostic.report()
