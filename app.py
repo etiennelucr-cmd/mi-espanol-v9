@@ -594,7 +594,54 @@ st.markdown("""<style>
 .v47-hero p{color:#856a57;font-size:1.05rem}
 div.stButton>button {min-height:58px;border-radius:16px;border:1px solid #e9c58f;background:#fffaf2;white-space:normal;}
 </style>""",unsafe_allow_html=True)
-st.markdown('<div class="v47-hero"><h1>🇪🇸 Mi Español</h1><p>Le guide de survie pour voyager en Espagne · 7 jours</p></div>',unsafe_allow_html=True)
+# V55 : identité visuelle plus contrastée, responsive téléphone / ordinateur.
+st.markdown("""<style>
+:root {color-scheme:light;}
+html, body, .stApp, [data-testid="stAppViewContainer"] {
+ background:linear-gradient(145deg,#f3d8ae 0%,#ebc6a0 46%,#dfb6a0 100%)!important;
+ color:#33211e!important;
+}
+.block-container {max-width:1040px!important;padding:1.2rem 1.2rem 5rem!important;}
+.v47-hero {background:linear-gradient(115deg,#77233d,#a92c45 60%,#c45440)!important;
+ border-radius:26px!important;padding:30px 18px!important;margin:0 0 22px!important;
+ box-shadow:0 12px 30px #642d3040!important;}
+.v47-hero h1 {color:#fff9eb!important;font-size:clamp(1.9rem,5vw,2.7rem)!important;}
+.v47-hero p {color:#ffe8d5!important;font-size:clamp(.94rem,2.6vw,1.1rem)!important;}
+h1,h2,h3 {color:#70253a!important;}
+[data-testid="stMarkdownContainer"] p {line-height:1.55;}
+.stButton>button, div.stButton>button {background:#fff0d9!important;color:#502938!important;
+ border:2px solid #c99162!important;border-radius:17px!important;
+ min-height:58px!important;box-shadow:0 3px 0 #a8674438!important;
+ font-weight:700!important;white-space:normal!important;transition:transform .12s,box-shadow .12s;}
+.stButton>button:hover {background:#ffe0b7!important;border-color:#9f3d49!important;transform:translateY(-1px);}
+.stButton>button[kind="primary"],div.stButton>button[kind="primary"] {
+ background:#9c2543!important;color:white!important;border-color:#9c2543!important;}
+.stButton>button[kind="primary"]:hover {background:#7c1935!important;}
+[data-testid="stExpander"], [data-testid="stForm"],div[data-testid="stMetric"],
+[data-testid="stVerticalBlockBorderWrapper"] > div {border-radius:17px!important;}
+[data-testid="stForm"], [data-testid="stMetric"] {background:#fff1dd!important;border:1px solid #d6a477!important;}
+[data-testid="stAlert"] {border-radius:16px!important;}
+[data-testid="stRadio"] label, [data-testid="stSelectbox"] label {color:#43242b!important;}
+[data-testid="stTabs"] button {font-weight:700!important;}
+@media(max-width:720px) {
+ .block-container {padding:.6rem .75rem 5rem!important;max-width:100%!important;}
+ .v47-hero {padding:22px 12px!important;border-radius:20px!important;margin-bottom:14px!important;}
+ /* Streamlit columns become large touch-friendly cards in a single column. */
+ div[data-testid="stHorizontalBlock"] {flex-wrap:wrap!important;gap:.55rem!important;}
+ div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
+  flex:1 1 100%!important;min-width:0!important;width:100%!important;}
+ div.stButton>button {min-height:54px!important;font-size:1rem!important;}
+ [data-testid="stTabs"] [data-baseweb="tab-list"] {overflow-x:auto!important;flex-wrap:nowrap!important;}
+ [data-testid="stTabs"] [data-baseweb="tab"] {white-space:nowrap!important;flex-shrink:0!important;}
+ .v52-hero {padding:18px 12px!important;}
+ .v52-scene {padding:15px!important;font-size:1rem!important;}
+}
+@media(min-width:721px) and (max-width:1000px) {
+ .block-container {padding:1rem 1.2rem 4rem!important;}
+ div[data-testid="stHorizontalBlock"] {gap:.65rem!important;}
+}
+</style>""",unsafe_allow_html=True)
+st.markdown('<div class="v47-hero"><h1>🇪🇸 Mi Español</h1><p>Explore les villes, parle aux habitants et progresse à ton rythme</p></div>',unsafe_allow_html=True)
 if 'v47_page' not in st.session_state:
     st.session_state.v47_page='🧳 Programme 7 jours'
 nav_items=[('🧳 Programme 7 jours','🧳 Espagnol de survie · 7 jours','📅 Mon itinéraire · 7 jours'),

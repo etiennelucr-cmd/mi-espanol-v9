@@ -58,14 +58,15 @@ def _new_state():
 
 def page():
     st.markdown("""<style>
-    .v52-hero{background:linear-gradient(125deg,#ffdb9a,#ffd8c4,#d6f5dd);border-radius:25px;padding:24px;text-align:center;color:#563726}
+    .v52-hero{background:linear-gradient(125deg,#eaa25c,#d98371,#8bb3a1);border-radius:25px;padding:24px;text-align:center;color:#402326}
     .v52-hero h1{margin:0;font-size:2rem}.v52-hero p{margin:5px 0}
-    .v52-scene{border:2px solid #e8c38d;background:#fff7e7;border-radius:20px;padding:20px;color:#513926;font-size:1.1rem;margin:10px 0}
+    .v52-scene{border:2px solid #c98655;background:#ffe8c7;border-radius:20px;padding:20px;color:#513926;font-size:1.1rem;margin:10px 0}
     .v52-scene strong{font-size:1.3rem}.v52-note{background:#e7f6ed;border-radius:14px;padding:12px;color:#245a3d}
     </style><div class="v52-hero"><h1>🧭 Voyage autour du monde</h1><p>Choisis une ville, explore ses lieux et vis de petites aventures !</p></div>""",unsafe_allow_html=True)
     lang=st.selectbox('🌍 Langue de mon voyage',list(CITIES),format_func=lambda x:' '.join(LANGS[x]),key='v52_lang')
     st.caption('Une seule langue à la fois · les progrès sont séparés · tous les lieux sont libres d’accès')
     st.subheader('🏙️ Choisis ta ville')
+    st.caption('Choisis ta destination : chaque ville est une porte vers tes aventures.')
     cities=CITIES[lang]
     cols=st.columns(3)
     for i,(name,flag,area) in enumerate(cities):
