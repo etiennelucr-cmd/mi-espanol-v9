@@ -665,18 +665,34 @@ if st.session_state.get('v47_page') == '💬 Mes rencontres':
     [data-testid="stForm"] {background:#fff!important;border:1px solid #dce7fa!important;border-radius:15px!important}
     [data-testid="stExpander"] {border-color:#dce7fa!important}
     </style>''',unsafe_allow_html=True)
-st.markdown('<div class="v56-banner"><h1>🌍 Mon aventure linguistique</h1><p>Explore les villes, parle aux habitants et progresse à ton rythme !</p></div>',unsafe_allow_html=True)
+# V67: the social area has its own compact header and a single return action.
 if 'v47_page' not in st.session_state:
     st.session_state.v47_page='🏙️ Visiter les villes'
-# Choix du mode : les quatre cartes restent identiques sur mobile et ordinateur.
-menu=[('🗺️ Explorer les villes','🏙️ Visiter les villes'),('🎮 Mes défis','🎮 Aventure multilingue'),
-      ('💬 Mes rencontres','💬 Mes rencontres'),('📖 Apprendre','📖 Apprendre'),('🏆 Ma progression','🌍 Mes langues & mes capacités')]
-cols=st.columns(2,gap='small')
-for i,(label,target) in enumerate(menu):
-    with cols[i%2]:
-        if st.button(label,key=f'v56_main_{i}',use_container_width=True,type='primary' if st.session_state.v47_page==target else 'secondary'):
-            st.session_state.v47_page=target
+is_social=st.session_state.v47_page=='💬 Mes rencontres'
+if is_social:
+    st.markdown("""<style>
+    .stApp{background:#f1f5ff!important}
+    .block-container{max-width:1450px!important;padding-top:.45rem!important}
+    .v67-top{background:#fff;border:1px solid #dce6fc;border-radius:16px;padding:9px 15px;color:#0866ff;font-weight:800;font-size:1.3rem;min-height:46px;display:flex;align-items:center}
+    @media(max-width:720px){.v67-top{font-size:1.05rem;padding:8px 10px}}
+    </style>""",unsafe_allow_html=True)
+    top_left,top_right=st.columns([3,1],gap='small',vertical_alignment='center')
+    with top_left:
+        st.markdown('<div class="v67-top">💬 Mes rencontres</div>',unsafe_allow_html=True)
+    with top_right:
+        if st.button('🏠 Retour au menu',key='v67_return_menu',use_container_width=True):
+            st.session_state.v47_page='🏙️ Visiter les villes'
             st.rerun()
+else:
+    st.markdown('<div class="v56-banner"><h1>🌍 Mon aventure linguistique</h1><p>Explore les villes, parle aux habitants et progresse à ton rythme !</p></div>',unsafe_allow_html=True)
+    menu=[('🗺️ Explorer les villes','🏙️ Visiter les villes'),('🎮 Mes défis','🎮 Aventure multilingue'),
+          ('💬 Mes rencontres','💬 Mes rencontres'),('📖 Apprendre','📖 Apprendre'),('🏆 Ma progression','🌍 Mes langues & mes capacités')]
+    cols=st.columns(2,gap='small')
+    for i,(label,target) in enumerate(menu):
+        with cols[i%2]:
+            if st.button(label,key=f'v56_main_{i}',use_container_width=True,type='primary' if st.session_state.v47_page==target else 'secondary'):
+                st.session_state.v47_page=target
+                st.rerun()
 legacy={'🇪🇸 Mon aventure V42':'🇪🇸 Mon aventure V42','🎲 Mini-jeux':'🎲 Mini-jeux V42',
  '📖 Lexique complet':'📖 Lexique','🗺️ Parcours CECRL':'🗺️ Carte de progression CECRL',
  '📊 Bilans':'📊 Tableau de bord V42','🤖 Coach IA':'🤖 Coach IA',

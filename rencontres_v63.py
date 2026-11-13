@@ -149,10 +149,10 @@ def page():
         .st-key-rencontres_social [data-testid="stButton"] button[kind="primary"]:hover{color:white!important;background:#0055d8!important}
         .st-key-rencontres_social [data-testid="stTextInput"] input:focus,
         .st-key-rencontres_social textarea:focus{border-color:#0866ff!important;box-shadow:0 0 0 1px #0866ff!important}
-        .v65-head{background:linear-gradient(105deg,#0866ff,#6d83ff);color:white;padding:18px 20px;border-radius:20px;margin:5px 0 18px}
+        .v65-head{background:linear-gradient(105deg,#0866ff,#6d83ff);color:white;padding:12px 16px;border-radius:16px;margin:4px 0 12px}
         .v65-head h2{color:white!important;margin:0!important;font-size:1.45rem!important}
         .v65-head small{color:#f1f5ff}
-        .v65-person{background:#fff;border:1px solid #d9e5ff;border-radius:14px;padding:10px 13px;margin:7px 0;color:#1b315a}
+        .v65-person{background:#fff;border:1px solid #d9e5ff;border-radius:12px;padding:6px 10px;margin:3px 0;color:#1b315a;font-size:14px}
         .v65-bubble{border-radius:18px;padding:11px 14px;margin:8px 0;max-width:88%;line-height:1.5;overflow-wrap:anywhere;font-size:15px}
         .v65-them{background:#f0f2f5;margin-right:auto;color:#1c1e21}
         .v65-me{background:#0866ff;margin-left:auto;color:white}
@@ -189,7 +189,7 @@ def page():
                     st.session_state[f'v65_selected_{lang}']=i;st.rerun()
             person=people[selected];name=person[0];key=f'{lang}:{name}'
             st.markdown(f'#### {person[1]} {name}')
-            with st.container(height=330,border=True):
+            with st.container(height=240,border=True):
                 for item in world['log'][key][-18:]:
                     css='v65-me' if item['who']=='you' else 'v65-them'
                     st.markdown(f'<div class="v65-bubble {css}">{html.escape(item["text"])}</div>',unsafe_allow_html=True)

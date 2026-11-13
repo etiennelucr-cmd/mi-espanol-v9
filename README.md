@@ -1,7 +1,7 @@
-# Mi Español V66 — Mes rencontres
+# Mi Español V67 — interface Mes rencontres
 
-Correctif ciblé : la palette Messenger (bleu et blanc) ne s’applique que lorsque « Mes rencontres » est ouvert. Le bandeau d’accueil est masqué dans cette rubrique pour accéder directement aux messages et au fil de vie ; les autres rubriques conservent leur présentation.
+Correctif ciblé depuis V66. Dans « Mes rencontres », le grand menu de cinq boutons est remplacé par un bandeau compact « 💬 Mes rencontres » en haut à gauche et « 🏠 Retour au menu » à droite. Le contenu social remonte. Les autres rubriques conservent leur navigation et leur présentation.
 
-Messagerie à gauche, fil de publications et événements à droite ; disposition Streamlit responsive. Les échanges restent scénarisés, avec mémoire de session uniquement.
+Installation : remplacer les fichiers du dépôt GitHub par le contenu de cette archive. Conserver vos secrets Streamlit hors du dépôt.
 
-Déploiement : placer les fichiers à la racine du dépôt GitHub.
+Validation : compilation Python et intégrité ZIP ; pas de test navigateur automatisé.
