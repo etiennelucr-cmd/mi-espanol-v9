@@ -1,18 +1,13 @@
-# Mi Español V61 — conversations évolutives
+# Mi Español V62 — Correctif des bâtiments
 
-## Lancement
+Cette version corrige le retour à la page de départ / la perte de session lors du clic sur les bâtiments.
 
-```bash
-pip install -r requirements.txt
-streamlit run app.py
-```
+## Correction
+Les liens HTML `<a href="?...">` de la carte ont été remplacés par des boutons Streamlit natifs. La sélection est enregistrée dans `st.session_state` puis l’application effectue `st.rerun()` sans rechargement complet du navigateur.
 
-## Changements
-- Dialogues contextualisés en 4 actes (commande → adaptation → imprévu → conclusion) dans les 4 langues.
-- Répliques du personnage dans la langue choisie, aide en français, réactions aux réponses.
-- Scène intérieure et choix regroupés pour réduire le défilement sur mobile.
-- Carte et lieux complémentaires dans des volets repliables pendant la mission.
-- Suivi des réussites par langue, ville et lieu, sans assimiler les QCM à l’oral.
-- Nettoyage des caches et des scripts de démonstration redondants.
+La carte et les bâtiments restent visibles en deux colonnes adaptées au tactile. Les activités, les 4 langues et la progression sont conservées.
 
-Les décors sont statiques et les dialogues restent guidés. Les réponses ne sont pas évaluées oralement.
+## Installation
+`pip install -r requirements.txt` puis `streamlit run app.py`.
+
+Test manuel recommandé : choisir Madrid, entrer dans Pizzeria via le bâtiment, revenir à Carte, recommencer avec Barcelone et sur téléphone.

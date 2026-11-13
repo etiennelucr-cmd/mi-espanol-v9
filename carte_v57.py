@@ -1,6 +1,5 @@
 """V57 — carte ludique responsive, branchée sur les aventures V52–V54."""
 import html
-from urllib.parse import urlencode
 import streamlit as st
 from villes_interactives_v52 import CITIES, FEATURES, _scene, _puzzle, _history, _stage
 from aventure_multilingue_v50 import LANGS, WORLDS, INDEX
@@ -16,20 +15,22 @@ def _illustrated_map(lang, ci, city, area, featured):
       0:('🚆','🚉','🚪','🚉'),1:('🏙️','🏛️','🚪','🌳'),2:('🌳','🌲','🌿','🌳'),3:('🏥','🏥','🚪','➕'),
       4:('🍕','🍕','🚪','🍽️'),5:('☕','☕','🚪','🥐'),6:('🎶','🎵','🚪','🍹'),7:('🏨','🛎️','🚪','🛏️'),
       8:('🛍️','🛒','🚪','🍎'),9:('🎭','🎟️','🚪','🎭'),10:('🏠','🏡','🚪','🌻'),11:('🆘','🚑','🚪','❤️')}
-    tiles=[]
-    for idx in featured:
+    # Native Streamlit widgets preserve the websocket session. HTML href navigation
+    # previously forced a full page load and could reset the user's progress.
+    st.markdown(f'<div class="v58-map-heading">☀️ ☁️ 🕊️ {html.escape(city)} ☁️</div>',unsafe_allow_html=True)
+    cols=st.columns(2)
+    for position,idx in enumerate(featured):
         history=_history(lang,ci,idx)
         wins=sum(score>=2 for score in history)
         level=_stage(history)
-        q=urlencode({'v58_place':str(idx),'v58_lang':lang,'v58_city':str(ci)})
         sign,window,door,detail=buildings[idx]
-        tiles.append(f'<a class="v58-building" href="?{q}" target="_self" aria-label="Visiter {html.escape(labels[idx])}, {wins} missions réussies"><span class="v60-roof"></span><span class="v60-facade"><span class="v60-window">{window}</span><span class="v60-door">{door}</span><span class="v60-window">{detail}</span></span><span class="v60-sign">{sign}</span><strong>{html.escape(labels[idx])}</strong><span class="v58-status">⭐ {wins} réussite(s) · niveau {level}</span></a>')
-    st.markdown(f"""<div class="v58-map" aria-label="Carte interactive de {html.escape(city)}">
-      <div class="v58-sky">☀️ &nbsp; ☁️ &nbsp; 🕊️ <strong>{html.escape(city)}</strong> &nbsp; ☁️</div>
-      <div class="v58-buildings">{''.join(tiles)}</div>
-      <div class="v58-road">🚶 &nbsp; {html.escape(area)} &nbsp; 🚲</div>
-    </div>""",unsafe_allow_html=True)
-    st.caption('👆 Touche un bâtiment pour entrer. Les boutons accessibles sous la carte permettent la même navigation.')
+        with cols[position%2]:
+            st.markdown(f'<div class="v62-facade" aria-hidden="true"><div class="v62-roof"></div><div class="v62-front"><span>{window}</span><span>{door}</span><span>{detail}</span></div></div>',unsafe_allow_html=True)
+            if st.button(f'{sign} {labels[idx]}\n⭐ {wins} réussite(s) · niveau {level}',key=f'v62_building_{lang}_{ci}_{idx}',use_container_width=True):
+                st.session_state.v57_place=idx
+                st.rerun()
+    st.markdown(f'<div class="v62-road">🚶 {html.escape(area)} 🚲</div>',unsafe_allow_html=True)
+    st.caption('👆 Touche le nom du bâtiment pour entrer sans recharger la page.')
 
 def page():
     st.markdown("""<style>
@@ -64,6 +65,15 @@ def page():
     .v58-road{text-align:center;background:repeating-linear-gradient(90deg,#a57b60 0 30px,#ba9174 30px 60px);color:#fff6e8;font-weight:800;margin:14px -12px 0;padding:13px;text-shadow:0 1px 2px #5b3935}
     @media(max-width:640px){.v58-buildings{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.v58-building{min-height:128px}.v58-status{font-size:.67rem}.v58-map{padding:10px 8px 0}.v58-road{margin-left:-8px;margin-right:-8px}}
     @media(max-width:640px){.v57-town{padding:10px 7px}.v57-header{padding:16px 10px}.v57-card{padding:9px}}
+    .v58-map-heading{text-align:center;background:#a1d2d7;border:2px solid #a45948;border-radius:18px 18px 0 0;padding:12px;font-size:clamp(1.1rem,3vw,1.6rem);font-weight:800;color:#5b2a3d}
+    .v62-facade{background:#f7d8ae;border:2px solid #a45948;border-bottom:0;border-radius:10px 10px 0 0;padding:7px 5px 0;margin-top:8px;min-height:100px}
+    .v62-roof{height:20px;background:#923d4b;clip-path:polygon(50% 0,100% 100%,0 100%)}
+    .v62-front{display:flex;align-items:end;justify-content:space-around;background:#efbd8e;height:60px;padding:5px 2px 0}
+    .v62-front span{display:grid;place-items:center;background:#8bc8d5;border:1px solid #a45948;width:30%;height:42px;font-size:1.1rem}
+    .v62-front span:nth-child(2){background:#8e5057;height:54px}
+    .v62-road{text-align:center;background:repeating-linear-gradient(90deg,#a57b60 0 30px,#ba9174 30px 60px);color:white;border-radius:0 0 16px 16px;padding:12px;font-weight:800}
+    div[data-testid="stButton"] button[kind="secondary"]{white-space:pre-line}
+    @media(max-width:640px){.v62-facade{min-height:74px;padding:4px 2px 0}.v62-front{height:43px}.v62-front span{height:31px;font-size:.8rem}.v62-front span:nth-child(2){height:39px}.v62-roof{height:14px}}
     </style>""",unsafe_allow_html=True)
     st.markdown('<div class="v57-header"><h2>🗺️ Ma ville, mon aventure</h2><p>Choisis une destination, touche un bâtiment et parle aux habitants !</p></div>',unsafe_allow_html=True)
     lang=st.selectbox('🌍 Langue du voyage',list(CITIES),format_func=lambda x:' '.join(LANGS[x]),key='v57_lang')
@@ -83,18 +93,6 @@ def page():
     ci=st.session_state.get('v57_city',0)
     city,flag,area=cities[ci]
     featured=FEATURES[lang][ci]
-    # A building link carries a validated location; clear the query after applying it.
-    requested=st.query_params.get('v58_place')
-    if requested is not None:
-        try:
-            candidate=int(requested)
-            if (st.query_params.get('v58_lang')==lang and
-                st.query_params.get('v58_city')==str(ci) and candidate in featured):
-                st.session_state.v57_place=candidate
-        except (ValueError,TypeError):
-            pass
-        for k in ('v58_place','v58_lang','v58_city'):
-            if k in st.query_params:del st.query_params[k]
     if st.session_state.get("v57_place") is None:
         _illustrated_map(lang,ci,city,area,featured)
     with st.expander('♿ Autres accès aux bâtiments', expanded=False):
