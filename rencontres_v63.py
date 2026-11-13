@@ -151,7 +151,7 @@ def page():
     world=store(); keys=list(CITIES)
     # Optional per-profile durable storage. Profile codes are not authentication.
     with st.expander('💾 Sauvegarde et IA · V80',expanded=False):
-        st.caption('La sauvegarde durable nécessite SOCIAL_DATABASE_URL. Le code de profil est un identifiant, pas un mot de passe : ne l’utilise pas pour des données sensibles.')
+        st.caption('Pour retrouver tes conversations après reconnexion, utilise toujours le même code de profil et clique sur Charger mon profil. Ce code n’est pas un mot de passe : n’y mets aucune donnée sensible.')
         profile=st.text_input('Code de profil (6 à 64 caractères)',value=st.session_state.get('v80_profile',''),key='v80_profile_input',placeholder='ex. monaventure_2026')
         valid=v80.profile_id(profile)
         if st.button('📂 Charger mon profil',key='v80_load',disabled=not(valid and v80.db_enabled())):
@@ -160,9 +160,13 @@ def page():
                 if saved is not None:
                     st.session_state.v63_world=saved
                     st.session_state.v80_profile=valid
-                    st.success('Monde social chargé.');persist_and_rerun(world)
+                    st.session_state.v80_loaded_profile=valid
+                    st.session_state.pop('v80_last_digest', None)
+                    st.success('Monde social chargé.')
+                    st.rerun()
                 else:
                     st.session_state.v80_profile=valid
+                    st.session_state.v80_loaded_profile=valid
                     st.info('Nouveau profil : tes prochaines interactions pourront être sauvegardées.')
             except Exception as exc:st.error(f'Chargement impossible : {type(exc).__name__}')
         if st.button('💾 Enregistrer maintenant',key='v80_save',disabled=not(valid and v80.db_enabled())):
