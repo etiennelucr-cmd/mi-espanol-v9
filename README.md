@@ -1,13 +1,7 @@
-# Mi Español V62 — Correctif des bâtiments
+# Mi Español V66 — Mes rencontres
 
-Cette version corrige le retour à la page de départ / la perte de session lors du clic sur les bâtiments.
+Correctif ciblé : la palette Messenger (bleu et blanc) ne s’applique que lorsque « Mes rencontres » est ouvert. Le bandeau d’accueil est masqué dans cette rubrique pour accéder directement aux messages et au fil de vie ; les autres rubriques conservent leur présentation.
 
-## Correction
-Les liens HTML `<a href="?...">` de la carte ont été remplacés par des boutons Streamlit natifs. La sélection est enregistrée dans `st.session_state` puis l’application effectue `st.rerun()` sans rechargement complet du navigateur.
+Messagerie à gauche, fil de publications et événements à droite ; disposition Streamlit responsive. Les échanges restent scénarisés, avec mémoire de session uniquement.
 
-La carte et les bâtiments restent visibles en deux colonnes adaptées au tactile. Les activités, les 4 langues et la progression sont conservées.
-
-## Installation
-`pip install -r requirements.txt` puis `streamlit run app.py`.
-
-Test manuel recommandé : choisir Madrid, entrer dans Pizzeria via le bâtiment, revenir à Carte, recommencer avec Barcelone et sur téléphone.
+Déploiement : placer les fichiers à la racine du dépôt GitHub.

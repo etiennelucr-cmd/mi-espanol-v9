@@ -652,6 +652,19 @@ st.markdown("""<style>
 @media(max-width:720px){.v56-banner{padding:18px 12px}.v56-banner h1{font-size:1.65rem}
  .v56-menu div[data-testid="stHorizontalBlock"]{flex-wrap:wrap!important}}
 </style>""",unsafe_allow_html=True)
+# V66: only the social section adopts a Messenger-inspired palette.
+if st.session_state.get('v47_page') == '💬 Mes rencontres':
+    st.markdown('''<style>
+    .stApp {background:linear-gradient(160deg,#f5f8ff,#e9f2ff)!important}
+    .block-container {max-width:1450px!important;padding-top:.65rem!important}
+    .v56-banner {display:none!important}
+    .stButton>button,div.stButton>button {background:#fff!important;color:#174ea6!important;border:1px solid #c9dafa!important;min-height:42px!important;border-radius:12px!important;box-shadow:none!important}
+    .stButton>button[kind="primary"],div.stButton>button[kind="primary"] {background:#0866ff!important;color:#fff!important;border-color:#0866ff!important}
+    .stButton>button:hover {border-color:#0866ff!important;color:#0866ff!important}
+    .stButton>button[kind="primary"]:hover {background:#0054d7!important;color:#fff!important}
+    [data-testid="stForm"] {background:#fff!important;border:1px solid #dce7fa!important;border-radius:15px!important}
+    [data-testid="stExpander"] {border-color:#dce7fa!important}
+    </style>''',unsafe_allow_html=True)
 st.markdown('<div class="v56-banner"><h1>🌍 Mon aventure linguistique</h1><p>Explore les villes, parle aux habitants et progresse à ton rythme !</p></div>',unsafe_allow_html=True)
 if 'v47_page' not in st.session_state:
     st.session_state.v47_page='🏙️ Visiter les villes'

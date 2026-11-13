@@ -152,14 +152,14 @@ def page():
         .v65-head{background:linear-gradient(105deg,#0866ff,#6d83ff);color:white;padding:18px 20px;border-radius:20px;margin:5px 0 18px}
         .v65-head h2{color:white!important;margin:0!important;font-size:1.45rem!important}
         .v65-head small{color:#f1f5ff}
-        .v65-person{background:#f5f8ff;border:1px solid #d9e5ff;border-radius:14px;padding:10px 13px;margin:7px 0;color:#1b315a}
+        .v65-person{background:#fff;border:1px solid #d9e5ff;border-radius:14px;padding:10px 13px;margin:7px 0;color:#1b315a}
         .v65-bubble{border-radius:18px;padding:11px 14px;margin:8px 0;max-width:88%;line-height:1.5;overflow-wrap:anywhere;font-size:15px}
         .v65-them{background:#f0f2f5;margin-right:auto;color:#1c1e21}
         .v65-me{background:#0866ff;margin-left:auto;color:white}
-        .v65-post{background:#f5f8ff;border:1px solid #d9e5ff;border-radius:16px;padding:13px 15px;margin:9px 0;color:#172d51}
+        .v65-post{background:#fff;border:1px solid #d9e5ff;border-radius:16px;padding:13px 15px;margin:9px 0;color:#172d51}
         .v65-small{color:#65758f;font-size:12px}
         .v65-comment{background:#edf2fa;border-radius:13px;padding:8px 11px;margin:5px 0;color:#23334c}
-        .v65-event{background:#f5f8ff;border:1px solid #d9e5ff;border-radius:14px;padding:12px 14px;margin:9px 0;color:#1b315a}
+        .v65-event{background:#fff;border:1px solid #d9e5ff;border-radius:14px;padding:12px 14px;margin:9px 0;color:#1b315a}
         @media(max-width:700px){.v65-head{padding:14px}.v65-bubble{max-width:96%}}
         </style>''',unsafe_allow_html=True)
         lang_label=st.selectbox('🌍 Langue de ton immersion',keys,index=default,format_func=lambda k:{'es':'🇪🇸 Espagnol','en':'🇬🇧 Anglais','de':'🇩🇪 Allemand','it':'🇮🇹 Italien'}.get(language_key(k),str(k)),key='v65_lang')
@@ -178,7 +178,7 @@ def page():
         events=daily_update(world,lang,people,cities)
         left,right=st.columns([1.08,.92],gap='large')
         with left:
-            st.markdown('### 💬 Messages')
+            st.markdown('### 💬 Messages privés')
             selected=min(st.session_state.get(f'v65_selected_{lang}',0),len(people)-1)
             for i,person in enumerate(people):
                 name,emoji,home,animal,pet=person;key=f'{lang}:{name}'
@@ -205,7 +205,7 @@ def page():
                     if st.button(phrase,key=f'v65_guide_{lang}_{selected}_{i}',use_container_width=True):
                         record(world,lang,name,'you',phrase);record(world,lang,name,name,reply(lang,phrase,person,world));st.rerun()
         with right:
-            st.markdown('### 📸 Fil de vie')
+            st.markdown('### 📸 Fil de vie & commentaires')
             st.caption('Les amis publient et se répondent, même sans toi. Tu peux simplement regarder.')
             for offset in range(2):
                 day=date.today()-timedelta(days=offset)
