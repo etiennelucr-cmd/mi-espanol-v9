@@ -695,8 +695,8 @@ page=legacy.get(st.session_state.v47_page,'🧳 Espagnol de survie · 7 jours')
 page_start=time.perf_counter()
 try:
     if st.session_state.v47_page=='🏙️ Visiter les villes':
-        import carte_v57
-        carte_v57.page()
+        import villes_interactives_v52
+        villes_interactives_v52.page()
     elif st.session_state.v47_page=='🎮 Aventure multilingue':
         import aventure_multilingue_v50
         aventure_multilingue_v50.page()

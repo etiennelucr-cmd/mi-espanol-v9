@@ -1,4 +1,6 @@
-# Mi Español V57 — villes illustrées et interactives
+# Mi Español V55 — Voyage ludique responsive
+
+Application Streamlit : 4 langues, 12 villes, 12 univers touristiques, aventures adaptatives et puzzles de phrases.
 
 ## Démarrage
 
@@ -7,15 +9,22 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-## V57
+## Déploiement sur Streamlit Community Cloud
 
-- Navigation à quatre entrées de V56 conservée.
-- Nouvelle carte de ville stylisée, avec quatre lieux mis en avant, accessibles au toucher et au clavier.
-- 12 destinations dans quatre langues, avec 12 lieux touristiques accessibles par destination.
-- Personnage associé à chaque lieu, niveaux découverte/autonomie/imprévu, scènes à choix et puzzles conservés.
-- Mêmes activités sur ordinateur et téléphone, colonnes réorganisées par Streamlit.
-- Suivi par langue, ville et lieu préexistant conservé.
+Définir `APP_PASSWORD` dans les **Secrets** de Streamlit et configurer les éventuels autres secrets requis par votre stockage. Ne jamais publier de mots de passe dans GitHub.
 
-**Limites :** la carte est une illustration stylisée en CSS avec des boutons Streamlit, et non un jeu animé ou une vraie carte géographique. Les personnages n'ont pas encore de dialogues libres. Les progrès SQLite locaux peuvent ne pas être persistants sur certains hébergements cloud.
+## V55
 
-Les données de progression locales ne sont pas incluses dans le ZIP.
+- Identité visuelle plus contrastée (bordeaux, terracotta, sable chaud)
+- Navigation et cartes adaptées aux petits écrans, boutons tactiles plus grands
+- Contenu et navigation préservés sur ordinateur et téléphone
+- Historique de versions README redondant et caches Python retirés du ZIP
+
+**Limites :** les aventures restent des scénarios à choix ; il n'y a pas encore de dialogues génératifs ou de personnages animés. La persistance SQLite locale peut être éphémère sur hébergement cloud. Le CSS responsive est à valider visuellement sur appareils réels.
+
+
+## V56 — Accueil simplifié
+Quatre accès principaux : Explorer les villes, Mes défis, Apprendre, Ma progression.
+La progression n'est plus affichée sous l'accueil ; elle s'ouvre sur demande.
+Sur téléphone, les quatre entrées restent présentes, avec des boutons tactiles.
+Les activités historiques sont conservées dans Apprendre.
