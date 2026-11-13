@@ -95,8 +95,9 @@ def page():
             pass
         for k in ('v58_place','v58_lang','v58_city'):
             if k in st.query_params:del st.query_params[k]
-    _illustrated_map(lang,ci,city,area,featured)
-    with st.expander('♿ Accès alternatif aux lieux (boutons clavier et mobile)'):
+    if st.session_state.get("v57_place") is None:
+        _illustrated_map(lang,ci,city,area,featured)
+    with st.expander('♿ Autres accès aux bâtiments', expanded=False):
         # Streamlit-native controls: unlike static HTML image maps, these work with touch and keyboard.
         cols=st.columns(2)
         for i,idx in enumerate(featured):
@@ -109,7 +110,7 @@ def page():
                 if st.button(f'🚪 Entrer · {name}',key=f'v57_enter_{lang}_{ci}_{idx}',use_container_width=True,type='primary' if st.session_state.get('v57_place')==idx else 'secondary'):
                     st.session_state.v57_place=idx
                     st.rerun()
-    with st.expander('🧳 Explorer les 8 autres lieux de la ville'):
+    with st.expander('🧳 Explorer les 8 autres lieux de la ville', expanded=False):
         others=[i for i in range(len(WORLDS)) if i not in featured]
         for offset in range(0,len(others),2):
             cols=st.columns(2)
@@ -134,8 +135,10 @@ def page():
     persona=CHARACTERS.get(world,'🧑 Une personne du quartier')
     avatar={0:'👨‍✈️',1:'🧑‍🦱',2:'🥾',3:'👩‍⚕️',4:'👨‍🍳',5:'👩‍🍳',6:'🎶',7:'🧑‍💼',8:'🛍️',9:'🎟️',10:'🧑',11:'🧑‍🚒'}.get(world,'🧑')
     greetings={0:'Bienvenue à la gare !',1:'Bonjour ! Tu cherches quelque chose ?',2:'Prêt pour la promenade ?',3:'Bonjour, comment puis-je t’aider ?',4:'Bienvenue ! Tu as choisi ?',5:'Bonjour ! Qu’est-ce qui te ferait plaisir ?',6:'Bonsoir ! Que souhaites-tu ?',7:'Bienvenue à la réception !',8:'Bonjour ! Je peux te renseigner ?',9:'Bienvenue ! Tu as un billet ?',10:'Salut ! Bienvenue dans le quartier.',11:'Je suis là pour t’aider.'}
-    st.markdown(f'<div class="v60-interior"><div style="font-size:1.2rem;font-weight:800">{html.escape(city)} · {html.escape(name)}</div><div class="v60-character" role="img" aria-label="Personnage : {html.escape(persona)}">{avatar}</div><div><strong>{html.escape(persona)}</strong></div><div class="v60-bubble">💬 {html.escape(greetings.get(world,"Bonjour !"))}</div></div>',unsafe_allow_html=True)
-    st.caption('🎭 Scène intérieure illustrative : le personnage réagit dans l’histoire interactive ci-dessous.')
+    from dialogues_v59 import ASK
+    greeting=ASK[lang][0]
+    st.markdown(f'<div class="v60-interior"><div style="font-size:1.2rem;font-weight:800">{html.escape(city)} · {html.escape(name)}</div><div class="v60-character" role="img" aria-label="Personnage : {html.escape(persona)}">{avatar}</div><div><strong>{html.escape(persona)}</strong></div><div class="v60-bubble">💬 {html.escape(greeting)}</div></div>',unsafe_allow_html=True)
+    st.caption('🎭 Rencontre dans la ville : poursuis la conversation ci-dessous.')
     tabs=st.tabs(['🎭 Histoire interactive','🎯 Défi classique','🧩 Puzzle','📖 Carnet','🆘 SOS voyage'])
     from dialogues_v59 import play
     with tabs[0]: play(lang,ci,world,phrases,city)

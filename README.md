@@ -1,20 +1,18 @@
-# Mi Español V60 — Ville illustrée et scènes intérieures
+# Mi Español V61 — conversations évolutives
 
-## Installation
+## Lancement
 
 ```bash
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-## Nouveautés V60
+## Changements
+- Dialogues contextualisés en 4 actes (commande → adaptation → imprévu → conclusion) dans les 4 langues.
+- Répliques du personnage dans la langue choisie, aide en français, réactions aux réponses.
+- Scène intérieure et choix regroupés pour réduire le défilement sur mobile.
+- Carte et lieux complémentaires dans des volets repliables pendant la mission.
+- Suivi des réussites par langue, ville et lieu, sans assimiler les QCM à l’oral.
+- Nettoyage des caches et des scripts de démonstration redondants.
 
-- Bâtiments stylisés avec toit, façade, fenêtres et porte, cliquables sur ordinateur et téléphone.
-- Accès rapide redondant déplacé dans un volet « Accès alternatif » pour la navigation clavier.
-- Scène intérieure à chaque lieu avec personnage, décor et bulle de bienvenue.
-- Histoires à choix V59, puzzles, carnet et SOS conservés.
-- Quatre langues, douze villes, suivi par langue et par lieu conservés.
-
-## Limites
-
-Les bâtiments sont des illustrations HTML/CSS (pas des images photographiques ni des animations). Les scènes et dialogues sont guidés ; aucune conversation orale libre. Le test de syntaxe ne remplace pas un test visuel sur Streamlit Cloud.
+Les décors sont statiques et les dialogues restent guidés. Les réponses ne sont pas évaluées oralement.
