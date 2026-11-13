@@ -24,8 +24,26 @@ def ai_enabled():
     return bool(secret('OPENAI_API_KEY'))
 
 
+def _postgres_settings():
+    """Use the application's existing Streamlit PostgreSQL secrets safely."""
+    try:
+        import streamlit as st
+        cfg = st.secrets.get('postgres')
+        if cfg and all(cfg.get(k) for k in ('host', 'dbname', 'user', 'password')):
+            return {
+                'host': str(cfg['host']),
+                'port': int(cfg.get('port', 5432)),
+                'dbname': str(cfg['dbname']),
+                'user': str(cfg['user']),
+                'password': str(cfg['password']),
+            }
+    except Exception:
+        pass
+    return None
+
+
 def db_enabled():
-    return bool(database_url())
+    return bool(database_url() or _postgres_settings())
 
 
 def profile_id(raw):
@@ -35,7 +53,15 @@ def profile_id(raw):
 
 def _connection():
     import psycopg
-    return psycopg.connect(database_url(),connect_timeout=5)
+    # An explicit social URL still takes precedence when configured.
+    url = database_url()
+    if url:
+        return psycopg.connect(url, connect_timeout=5)
+    cfg = _postgres_settings()
+    if not cfg:
+        raise RuntimeError('Connexion PostgreSQL non configurée')
+    # Keyword arguments preserve special characters in the password.
+    return psycopg.connect(**cfg, connect_timeout=5)
 
 
 def load(profile):
