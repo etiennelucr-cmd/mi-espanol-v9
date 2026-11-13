@@ -1,14 +1,7 @@
-# Mi Español V68 — Refonte de Mes rencontres
+# Mi Español V80
 
-Installation : décompresser cette archive à la racine du dépôt GitHub et déployer comme avant.
+Application Streamlit d'immersion linguistique en espagnol, anglais, allemand et italien.
 
-## V68
-- Trois colonnes distinctes sur écran large : messages, fil social, événements.
-- Une seule commande par contact, sans bouton de discussion supplémentaire.
-- Conversation visible immédiatement après la liste compacte, sans cadre vide fixe.
-- Publications avec commentaires, réponses et mentions J’aime.
-- Invitations liées à la conversation de leur organisateur.
-- Thème bleu réservé à Mes rencontres ; autres sections conservées.
-- Mise en page Streamlit responsive sur mobile (colonnes empilées).
+Lancer : `pip install -r requirements.txt` puis `streamlit run app.py`.
 
-Limites : simulation scénarisée, pas de modèle IA de conversation libre ; niveau indicatif ; stockage en session non durable sur Streamlit Cloud. Les messages et événements liés au jour sont recalculés à l’ouverture de l’application.
+La rubrique « Mes rencontres » propose une messagerie, un fil social et des événements en trois colonnes. Pour les fonctionnalités optionnelles de conversations IA et de sauvegarde PostgreSQL, voir `README_V80.md`.

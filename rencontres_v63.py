@@ -3,6 +3,7 @@ import json, os, re, uuid, hashlib, html
 from datetime import date, timedelta
 from pathlib import Path
 import streamlit as st
+import social_v80 as v80
 from villes_interactives_v52 import CITIES
 
 PEOPLE={
@@ -137,9 +138,47 @@ def social_post(world,lang,people,city,day,band):
     return pid,person,topic,text
 
 
+def persist_and_rerun(world):
+    profile=st.session_state.get('v80_profile')
+    if profile and v80.db_enabled():
+        try:v80.save(profile,world)
+        except Exception:st.warning('Sauvegarde distante momentanément indisponible.')
+    st.rerun()
+
+
 def page():
     """V68: three genuinely distinct social panels, no duplicate contact buttons."""
     world=store(); keys=list(CITIES)
+    # Optional per-profile durable storage. Profile codes are not authentication.
+    with st.expander('💾 Sauvegarde et IA · V80',expanded=False):
+        st.caption('La sauvegarde durable nécessite SOCIAL_DATABASE_URL. Le code de profil est un identifiant, pas un mot de passe : ne l’utilise pas pour des données sensibles.')
+        profile=st.text_input('Code de profil (6 à 64 caractères)',value=st.session_state.get('v80_profile',''),key='v80_profile_input',placeholder='ex. monaventure_2026')
+        valid=v80.profile_id(profile)
+        if st.button('📂 Charger mon profil',key='v80_load',disabled=not(valid and v80.db_enabled())):
+            try:
+                saved=v80.load(valid)
+                if saved is not None:
+                    st.session_state.v63_world=saved
+                    st.session_state.v80_profile=valid
+                    st.success('Monde social chargé.');persist_and_rerun(world)
+                else:
+                    st.session_state.v80_profile=valid
+                    st.info('Nouveau profil : tes prochaines interactions pourront être sauvegardées.')
+            except Exception as exc:st.error(f'Chargement impossible : {type(exc).__name__}')
+        if st.button('💾 Enregistrer maintenant',key='v80_save',disabled=not(valid and v80.db_enabled())):
+            try:
+                v80.save(valid,world);st.session_state.v80_profile=valid;st.success('Sauvegarde effectuée.')
+            except Exception as exc:st.error(f'Sauvegarde impossible : {type(exc).__name__}')
+        st.caption(('🟢 IA connectée' if v80.ai_enabled() else '⚪ IA non configurée : dialogues scénarisés')+' · '+('🟢 Base connectée' if v80.db_enabled() else '⚪ Base non configurée : session uniquement'))
+    if st.session_state.get('v80_profile') and v80.db_enabled():
+        # Load at most once per profile in this Streamlit session.
+        profile=st.session_state.v80_profile
+        if st.session_state.get('v80_loaded_profile')!=profile:
+            try:
+                saved=v80.load(profile)
+                if saved is not None:st.session_state.v63_world=saved;world=saved
+                st.session_state.v80_loaded_profile=profile
+            except Exception:pass
     default=next((i for i,k in enumerate(keys) if k==st.session_state.get('v57_lang')),0)
     st.markdown("""<style>
     .stApp{background:linear-gradient(160deg,#f4f8ff,#eaf2ff)!important}
@@ -172,7 +211,7 @@ def page():
         for col,action in ((ca,'Voyager'),(cb,'Déménager')):
             with col:
                 if st.button(('🧳 ' if action=='Voyager' else '🏡 ')+action,key=f'v68_{action}_{lang}',use_container_width=True):
-                    world['city'][lang]=dest;st.session_state.v57_lang=language;st.session_state.v57_city=dest;st.session_state.pop('v57_place',None);st.rerun()
+                    world['city'][lang]=dest;st.session_state.v57_lang=language;st.session_state.v57_city=dest;st.session_state.pop('v57_place',None);persist_and_rerun(world)
     # Ensure initial greetings are created before daily simulation; no repeated greetings on reruns.
     for person in people:
         key=f'{lang}:{person[0]}'
@@ -189,7 +228,7 @@ def page():
             marker='🔵' if selected==i else avatar
             label=f'{marker} {name}  ·  {last[:48]}'+('…' if len(last)>48 else '')
             if st.button(label,key=f'v68_contact_{lang}_{i}',use_container_width=True,type='primary' if selected==i else 'secondary'):
-                st.session_state[f'v65_selected_{lang}']=i;st.rerun()
+                st.session_state[f'v65_selected_{lang}']=i;persist_and_rerun(world)
         person=people[selected];name=person[0];key=f'{lang}:{name}'
         st.markdown(f'<div class="v68-title">{person[1]} {html.escape(name)} <span class="v68-muted">· 🐾 {html.escape(person[4])}</span></div>',unsafe_allow_html=True)
         # No fixed-height empty scroll panel: chat grows naturally with content.
@@ -200,12 +239,17 @@ def page():
             msg=st.text_input('Ton message',placeholder='Écris dans la langue apprise…')
             send=st.form_submit_button('➤ Envoyer',type='primary',use_container_width=True)
         if send and msg.strip():
-            record(world,lang,name,'you',msg.strip()[:500]);record(world,lang,name,name,reply(lang,msg.strip(),person,world))
-            counts=st.session_state.setdefault('v65_free_messages',{});counts[lang]=counts.get(lang,0)+1;st.rerun()
+            history=list(world['log'][key]);response=None
+            if v80.ai_enabled():
+                try:response=v80.answer(lang,name,city,band,person[4],history,msg.strip(),world.get('memories',{}).get(key,[]))
+                except Exception:st.toast('IA indisponible : réponse scénarisée utilisée.')
+            if response is None:response=reply(lang,msg.strip(),person,world)
+            record(world,lang,name,'you',msg.strip()[:500]);v80.remember(world,lang,name,msg.strip());record(world,lang,name,name,response)
+            counts=st.session_state.setdefault('v65_free_messages',{});counts[lang]=counts.get(lang,0)+1;persist_and_rerun(world)
         with st.expander('💡 Traduction / réponses guidées'):
             for i,phrase in enumerate(GUIDES[lang]):
                 if st.button(phrase,key=f'v68_guide_{lang}_{selected}_{i}',use_container_width=True):
-                    record(world,lang,name,'you',phrase);record(world,lang,name,name,reply(lang,phrase,person,world));st.rerun()
+                    record(world,lang,name,'you',phrase);record(world,lang,name,name,reply(lang,phrase,person,world));persist_and_rerun(world)
     with feed:
         st.markdown('<div class="v68-title">📸 Fil de vie</div>',unsafe_allow_html=True)
         st.caption('Tes amis publient et commentent, même si tu préfères observer.')
@@ -216,13 +260,13 @@ def page():
             st.markdown(f'<div class="v68-post"><b>{person[1]} {html.escape(person[0])}</b> <span class="v68-muted">· {day.strftime("%d/%m")}</span><p>{html.escape(post)}</p><span class="v68-muted">{topic_label}</span></div>',unsafe_allow_html=True)
             likes=world.setdefault('post_likes',{})
             if st.button('💙 Aimé' if likes.get(pid) else '♡ J’aime',key=f'v68_like_{pid}'):
-                likes[pid]=not likes.get(pid,False);st.rerun()
+                likes[pid]=not likes.get(pid,False);persist_and_rerun(world)
             comments=world['post_comments'][pid]
             with st.expander(f'💬 {len(comments)} commentaires',expanded=(offset==0)):
                 for j,item in enumerate(comments[-16:]):
                     st.markdown(f'<div class="v68-comment"><b>{html.escape(item["who"])}</b> · {html.escape(item["text"])}</div>',unsafe_allow_html=True)
                     if item['who']!='Toi' and st.button('↪ Répondre',key=f'v68_reply_{pid}_{j}'):
-                        st.session_state[f'v68_target_{pid}']=item['who'];st.rerun()
+                        st.session_state[f'v68_target_{pid}']=item['who'];persist_and_rerun(world)
                 target=st.session_state.get(f'v68_target_{pid}')
                 if target:st.caption(f'↪ Réponse à {target}')
                 with st.form(f'v68_comment_form_{pid}',clear_on_submit=True):
@@ -231,11 +275,11 @@ def page():
                 if posted and comment.strip():
                     comments.append({'who':'Toi','text':(f'@{target} ' if target else '')+comment.strip()[:350]})
                     st.session_state.pop(f'v68_target_{pid}',None)
-                    counts=st.session_state.setdefault('v65_free_messages',{});counts[lang]=counts.get(lang,0)+1;st.rerun()
+                    counts=st.session_state.setdefault('v65_free_messages',{});counts[lang]=counts.get(lang,0)+1;persist_and_rerun(world)
                 with st.expander('💡 Idées de commentaires'):
                     for i,suggestion in enumerate(POST_LINES[lang][topic][1:]):
                         if st.button(suggestion,key=f'v68_suggest_{pid}_{i}'):
-                            comments.append({'who':'Toi','text':suggestion});st.rerun()
+                            comments.append({'who':'Toi','text':suggestion});persist_and_rerun(world)
     with calendar:
         st.markdown('<div class="v68-title">🎉 Événements</div>',unsafe_allow_html=True)
         st.caption(f'À {city} · Selon la date et les habitants')
@@ -249,5 +293,15 @@ def page():
                 if idx==4:message=message.format(city=cities[(current+1)%len(cities)][0])
                 if idx==2:message=message.format(pet=friend[4])
                 record(world,lang,friend[0],friend[0],message);world['event_done'].append(e['id'])
-                st.session_state[f'v65_selected_{lang}']=people.index(friend);st.rerun()
-    st.caption('ℹ️ Simulation sociale locale, sans IA générative. Les messages libres sont compris par mots-clés. Niveau indicatif ; mémoire limitée à la session Streamlit.')
+                st.session_state[f'v65_selected_{lang}']=people.index(friend);persist_and_rerun(world)
+    st.caption('ℹ️ V80 : IA facultative selon configuration ; sinon moteur scénarisé. Niveau CECRL indicatif. Sauvegarde durable uniquement avec base externe et profil chargé.')
+    # Save the world after all widgets have been processed. Avoid database calls on every rerun
+    # by using a digest of the serialized social state.
+    if st.session_state.get('v80_profile') and v80.db_enabled():
+        try:
+            digest=hashlib.sha256(json.dumps(world,ensure_ascii=False,default=str,sort_keys=True).encode()).hexdigest()
+            if digest!=st.session_state.get('v80_last_digest'):
+                v80.save(st.session_state.v80_profile,world)
+                st.session_state.v80_last_digest=digest
+        except Exception:
+            st.warning('La sauvegarde automatique n’a pas abouti. Réessaie depuis le panneau V80.')
