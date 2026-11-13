@@ -38,8 +38,28 @@ def record(world,lang,name,speaker,text):
     world['log'].setdefault(key,[]).append({'who':speaker,'text':text})
     world['log'][key]=world['log'][key][-40:]
 
+def remembered_pet(world,lang,name):
+    """Read explicitly stated pet names from saved chat; no external AI."""
+    key=f'{lang}:{name}'
+    patterns=(
+        r'\b(?:mi|my|mein(?:e)?|il mio|la mia)\s+(?:gato|gata|chat|cat|katze|gatto|gatta|perro|dog|hund|cane)\s+(?:que\s+)?(?:se\s+llama|s\x27appelle|is called|named|heisst|heißt|si chiama)\s+([A-Za-zÀ-ÿ][\wÀ-ÿ-]{1,24})',
+        r'\b(?:mi|my|mein(?:e)?|il mio|la mia)\s+(?:gato|gata|chat|cat|katze|gatto|gatta|perro|dog|hund|cane)\s+(?:es|is|ist|è)\s+(?:llamado|named)\s+([A-Za-zÀ-ÿ][\wÀ-ÿ-]{1,24})',
+    )
+    for item in reversed(world.get('log',{}).get(key,[])):
+        if item.get('who')!='you':continue
+        for pattern in patterns:
+            match=re.search(pattern,item.get('text',''),flags=re.IGNORECASE)
+            if match:return match.group(1)
+    return None
+
 def reply(lang,text,person,world):
     lower=text.lower(); d=WORDS[lang]; name,emoji,home,pettype,pet=person
+    pet_memory=remembered_pet(world,lang,name)
+    if pet_memory and any(x in lower for x in ('mi gato','mi gata','mi perro','my cat','my dog','mein hund','meine katze','mio gatto','mio cane','mi mascota','my pet','recuerdas','te acuerdas')):
+        if lang=='es':return f'¡Claro que me acuerdo de {pet_memory}! 🐾 ¿Cómo está {pet_memory} hoy?'
+        if lang=='en':return f'Of course I remember {pet_memory}! 🐾 How is {pet_memory} today?'
+        if lang=='de':return f'Natürlich erinnere ich mich an {pet_memory}! 🐾 Wie geht es {pet_memory} heute?'
+        if lang=='it':return f'Certo che mi ricordo di {pet_memory}! 🐾 Come sta {pet_memory} oggi?'
     if any(x in lower for x in ['aide','help','ayud','helf','aiut','désolé','sorry','perdón','scusa']):
         world['friends'][f'{lang}:{name}']=min(10,world['friends'].get(f'{lang}:{name}',2)+1)
         return d['thanks']
@@ -151,7 +171,7 @@ def page():
     world=store(); keys=list(CITIES)
     # Optional per-profile durable storage. Profile codes are not authentication.
     with st.expander('💾 Sauvegarde et IA · V80',expanded=False):
-        st.caption('Pour retrouver tes conversations après reconnexion, utilise toujours le même code de profil et clique sur Charger mon profil. Ce code n’est pas un mot de passe : n’y mets aucune donnée sensible.')
+        st.caption('La sauvegarde durable nécessite SOCIAL_DATABASE_URL. Le code de profil est un identifiant, pas un mot de passe : ne l’utilise pas pour des données sensibles.')
         profile=st.text_input('Code de profil (6 à 64 caractères)',value=st.session_state.get('v80_profile',''),key='v80_profile_input',placeholder='ex. monaventure_2026')
         valid=v80.profile_id(profile)
         if st.button('📂 Charger mon profil',key='v80_load',disabled=not(valid and v80.db_enabled())):
@@ -160,13 +180,9 @@ def page():
                 if saved is not None:
                     st.session_state.v63_world=saved
                     st.session_state.v80_profile=valid
-                    st.session_state.v80_loaded_profile=valid
-                    st.session_state.pop('v80_last_digest', None)
-                    st.success('Monde social chargé.')
-                    st.rerun()
+                    st.success('Monde social chargé.');st.session_state.v80_loaded_profile=valid;st.rerun()
                 else:
                     st.session_state.v80_profile=valid
-                    st.session_state.v80_loaded_profile=valid
                     st.info('Nouveau profil : tes prochaines interactions pourront être sauvegardées.')
             except Exception as exc:st.error(f'Chargement impossible : {type(exc).__name__}')
         if st.button('💾 Enregistrer maintenant',key='v80_save',disabled=not(valid and v80.db_enabled())):
