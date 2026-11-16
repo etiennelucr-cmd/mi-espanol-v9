@@ -35,6 +35,8 @@ def render(world,lang):
     academy=world.setdefault('academy_v84',{})
     langdata=academy.setdefault(lang,{'level':'A1','completed':{},'attempts':{},'xp':0})
     st.markdown('''<style>
+    .academy-classmates{background:linear-gradient(120deg,#fff9ed,#f0f4ff);border:1px solid #e9dff2;border-radius:17px;padding:15px 19px;margin:12px 0;color:#46376d;box-shadow:0 4px 14px #4a367015}
+    .academy-classmates b{font-size:1.08rem}.academy-classmates p{font-size:1.07rem;margin:10px 0}.academy-classmates small{color:#726a87}
     .academy-hero{background:linear-gradient(110deg,#273b9d,#7156d9,#ad78de);color:white;padding:18px 22px;border-radius:19px;margin:10px 0;box-shadow:0 8px 22px #35276b25}
     .academy-hero b{font-size:1.25rem}.academy-hero p{margin:5px 0 0;color:#f1eaff}
     .academy-board{background:#fff9e9;border:2px solid #e7d9b0;border-radius:15px;padding:15px;color:#49351b;animation:academyIn .35s ease-out}
@@ -43,6 +45,7 @@ def render(world,lang):
     </style>''',unsafe_allow_html=True)
     with st.expander('🏫 Academia · Mon école de langues · Cours du jour',expanded=False):
         st.markdown('<div class="academy-hero"><b>👩‍🏫 ¡Bienvenido a clase!</b><p>Une petite leçon par jour, puis pratique en ville 🌍</p></div>',unsafe_allow_html=True)
+        st.markdown('<div class="academy-classmates"><b>👩‍🏫 Sofía · Ta classe virtuelle</b><p>👩🏻 Lucía &nbsp; 🧑🏽 Diego &nbsp; 👩🏼 Emma &nbsp; 👨🏾 Pablo</p><small>Des camarades fictifs pour apprendre ensemble, à ton rythme.</small></div>',unsafe_allow_html=True)
         opts=[l for l in LEVELS if l in all_lessons]
         level=st.selectbox('📚 Niveau des exercices (choix libre, sans certification)',opts,index=opts.index(langdata.get('level','A1')) if langdata.get('level','A1') in opts else 0,key=f'acad_level_{lang}')
         langdata['level']=level

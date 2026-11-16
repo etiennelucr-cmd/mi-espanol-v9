@@ -462,6 +462,11 @@ def page():
     @media(max-width:900px){.v82-story{min-height:110px;padding:6px}.v82-story p{font-size:.75rem}}
     .v83-panel{background:linear-gradient(120deg,#ffffff,#f1f6ff);border:1px solid #d6e5ff;border-radius:17px;padding:14px 18px;margin:10px 0;box-shadow:0 5px 20px rgba(32,60,115,.08);color:#193e78}
     .v83-panel strong{font-size:1.03rem}.v83-panel p{margin:6px 0;font-size:.91rem}
+    .v86-feedhero{background:linear-gradient(115deg,#fff7f1,#f2eaff);border:1px solid #eadbf6;border-radius:18px;padding:15px 18px;margin:8px 0 12px;box-shadow:0 5px 18px #513b8010;color:#442a76}
+    .v86-feedhero b{display:block;font-size:1.2rem}.v86-feedhero span{display:block;font-size:.85rem;margin-top:3px;color:#6c6386}
+    .v86-userpost{background:white;border:1px solid #e4d9f5;border-radius:18px;padding:16px;margin:12px 0;color:#342d56;box-shadow:0 5px 16px #42327412}
+    .v86-userpost small{color:#847f96}.v86-userpost p{margin:9px 0 2px;white-space:pre-wrap}
+    .v68-post{border-radius:19px!important;border-left:1px solid #e8def6!important;box-shadow:0 8px 23px #43367c16!important;margin-top:18px!important}
     .v68-post{border-left:4px solid #a48af7!important}.v68-event{border-left:4px solid #74c6af!important}
     .v68-bubble{font-size:.95rem!important;line-height:1.55!important}
     .v82-story{border-top:4px solid #9a87ed!important}
@@ -652,12 +657,38 @@ def page():
         recent_news=[x for x in world.get('v83_event_news',[]) if x.get('city')==city][-2:]
         for news in reversed(recent_news):
             st.markdown(f'<div class="v83-panel"><strong>✨ Actualité de tes amis</strong><p>{html.escape(news["friend"])} · {html.escape(news["event"])} · {html.escape(news["day"])}</p></div>',unsafe_allow_html=True)
-        st.caption('Tes amis publient et commentent, même si tu préfères observer.')
+        st.markdown(f'<div class="v86-feedhero"><b>📸 Fil de vie · {html.escape(city)}</b><span>Les photos et les nouvelles de tes amis</span></div>',unsafe_allow_html=True)
+        categories=st.radio('Afficher les publications', ['🌟 Tout','🏙️ Ville','👥 Amis','🐾 Animaux'],horizontal=True,key=f'v86_filter_{lang}',label_visibility='collapsed')
+        st.caption('Photos illustratives · Publications fictives pour pratiquer la langue')
+        with st.expander('✏️ Partager un moment',expanded=False):
+            with st.form(f'v86_share_{lang}',clear_on_submit=True):
+                message=st.text_area('Ton actualité',placeholder='Hoy he visitado un parque...')
+                mood=st.selectbox('Ambiance',['😊 Heureux','🌳 Balade','☕ Café','📚 École','✈️ Voyage'])
+                publish=st.form_submit_button('📣 Publier',type='primary')
+            if publish and message.strip():
+                world.setdefault('v86_my_posts',{}).setdefault(lang,[]).append({'text':message.strip()[:500],'mood':mood,'date':date.today().isoformat(),'city':city,'id':str(uuid.uuid4())})
+                persist_and_rerun(world)
+        for mypost in reversed(world.get('v86_my_posts',{}).get(lang,[])[-8:]):
+            st.markdown(f'<div class="v86-userpost"><b>🌟 Toi · {html.escape(mypost["mood"])}</b><small> · {html.escape(mypost["date"])}</small><p>{html.escape(mypost["text"])}</p></div>',unsafe_allow_html=True)
+
         for offset in range(3):
             day=date.today()-timedelta(days=offset)
             pid,person,topic,post=social_post(world,lang,people,city,day,band)
             topic_label=('☀️ Dans la ville','🎉 Sortie entre amis','🐾 Animaux')[topic]
+            if categories=='🏙️ Ville' and topic!=0:continue
+            if categories=='👥 Amis' and topic!=1:continue
+            if categories=='🐾 Animaux' and topic!=2:continue
             st.markdown(f'<div class="v68-post"><b>{person[1]} {html.escape(person[0])}</b> <span class="v68-muted">· {day.strftime("%d/%m")}</span><p>{html.escape(post)}</p><span class="v68-muted">{topic_label}</span></div>',unsafe_allow_html=True)
+            # Images illustratives locales : fonctionnent même sans connexion à un service photo.
+            photo_name = {0:'parc.jpg',1:'amis.jpg',2:'animaux.jpg'}[topic]
+            if topic == 0 and stable_number(city,day.isoformat(),'photo') % 3 == 0:
+                photo_name = 'ville.jpg'
+            if topic == 1 and stable_number(city,day.isoformat(),'photo') % 2 == 0:
+                photo_name = 'cafe.jpg'
+            photo_path = Path(__file__).resolve().parent / 'social_photos_v85' / photo_name
+            if photo_path.is_file():
+                st.image(str(photo_path), use_container_width=True)
+                st.caption('📷 Illustration de la publication · Scène fictive du réseau social')
             likes=world.setdefault('post_likes',{})
             if st.button('💙 Aimé' if likes.get(pid) else '♡ J’aime',key=f'v68_like_{pid}'):
                 likes[pid]=not likes.get(pid,False);persist_and_rerun(world)

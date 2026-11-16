@@ -1,0 +1,5 @@
+V86 · Interface Fil de vie + Academia
+
+Dans GitHub, remplace rencontres_v63.py et academia_v84.py. Ajoute/conserve les dossiers social_photos_v85 et academia_v85_videos. Tous les fichiers sont inclus dans ce ZIP cumulatif. Ne supprime pas social_v80.py ni les autres fichiers du projet. Commit changes, puis recharge Streamlit.
+
+Le Fil de vie affiche les photos fictives, filtres, et permet de publier un court texte. Les publications personnelles sont stockées dans world et suivent la sauvegarde de profil existante. Les vidéos restent les courts MP4 sous-titrés de V85. Aucun upload de photo personnelle ni nouvelle génération de vidéo n’est ajouté.
