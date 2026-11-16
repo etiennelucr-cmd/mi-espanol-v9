@@ -687,7 +687,7 @@ with st.sidebar:
 
 page_start=time.perf_counter()
 try:
- with main_col:
+ with st.container():
   if section=='💬 Rencontres':
    import rencontres_v63
    rencontres_v63.page()
