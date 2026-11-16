@@ -660,38 +660,29 @@ st.markdown("""<style>
  [data-testid="stSidebar"]{min-width:230px}
 }
 </style>""",unsafe_allow_html=True)
-if 'v91_universe' not in st.session_state:st.session_state.v91_universe='💬 Rencontres'
+if 'v91_universe' not in st.session_state:
+ st.session_state['v91_universe']='💬 Rencontres'
+# La navigation est pilotée uniquement par les boutons, sans réécriture d'une clé de widget instancié.
+from datetime import datetime as _v939_datetime
+from zoneinfo import ZoneInfo as _v939_ZoneInfo
+_v939_now=_v939_datetime.now(_v939_ZoneInfo('Europe/Madrid'))
+_v939_month=_v939_now.month
+_v939_season=('Hiver' if _v939_month in (12,1,2) else 'Printemps' if _v939_month in (3,4,5) else 'Été' if _v939_month in (6,7,8) else 'Automne')
+_v939_period=('🌙 Nuit' if _v939_now.hour<6 or _v939_now.hour>=21 else '🌅 Matin' if _v939_now.hour<12 else '☀️ Après-midi' if _v939_now.hour<18 else '🌆 Soir')
+st.markdown(f'<div style="background:linear-gradient(110deg,#194ab9,#7565e8);color:white;border-radius:17px;padding:15px 20px;margin-bottom:12px"><b>🌍 Madrid · Ta vie sociale</b><div style="font-size:.9rem;margin-top:5px">📅 {_v939_now:%d/%m/%Y} · 🕒 {_v939_now:%H:%M} · 🍂 {_v939_season} · {_v939_period}</div></div>',unsafe_allow_html=True)
+st.markdown('<div class="v93-hero"><h2>🌍 Mi Español</h2><p>Rencontres, école et aventures à ton rythme</p></div>',unsafe_allow_html=True)
+_v939_c1,_v939_c2=st.columns(2)
+with _v939_c1:
+ if st.button('💬 Rencontres',key='v939_open_social',use_container_width=True):
+  st.session_state['v91_universe']='💬 Rencontres'
+with _v939_c2:
+ if st.button('🏫 Ma classe',key='v939_open_school',use_container_width=True):
+  st.session_state['v91_universe']='🏫 Ma classe'
+section=st.session_state['v91_universe']
 with st.sidebar:
  st.title('🌍 Mi Español')
- st.caption('Ton monde linguistique')
- section=st.radio('Navigation', ['💬 Rencontres','🏫 Ma classe'],index=0 if st.session_state.v91_universe=='💬 Rencontres' else 1,key='v93_nav')
- st.session_state.v91_universe=section
- st.divider()
- if section=='💬 Rencontres':
-  st.caption('📸 Fil de vie · 👥 Mes amis · 📅 Mes sorties')
-  st.info('Choisis ton onglet dans le panneau central.')
- else:
-  st.caption('🇪🇸 Espagnol CECRL · 🇬🇧 🇩🇪 🇮🇹 Survie')
- st.divider()
- if st.session_state.get('v80_profile'):
-  st.success('💾 Profil chargé pour cette session')
- else:
-  st.caption('💾 Charge ton profil dans Rencontres pour sauvegarder sur Supabase.')
-st.markdown('<div class="v93-hero"><h2>🌍 Mi Español</h2><p>Rencontres, école et aventures à ton rythme</p></div>',unsafe_allow_html=True)
-# V93.8 : navigation toujours visible, même lorsque la sidebar est repliée.
-nav_left, nav_right = st.columns(2, gap="small")
-with nav_left:
-    if st.button("💬 Rencontres", key="v938_rencontres", use_container_width=True,
-                 type="primary" if section == "💬 Rencontres" else "secondary"):
-        st.session_state["v93_nav"] = "💬 Rencontres"
-        st.session_state["v91_universe"] = "💬 Rencontres"
-        st.rerun()
-with nav_right:
-    if st.button("🏫 Ma classe", key="v938_classe", use_container_width=True,
-                 type="primary" if section == "🏫 Ma classe" else "secondary"):
-        st.session_state["v93_nav"] = "🏫 Ma classe"
-        st.session_state["v91_universe"] = "🏫 Ma classe"
-        st.rerun()
+ st.caption('Navigation : utilise les deux boutons sous le bandeau.')
+ st.caption('💾 Profil chargé' if st.session_state.get('v80_profile') else '💾 Sauvegarde : profil à charger si nécessaire')
 main_col,info_col=st.columns([4.5,1.15],gap='medium')
 page_start=time.perf_counter()
 try:
