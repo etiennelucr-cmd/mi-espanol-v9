@@ -1,0 +1,5 @@
+V93.8 — Accès direct à Ma classe
+1. Décompresser le ZIP.
+2. Remplacer uniquement app.py à la racine du dépôt GitHub.
+3. Commit changes et recharger Streamlit.
+Les fichiers rencontres_v63.py, classe_v91.py et Supabase restent inchangés.

@@ -678,6 +678,20 @@ with st.sidebar:
  else:
   st.caption('💾 Charge ton profil dans Rencontres pour sauvegarder sur Supabase.')
 st.markdown('<div class="v93-hero"><h2>🌍 Mi Español</h2><p>Rencontres, école et aventures à ton rythme</p></div>',unsafe_allow_html=True)
+# V93.8 : navigation toujours visible, même lorsque la sidebar est repliée.
+nav_left, nav_right = st.columns(2, gap="small")
+with nav_left:
+    if st.button("💬 Rencontres", key="v938_rencontres", use_container_width=True,
+                 type="primary" if section == "💬 Rencontres" else "secondary"):
+        st.session_state["v93_nav"] = "💬 Rencontres"
+        st.session_state["v91_universe"] = "💬 Rencontres"
+        st.rerun()
+with nav_right:
+    if st.button("🏫 Ma classe", key="v938_classe", use_container_width=True,
+                 type="primary" if section == "🏫 Ma classe" else "secondary"):
+        st.session_state["v93_nav"] = "🏫 Ma classe"
+        st.session_state["v91_universe"] = "🏫 Ma classe"
+        st.rerun()
 main_col,info_col=st.columns([4.5,1.15],gap='medium')
 page_start=time.perf_counter()
 try:
