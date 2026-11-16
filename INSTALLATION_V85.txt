@@ -1,0 +1,7 @@
+V85 — Academia vidéo, cumulatif V84
+
+Sur GitHub : remplace rencontres_v63.py et academia_v84.py ; ajoute le dossier academia_v85_videos contenant 9 fichiers MP4.
+Conserve social_v80.py, tes Secrets et ton profil Supabase.
+Vidéos illustrées silencieuses sous-titrées (environ 7,5 s), pré-générées et gratuites.
+A1 dans 4 langues ; espagnol A1 à C2 en aperçu, sans prétendre à un cursus complet.
+Pour regarder : Academia > Classe animée. Les exercices existants restent disponibles.

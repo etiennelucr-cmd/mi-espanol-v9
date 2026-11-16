@@ -479,6 +479,8 @@ def page():
         st.caption('💬 Idée de conversation : « ¿Qué tiempo hace hoy? » · Source : Open-Meteo (actualisation toutes les 20 min)')
     else:
         st.caption(f'🌤️ Météo de {city} momentanément indisponible · La conversation reste accessible.')
+    from academia_v84 import render as render_academia
+    render_academia(world,lang)
     with st.expander('🧳 Mon séjour · Week-end ou semaine',expanded=False):
         trip_length=st.selectbox('Durée de ton séjour',list(TRAVEL_DAYS),format_func=lambda x:TRAVEL_DAYS[x],key=f'v83_trip_length_{lang}')
         st.caption(f'📍 Destination : {city} · Niveau {band} · Phrases pratiques pour voyager')
