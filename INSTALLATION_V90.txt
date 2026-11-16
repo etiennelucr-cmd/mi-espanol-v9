@@ -1,0 +1,30 @@
+MI ESPAÑOL V90 — 20 AMÉLIORATIONS ACADEMIA
+
+INSTALLATION : remplacer UNIQUEMENT academia_v84.py dans GitHub.
+Conserver rencontres_v63.py, Supabase, les photos et les vidéos existantes.
+
+20 améliorations :
+1. Bannière Academia dégradée et plus lisible
+2. Cartes de classe harmonisées
+3. Camarades avec personnalités
+4. Compteurs XP, série et leçons
+5. Parcours en 4 étapes
+6. Missions de survie contextualisées
+7. Choix libre des situations
+8. Leçon quotidienne stable
+9. 14 nouvelles situations de survie espagnoles
+10. Scènes avec Sofía/Emma
+11. Vidéo affichée uniquement si thème identique
+12. Lecteur vidéo replié et compact
+13. Point de conjugaison par niveau A1-C2
+14. Cahier de conjugaison consultable
+15. Barre de progression des exercices
+16. Indices progressifs sans solution immédiate
+17. Correction tolérante aux accents/ponctuation
+18. Cahier de révisions des erreurs
+19. Carnet de notes par mission
+20. Validation +30 XP une seule fois par mission, sans pénalité d'erreur
+
+NOTES : les clips restent pré-générés et ne sont pas créés à la demande.
+Les niveaux avancés sont des exercices, pas une certification.
+Les notes et XP suivent la sauvegarde du monde existant si celle-ci sérialise academy_v84.

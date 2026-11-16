@@ -29,75 +29,164 @@ def normalize(s):
     s=''.join(c for c in unicodedata.normalize('NFKD',str(s).casefold()) if not unicodedata.combining(c))
     return re.sub(r'[^a-z0-9 ]+',' ',s).strip()
 
+
+# V90 : missions supplémentaires, scénarios de survie et grammaire contextualisée.
+SURVIVAL = {
+ 'A1': [('Urgence','¡Ayuda! Necesito un médico.','À l’aide ! J’ai besoin d’un médecin.', [('Comment demander de l’aide ?','Ayuda','ayuda'),('Complète : Necesito un ...','médico','medico'),('Comment dire « pharmacie » ?','Farmacia','farmacia')]),('À l’hôtel','Tengo una reserva a nombre de Alex.','J’ai une réservation au nom d’Alex.', [('Comment dire « réservation » ?','Reserva','reserva'),('Complète : Tengo una ...','reserva','reserva'),('Comment dire « chambre » ?','Habitación','habitacion')]),('Faire des courses','¿Cuánto cuesta esta botella de agua?','Combien coûte cette bouteille d’eau ?', [('Comment dire « combien » ?','Cuánto','cuanto'),('Comment dire « eau » ?','Agua','agua'),('Complète : ¿Cuánto ...?','cuesta','cuesta')]),('Prendre le bus','¿Qué autobús va al centro?','Quel bus va au centre ?', [('Comment dire « bus » ?','Autobús','autobus'),('Comment dire « centre » ?','Centro','centro'),('Complète : ¿Qué autobús ... al centro?','va','va')])],
+ 'A2': [('À la pharmacie','Me duele la cabeza desde ayer.','J’ai mal à la tête depuis hier.', [('Comment dire « j’ai mal » ?','Me duele','me duele'),('Comment dire « tête » ?','Cabeza','cabeza'),('Comment dire « depuis hier » ?','Desde ayer','desde ayer')]),('Rendez-vous','¿Podría darme una cita para mañana?','Pourriez-vous me donner rendez-vous demain ?', [('Comment dire « rendez-vous » ?','Cita','cita'),('Comment dire « demain » ?','Mañana','manana'),('Complète : ¿Podría ... una cita?','darme','darme')]),('Perdre son chemin','Me he perdido. ¿Puede ayudarme?','Je me suis perdu. Pouvez-vous m’aider ?', [('Comment dire « je me suis perdu » ?','Me he perdido','me he perdido'),('Comment dire « aider » ?','Ayudar','ayudar'),('Complète : ¿Puede ...?','ayudarme','ayudarme')])],
+ 'B1': [('Train annulé','Han cancelado mi tren. ¿Qué alternativas tengo?','Mon train a été annulé. Quelles alternatives ai-je ?', [('Comment dire « annulé » ?','Cancelado','cancelado'),('Comment dire « alternatives » ?','Alternativas','alternativas'),('Complète : ¿Qué alternativas ...?','tengo','tengo')]),('Appartement','Quisiera visitar el piso antes de alquilarlo.','Je voudrais visiter l’appartement avant de le louer.', [('Comment dire « louer » ?','Alquilar','alquilar'),('Comment dire « avant » ?','Antes','antes'),('Complète : ... visitar el piso.','Quisiera','quisiera')])],
+ 'B2': [('Réclamation à l’hôtel','La habitación no coincide con la reserva. Quisiera una solución.','La chambre ne correspond pas à la réservation. Je voudrais une solution.', [('Comment dire « ne correspond pas » ?','No coincide','no coincide'),('Comment dire « solution » ?','Solución','solucion'),('Complète : ... una solución.','Quisiera','quisiera')]),('Problème médical','Aunque he seguido el tratamiento, los síntomas persisten.','Bien que j’aie suivi le traitement, les symptômes persistent.', [('Comment dire « symptômes » ?','Síntomas','sintomas'),('Comment dire « traitement » ?','Tratamiento','tratamiento'),('Complète : Aunque ... seguido.','he','he')])],
+ 'C1': [('Négocier un bail','Si se redujera la fianza, estaría dispuesto a firmar.','Si la caution était réduite, je serais prêt à signer.', [('Comment dire « caution » ?','Fianza','fianza'),('Comment dire « signer » ?','Firmar','firmar'),('Complète : Si se ... la fianza.','redujera','redujera')]),('Démarches administratives','Le agradecería que me indicara los documentos necesarios.','Je vous serais reconnaissant de m’indiquer les documents nécessaires.', [('Comment dire « documents » ?','Documentos','documentos'),('Complète : Le ... que...','agradecería','agradeceria'),('Complète : que me ...','indicara','indicara')])],
+ 'C2': [('Malentendu délicat','Lamento que mis palabras se hayan interpretado de ese modo.','Je regrette que mes paroles aient été interprétées ainsi.', [('Comment dire « je regrette » ?','Lamento','lamento'),('Comment dire « paroles » ?','Palabras','palabras'),('Complète : se hayan ...','interpretado','interpretado')]),('Situation de crise','Conviene actuar con cautela sin restar importancia a lo ocurrido.','Il convient d’agir avec prudence sans minimiser ce qui s’est passé.', [('Comment dire « prudence » ?','Cautela','cautela'),('Comment dire « ce qui s’est passé » ?','Lo ocurrido','lo ocurrido'),('Complète : Conviene ...','actuar','actuar')])]
+}
+for _lvl,_items in SURVIVAL.items():
+    LESSONS['es'][_lvl].extend(_items)
+
+CONJUGATION = {
+ 'A1': ('Présent · tener', 'yo tengo · tú tienes · él tiene · nosotros tenemos', 'Yo ___ una reserva.', 'tengo'),
+ 'A2': ('Passé composé · haber', 'he ido · has ido · ha ido · hemos ido', 'Hoy ___ ido a la farmacia.', 'he'),
+ 'B1': ('Passé simple · ir', 'fui · fuiste · fue · fuimos', 'Ayer ___ a la estación.', 'fui'),
+ 'B2': ('Subjonctif présent · poder', 'pueda · puedas · pueda · podamos', 'Espero que usted ___ ayudarme.', 'pueda'),
+ 'C1': ('Imparfait du subjonctif · reducir', 'redujera · redujeras · redujera · redujéramos', 'Si se ___ la fianza...', 'redujera'),
+ 'C2': ('Subjonctif composé · interpretar', 'haya interpretado · hayas interpretado · haya interpretado', 'Lamento que se ___ interpretado así.', 'haya')
+}
+
+SCENE = {'A1':'👩‍🎓 Emma : Je suis nouvelle en ville. Peux-tu m’aider ?', 'A2':'🧑‍🎓 Diego : Je dois régler ce problème aujourd’hui.', 'B1':'👨‍🎓 Pablo : Il y a un imprévu, quelle solution proposes-tu ?', 'B2':'👩‍🎓 Lucía : Peux-tu expliquer calmement ce qui ne va pas ?', 'C1':'👩‍🏫 Sofía : Négocie poliment en utilisant une hypothèse.', 'C2':'👩‍🏫 Sofía : Reformule avec précision et diplomatie.'}
+
+def _answer_ok(response, options):
+    candidate=normalize(response)
+    return bool(candidate) and candidate in {normalize(x) for x in options}
+
+def _streak(completed):
+    days={k.split(':')[0] for k,v in completed.items() if v}
+    today=date.today(); count=0
+    if today.isoformat() not in days:today-=timedelta(days=1)
+    while today.isoformat() in days:count+=1;today-=timedelta(days=1)
+    return count
+
+def _topic_emoji(title):
+    low=normalize(title)
+    for word,emoji in [('cafe','☕'),('restaurant','🍽️'),('farmacia','💊'),('pharmacie','💊'),('hotel','🏨'),('urgence','🚑'),('train','🚆'),('bus','🚌'),('deplacer','🧭'),('courses','🛒'),('logement','🏠'),('bail','🏠'),('medical','🏥')]:
+        if word in low:return emoji
+    return '🌍'
+
 def render(world,lang):
     today=date.today()
-    all_lessons=LESSONS.get(lang,LESSONS['es'])
+    lessons_by_level=LESSONS.get(lang,LESSONS['es'])
     academy=world.setdefault('academy_v84',{})
-    langdata=academy.setdefault(lang,{'level':'A1','completed':{},'attempts':{},'xp':0})
-    st.markdown('''<style>
-    .academy-classmates{background:linear-gradient(120deg,#fff9ed,#f0f4ff);border:1px solid #e9dff2;border-radius:17px;padding:15px 19px;margin:12px 0;color:#46376d;box-shadow:0 4px 14px #4a367015}
-    .academy-classmates b{font-size:1.08rem}.academy-classmates p{font-size:1.07rem;margin:10px 0}.academy-classmates small{color:#726a87}
-    .academy-hero{background:linear-gradient(110deg,#273b9d,#7156d9,#ad78de);color:white;padding:18px 22px;border-radius:19px;margin:10px 0;box-shadow:0 8px 22px #35276b25}
-    .academy-hero b{font-size:1.25rem}.academy-hero p{margin:5px 0 0;color:#f1eaff}
-    .academy-board{background:#fff9e9;border:2px solid #e7d9b0;border-radius:15px;padding:15px;color:#49351b;animation:academyIn .35s ease-out}
-    @keyframes academyIn{from{opacity:.5;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
-    .academy-meter{height:9px;border-radius:20px;background:#ddd8f3;overflow:hidden;margin:8px 0}.academy-meter span{display:block;height:100%;background:linear-gradient(90deg,#40bb9c,#7565e7);transition:width .3s}
-    </style>''',unsafe_allow_html=True)
-    with st.expander('🏫 Academia · Mon école de langues · Cours du jour',expanded=False):
-        st.markdown('<div class="academy-hero"><b>👩‍🏫 ¡Bienvenido a clase!</b><p>Une petite leçon par jour, puis pratique en ville 🌍</p></div>',unsafe_allow_html=True)
-        st.markdown('<div class="academy-classmates"><b>👩‍🏫 Sofía · Ta classe virtuelle</b><p>👩🏻 Lucía &nbsp; 🧑🏽 Diego &nbsp; 👩🏼 Emma &nbsp; 👨🏾 Pablo</p><small>Des camarades fictifs pour apprendre ensemble, à ton rythme.</small></div>',unsafe_allow_html=True)
-        opts=[l for l in LEVELS if l in all_lessons]
-        level=st.selectbox('📚 Niveau des exercices (choix libre, sans certification)',opts,index=opts.index(langdata.get('level','A1')) if langdata.get('level','A1') in opts else 0,key=f'acad_level_{lang}')
-        langdata['level']=level
-        lessons=all_lessons[level]
-        idx=int(hashlib.sha256(f'{today.isoformat()}|{lang}|{level}'.encode()).hexdigest()[:8],16)%len(lessons)
-        title,phrase,translation,questions=lessons[idx]
-        lesson_id=f'{today.isoformat()}:{level}:{idx}'
-        done=langdata['completed'].get(lesson_id,False)
-        total=sum(1 for k,v in langdata['completed'].items() if v)
-        dates={k.split(':')[0] for k,v in langdata['completed'].items() if v}
-        streak=0;day=today
-        if day.isoformat() not in dates:day-=timedelta(days=1)
-        while day.isoformat() in dates:streak+=1;day-=timedelta(days=1)
-        st.caption(f'⭐ {langdata.get("xp",0)} XP · 🔥 {streak} jour(s) de suite · 🏅 {total} leçon(s) terminée(s)')
-        st.markdown(f'**📖 Leçon du jour : {html.escape(title)}**')
-        video=Path(__file__).parent/'academia_v85_videos'/f'{lang}_{level}.mp4'
-        with st.expander('🎬 Classe animée · Regarder le mini-cours',expanded=True):
-            st.caption('Vidéo courte pré-générée : Sofía et trois camarades illustrent une situation de survie. Sous-titres intégrés, sans API ni coût.')
-            if video.is_file(): st.video(str(video))
-            else: st.info('Vidéo absente : ajoute le dossier academia_v85_videos à côté de ce fichier.')
-            st.caption('Après la vidéo, réponds aux exercices pour vérifier ce que tu as compris.')
-        grammar={
-          'es':{'A1':'Présent : ser, estar, tener, querer ; demander et commander.', 'A2':'Passé : perfecto, indefinido et imperfecto ; pharmacie et rendez-vous.', 'B1':'Futur, conditionnel et introduction au subjonctif ; imprévus de transport.', 'B2':'Subjonctif présent et passé ; réclamations et négociations.', 'C1':'Imparfait du subjonctif et hypothèses ; logement et démarches.', 'C2':'Concordance, nuances et registres ; malentendus et situations complexes.'},
-          'en':{'A1':'Present simple ; café, présentation et directions.'},
-          'de':{'A1':'Präsens ; café, présentation et transports.'},
-          'it':{'A1':'Presente ; café, présentation et orientation.'}}
-        st.caption('📘 Grammaire / survie : '+grammar.get(lang,{}).get(level,'Situations pratiques et grammaire adaptées au niveau.'))
-        st.markdown(f'<div class="academy-board">👩‍🏫 <b>La professeure explique :</b><p style="font-size:1.15rem">{html.escape(phrase)}</p><small>🇫🇷 {html.escape(translation)}</small></div>',unsafe_allow_html=True)
-        st.caption('💡 Lis la phrase à voix haute, puis réponds aux trois questions.')
+    data=academy.setdefault(lang,{'level':'A1','completed':{},'attempts':{},'xp':0})
+    data.setdefault('completed',{});data.setdefault('attempts',{});data.setdefault('xp',0)
+    data.setdefault('notes',{});data.setdefault('stars',{});data.setdefault('review',{})
+    st.markdown("""<style>
+    .ac90-hero{background:linear-gradient(115deg,#4e49ae,#8661d9,#c68ee6);border-radius:20px;padding:20px 24px;color:white;box-shadow:0 8px 25px #5344a52e;margin:10px 0 14px}
+    .ac90-hero strong{font-size:1.4rem;color:white}.ac90-hero p{color:#f8efff;margin:6px 0 0}
+    .ac90-card{border-radius:18px;background:linear-gradient(130deg,#fff9ed,#f2f5ff);border:1px solid #e7def4;padding:17px 19px;margin:12px 0;color:#40345d}
+    .ac90-card strong{color:#47349d}.ac90-board{background:#fff7df;border-left:5px solid #efb653;border-radius:13px;padding:16px 18px;margin:10px 0;color:#44341e}
+    .ac90-steps{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.ac90-step{border-radius:99px;padding:6px 12px;background:#eae6ff;color:#463c93;font-weight:600;font-size:.85rem}
+    .ac90-chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.ac90-chip{padding:6px 12px;border-radius:99px;background:#e8f7f2;color:#226c57;font-size:.85rem}
+    div[data-testid='stVideo']{max-width:580px;margin:auto}
+    @keyframes ac90pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .ac90-card,.ac90-board{animation:ac90pop .28s ease-out}
+    </style>""",unsafe_allow_html=True)
+    with st.expander('🏫 Academia · École interactive · V90',expanded=False):
+        st.markdown('<div class="ac90-hero"><strong>🎓 Academia Mi Español</strong><p>Apprendre pour vivre, voyager et se débrouiller · Des missions, pas seulement des fiches !</p></div>',unsafe_allow_html=True)
+        c1,c2,c3=st.columns(3)
+        c1.metric('⭐ XP',int(data.get('xp',0)))
+        c2.metric('🔥 Série',str(_streak(data['completed']))+' j')
+        c3.metric('🏅 Leçons',sum(bool(v) for v in data['completed'].values()))
+        st.markdown('<div class="ac90-card"><strong>👩‍🏫 Sofía et ta classe</strong><div class="ac90-chips"><span class="ac90-chip">👩🏻 Lucía · curieuse</span><span class="ac90-chip">🧑🏽 Diego · aventurier</span><span class="ac90-chip">👩🏼 Emma · débutante</span><span class="ac90-chip">👨🏾 Pablo · sociable</span></div><small>Des camarades fictifs : ils t’accompagnent dans les situations du quotidien.</small></div>',unsafe_allow_html=True)
+        levels=[x for x in LEVELS if x in lessons_by_level]
+        level=st.selectbox('📚 Niveau de pratique',levels,index=levels.index(data.get('level','A1')) if data.get('level','A1') in levels else 0,key=f'ac90_level_{lang}',help='Libre choix pour s’entraîner ; ce n’est pas une certification.')
+        data['level']=level
+        lesson_list=lessons_by_level[level]
+        daily_idx=int(hashlib.sha256(f'{today}|{lang}|{level}'.encode()).hexdigest()[:8],16)%len(lesson_list)
+        st.caption('🎯 Programme de survie : '+str(len(lesson_list))+' situations disponibles à ce niveau.')
+        mode=st.radio('Ton parcours',['📅 Mission du jour','🗺️ Choisir une situation','🔁 Révisions','📖 Cahier de conjugaison'],horizontal=True,key=f'ac90_mode_{lang}')
+        if mode=='📖 Cahier de conjugaison':
+            if lang=='es':
+                for lv in LEVELS:
+                    name,forms,example,answer=CONJUGATION[lv]
+                    with st.expander(f'{lv} · {name}',expanded=lv==level):
+                        st.write(forms)
+                        st.caption(example.replace('___','_____'))
+                        st.caption('Réponse : '+answer)
+            else:st.info('Le cahier détaillé des temps est disponible en espagnol ; les autres langues conservent leurs leçons existantes.')
+            return
+        if mode=='🔁 Révisions':
+            misses=[k for k,v in data['review'].items() if v and k.startswith(f'{lang}:')]
+            st.markdown('### 🔁 Mes notions à revoir')
+            if misses:
+                for k in misses[-12:]:st.write('📌 '+data['review'][k])
+                if st.button('🧹 Marquer mes révisions comme relues',key=f'ac90_clear_{lang}'):
+                    for k in misses:data['review'].pop(k,None)
+                    st.rerun()
+            else:st.success('Aucune erreur enregistrée à revoir pour le moment. 🌟')
+            st.caption('Les erreurs restent dans ton cahier jusqu’à ce que tu les relises. Tu peux refaire les missions librement.')
+            return
+        if mode=='🗺️ Choisir une situation':
+            idx=st.selectbox('🧳 Quelle situation veux-tu pratiquer ?',list(range(len(lesson_list))),index=daily_idx,format_func=lambda i:_topic_emoji(lesson_list[i][0])+' '+lesson_list[i][0],key=f'ac90_topic_{lang}_{level}')
+        else:idx=daily_idx
+        title,phrase,translation,questions=lesson_list[idx]
+        lesson_id=f'{today}:{level}:{idx}' if mode=='📅 Mission du jour' else f'libre:{level}:{idx}'
         key=f'{lang}:{lesson_id}'
-        attempts=langdata['attempts'].setdefault(key,{})
-        if done:st.success('🎉 Leçon du jour terminée ! Reviens demain pour une nouvelle mission.')
-        else:
-            for i,(prompt,example,*accepted) in enumerate(questions):
-                st.markdown(f'**{i+1}/3 · {prompt}**')
-                response=st.text_input('Ta réponse',key=f'acad_{lang}_{lesson_id}_{i}',placeholder='Écris dans la langue étudiée…',label_visibility='collapsed')
-                c1,c2=st.columns([1,2])
-                with c1:
-                    if st.button('✓ Vérifier',key=f'acad_check_{lang}_{lesson_id}_{i}',disabled=not response.strip()):
-                        good=normalize(response) in {normalize(x) for x in accepted+[example]}
-                        attempts[str(i)]=good
-                        if good:st.toast('¡Muy bien! ⭐')
-                        else:st.toast('Presque ! Essaie avec l’indice 💙')
-                with c2:
-                    with st.popover('💡 Indice / solution'):
-                        st.write(f'Exemple : **{example}**')
-                if attempts.get(str(i)):st.caption('✅ Bonne réponse !')
-            correct=sum(bool(attempts.get(str(i))) for i in range(len(questions)))
-            st.markdown(f'<div class="academy-meter"><span style="width:{int(100*correct/len(questions))}%"></span></div>',unsafe_allow_html=True)
-            st.caption(f'{correct}/{len(questions)} réponses validées')
-            if correct==len(questions):
-                if st.button('🏆 Terminer la leçon · +30 XP',key=f'acad_finish_{lang}_{lesson_id}'):
-                    langdata['completed'][lesson_id]=True;langdata['xp']=int(langdata.get('xp',0))+30
-                    st.balloons();st.rerun()
-        st.info('🎮 Mission en ville : utilise la phrase du jour avec un personnage ou dans une situation de voyage. Les niveaux avancés sont des aperçus. Les vidéos sont pré-générées, sans voix ni génération à la demande. Ce n’est pas une certification.')
+        attempts=data['attempts'].setdefault(key,{})
+        st.markdown(f'<div class="ac90-steps"><span class="ac90-step">1 · Observer</span><span class="ac90-step">2 · Comprendre</span><span class="ac90-step">3 · Pratiquer</span><span class="ac90-step">4 · Valider</span></div>',unsafe_allow_html=True)
+        st.markdown(f'### {_topic_emoji(title)} {title} <small>· {level}</small>',unsafe_allow_html=True)
+        st.progress(sum(bool(attempts.get(str(i))) for i in range(len(questions)))/len(questions),text='🎯 Avancement de ta mission')
+        st.markdown('<div class="ac90-card"><strong>🎭 Mission de survie</strong><p>'+html.escape(SCENE.get(level,'À toi de jouer !'))+'</p><small>Objectif : réussir une conversation utile dans la vraie vie.</small></div>',unsafe_allow_html=True)
+        video_topics={'es':{'A1':'Au café','A2':'Pharmacie','B1':'Transport','B2':'Réclamation','C1':'Logement','C2':'Malentendu'},'en':{'A1':'At the café'},'de':{'A1':'Im Café'},'it':{'A1':'Al bar'}}
+        video=Path(__file__).parent/'academia_v85_videos'/f'{lang}_{level}.mp4'
+        matches=video_topics.get(lang,{}).get(level)==title
+        with st.expander('🎬 Regarder la mini-leçon',expanded=False):
+            if matches and video.is_file():
+                st.video(str(video));st.caption('Mini-vidéo illustrée pré-générée, silencieuse et sous-titrée.')
+            else:
+                st.info('Cette situation n’a pas encore de vidéo correspondante. Voici une scène guidée à la place.')
+                st.write('👩‍🏫 Sofía : '+phrase)
+                if st.button('👩🏼 Emma : répète la phrase',key=f'ac90_scene_{lang}_{lesson_id}'):
+                    st.success('👩🏼 Emma : '+phrase)
+        st.markdown('<div class="ac90-board"><b>👩‍🏫 Sofía explique</b><p style="font-size:1.2rem">'+html.escape(phrase)+'</p><small>🇫🇷 '+html.escape(translation)+'</small></div>',unsafe_allow_html=True)
+        if lang=='es':
+            name,forms,ex,ans=CONJUGATION[level]
+            with st.expander('🧠 Point conjugaison · '+name):
+                st.write('**À retenir :** '+forms)
+                st.write('**Exemple :** '+ex)
+                with st.popover('🔎 Voir la correction'):st.write(ans)
+        st.caption('🔊 Prononce la phrase à voix haute, puis réponds. Les accents et la ponctuation ne sont pas pénalisés.')
+        st.markdown('### ✍️ À toi de jouer')
+        for i,(prompt,example,*accepted) in enumerate(questions):
+            st.markdown(f'**{i+1}/{len(questions)} · {prompt}**')
+            response=st.text_input('Ta réponse',key=f'ac90_ans_{lang}_{lesson_id}_{i}',placeholder='Écris dans la langue étudiée…',label_visibility='collapsed')
+            a,b=st.columns([1,2])
+            with a:
+                if st.button('✅ Vérifier',key=f'ac90_check_{lang}_{lesson_id}_{i}',disabled=not response.strip()):
+                    correct=_answer_ok(response,[example]+accepted)
+                    attempts[str(i)]=correct
+                    if correct:
+                        data['review'].pop(f'{key}:{i}',None)
+                        st.toast('¡Excelente! ⭐')
+                    else:
+                        data['review'][f'{key}:{i}']=f'{title} — {prompt} → {example}'
+                        st.toast('Encore un essai ! Tu peux consulter l’indice. 💙')
+            with b:
+                with st.popover('💡 Indice'):
+                    st.write('Premier mot : **'+example.split()[0]+'**')
+                    st.caption('Essaie d’abord sans regarder toute la solution.')
+                    if st.checkbox('Afficher la solution',key=f'ac90_hint_{lang}_{lesson_id}_{i}'):st.write('**'+example+'**')
+            if attempts.get(str(i)):st.success('⭐ Réponse validée !')
+            elif str(i) in attempts:st.warning('À revoir : tu peux réessayer sans pénalité.')
+        correct=sum(bool(attempts.get(str(i))) for i in range(len(questions)))
+        st.markdown(f'**🎯 Résultat : {correct}/{len(questions)}**')
+        done=bool(data['completed'].get(lesson_id))
+        if done:st.success('🏆 Mission réussie ! Tu peux la refaire pour t’entraîner.')
+        elif correct==len(questions):
+            if st.button('🏆 Valider ma mission · +30 XP',key=f'ac90_finish_{lang}_{lesson_id}',type='primary'):
+                data['completed'][lesson_id]=True
+                data['xp']=int(data.get('xp',0))+30
+                st.balloons();st.rerun()
+        else:st.caption('💪 Réussis les trois questions pour valider. Les erreurs ne retirent aucun XP.')
+        with st.expander('📓 Mon carnet de mission'):
+            note=st.text_area('Écris ta propre phrase ou ce que tu as appris',value=data['notes'].get(key,''),key=f'ac90_note_{lang}_{lesson_id}',height=90)
+            if st.button('💾 Garder ma note',key=f'ac90_note_save_{lang}_{lesson_id}'):
+                data['notes'][key]=note[:1000];st.toast('Note enregistrée dans ta progression de session.')
+        st.info('🌍 Défi réel : réutilise cette phrase dans « Ma ville », « Mon voyage » ou avec un ami fictif. Les cours A1–C2 sont des exercices de pratique, pas une certification officielle.')
