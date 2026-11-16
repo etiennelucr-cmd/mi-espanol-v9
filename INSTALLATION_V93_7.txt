@@ -1,0 +1,11 @@
+MI ESPAÑOL V93.7 — FIL DE VIE + STORIES
+
+1. Décompresser le ZIP.
+2. Remplacer UNIQUEMENT rencontres_v63.py à la racine du dépôt GitHub.
+3. Commit changes, puis actualiser Streamlit.
+
+Conserver app.py de V93.6, classe_v91.py et social_photos_v85/ de V93.6.
+
+Changements : stories en haut du fil, histoire du quartier sous forme de publication dans le fil, plus de rubrique Vie du quartier ni Stories et défis séparée. Les trois colonnes Rencontres restent visibles. Les données Supabase ne changent pas.
+
+Note : illustrations 2D = images du correctif V93.6, non incluses ici.

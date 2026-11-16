@@ -614,26 +614,6 @@ def page():
     social_day(world,lang,people)
     count,streak=social_metrics(world,lang)
     st.markdown(f'<div class="v82-stats">📨 {count} messages · 🔥 {streak} jour(s) de suite · 🎯 Niveau {html.escape(band)} · 🟢 {len(people)} contacts</div>',unsafe_allow_html=True)
-    actor,story,chapter=social_storyline(world,lang,people,city)
-    st.markdown(f'<div class="v83-panel"><strong>📰 La vie du quartier · Épisode {chapter+1}/3</strong><p>👥 {html.escape(actor)} {html.escape(story)}</p><small>Les histoires changent au fil des jours ; les personnages sont simulés.</small></div>',unsafe_allow_html=True)
-    if st.button('💬 Réagir à cette histoire',key=f'v83_arc_{lang}_{city}_{date.today().isoformat()}'):
-        idx=next((i for i,p in enumerate(people) if p[0]==actor),0)
-        st.session_state[f'v65_selected_{lang}']=idx
-        reaction={'es':'¡Qué buena idea! 😊','en':'What a great idea! 😊','de':'Was für eine gute Idee! 😊','it':'Che bella idea! 😊'}[lang]
-        record(world,lang,actor,'you',reaction)
-        record(world,lang,actor,actor,{'es':'¡Gracias! ¿Quieres venir?','en':'Thanks! Would you like to come?','de':'Danke! Möchtest du mitkommen?','it':'Grazie! Vuoi venire?'}[lang])
-        social_bond(world,lang,actor,3);persist_and_rerun(world)
-    with st.expander('🔔 Activité du réseau · Stories et défis',expanded=True):
-        storycols=st.columns(min(4,len(people)))
-        for i,person in enumerate(people[:4]):
-            name=person[0];story=SOCIAL_STORIES[lang][stable_number(date.today(),lang,name)%len(SOCIAL_STORIES[lang])]
-            with storycols[i]:
-                st.markdown(f'<div class="v82-story"><b>{person[1]} {html.escape(name)}</b><small>● Story du jour</small><p>{html.escape(story)}</p></div>',unsafe_allow_html=True)
-                if st.button('👀 Voir',key=f'v82_story_{lang}_{i}'):
-                    st.session_state[f'v65_selected_{lang}']=i
-                    social_bond(world,lang,name,1)
-                    persist_and_rerun(world)
-        st.caption('🗓️ Les stories changent chaque jour · 📩 Les messages spontanés apparaissent lors de tes visites.')
     with st.expander('🎯 Défi du jour · niveau adapté'):
         challenge=SOCIAL_PROMPTS[lang][stable_number(date.today(),lang,'challenge')%len(SOCIAL_PROMPTS[lang])]
         st.write('💬 '+challenge)
@@ -719,13 +699,36 @@ def page():
                 if st.button(phrase,key=f'v68_guide_{lang}_{selected}_{i}',use_container_width=True):
                     record(world,lang,name,'you',phrase);record(world,lang,name,name,reply(lang,phrase,person,world));persist_and_rerun(world)
     with feed:
-        st.markdown('<div class="v68-title">📸 Fil de vie</div>',unsafe_allow_html=True)
+        st.markdown('<div class="v68-title">📸 Fil de vie + Stories</div>',unsafe_allow_html=True)
+        # V93.7 : stories et vie du quartier réunies dans le fil, sans section autonome.
+        st.markdown('**⭕ Stories de tes amis**')
+        storycols=st.columns(min(4,len(people)),gap='small')
+        for i,person in enumerate(people[:4]):
+            name=person[0]
+            story_text=SOCIAL_STORIES[lang][stable_number(date.today(),lang,name)%len(SOCIAL_STORIES[lang])]
+            with storycols[i]:
+                st.markdown(f'<div class="v82-story"><b>{person[1]} {html.escape(name)}</b><small>● Story du jour</small><p>{html.escape(story_text)}</p></div>',unsafe_allow_html=True)
+                if st.button('👀 Voir',key=f'v937_story_{lang}_{i}',use_container_width=True):
+                    st.session_state[f'v65_selected_{lang}']=i
+                    social_bond(world,lang,name,1)
+                    persist_and_rerun(world)
+        st.caption('Stories fictives renouvelées chaque jour · Clique pour retrouver un ami dans Messages.')
+        actor,story,chapter=social_storyline(world,lang,people,city)
+        st.markdown(f'<div class="v83-panel"><strong>📰 {html.escape(actor)} · Dans {html.escape(city)}</strong><p>{html.escape(story)}</p><small>Actualité du quartier · épisode {chapter+1}/3</small></div>',unsafe_allow_html=True)
+        if st.button('💬 Répondre à cette publication',key=f'v937_arc_{lang}_{city}_{date.today().isoformat()}',use_container_width=True):
+            idx=next((i for i,p in enumerate(people) if p[0]==actor),0)
+            st.session_state[f'v65_selected_{lang}']=idx
+            reaction={'es':'¡Qué buena idea! 😊','en':'What a great idea! 😊','de':'Was für eine gute Idee! 😊','it':'Che bella idea! 😊'}[lang]
+            record(world,lang,actor,'you',reaction)
+            record(world,lang,actor,actor,{'es':'¡Gracias! ¿Quieres venir?','en':'Thanks! Would you like to come?','de':'Danke! Möchtest du mitkommen?','it':'Grazie! Vuoi venire?'}[lang])
+            social_bond(world,lang,actor,3)
+            persist_and_rerun(world)
         recent_news=[x for x in world.get('v83_event_news',[]) if x.get('city')==city][-2:]
         for news in reversed(recent_news):
             st.markdown(f'<div class="v83-panel"><strong>✨ Actualité de tes amis</strong><p>{html.escape(news["friend"])} · {html.escape(news["event"])} · {html.escape(news["day"])}</p></div>',unsafe_allow_html=True)
         st.markdown(f'<div class="v86-feedhero"><b>📸 Fil de vie · {html.escape(city)}</b><span>Les photos et les nouvelles de tes amis</span></div>',unsafe_allow_html=True)
         categories=st.radio('Afficher les publications', ['🌟 Tout','🏙️ Ville','👥 Amis','🐾 Animaux'],horizontal=True,key=f'v86_filter_{lang}',label_visibility='collapsed')
-        st.caption('Photos illustratives · Publications fictives pour pratiquer la langue')
+        st.caption('Illustrations 2D · Publications et stories fictives pour pratiquer la langue')
         with st.expander('✏️ Partager un moment',expanded=False):
             with st.form(f'v86_share_{lang}',clear_on_submit=True):
                 message=st.text_area('Ton actualité',placeholder='Hoy he visitado un parque...')
