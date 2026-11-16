@@ -84,16 +84,35 @@ def _school(world):
   d+=timedelta(days=1)
  unit=index//5+1
  st.metric('📅 Semaine pédagogique',unit)
+ st.markdown('''<div style="background:linear-gradient(110deg,#fff5dc,#f1eaff);border-radius:20px;padding:16px;margin:12px 0"><b>👩‍🏫 Bienvenue dans la classe de Sofía !</b><p>👩🏻 Lucía · 🧑🏽 Diego · 👩🏼 Emma · 👨🏾 Pablo</p><small>Chaque journée comprend une notion, une mise en pratique et une vérification avant validation.</small></div>''',unsafe_allow_html=True)
  st.markdown('#### 📋 Mon emploi du temps')
  activities=['📖 Cours + vocabulaire','✍️ Conjugaison et entraînement','🎭 Mission de survie','📝 Devoir à rendre','🎓 Contrôle et bilan']
  for i,act in enumerate(activities):
   due=_nth_day(start,(unit-1)*5+i,breaks)
   key=due.isoformat();done=school['tasks'].get(key,False)
-  c1,c2=st.columns([4,1])
-  with c1:st.write(('✅ ' if done else '📌 ')+due.strftime('%d/%m/%Y')+' · '+act)
-  with c2:
-   if st.button('Fait' if not done else 'Refaire',key='v91_task_'+key,disabled=due>today):
-    school['tasks'][key]=not done;_save(world);st.rerun()
+  with st.container(border=True):
+   st.markdown(('✅ **Terminé** · ' if done else '📌 **À réaliser** · ')+due.strftime('%d/%m/%Y')+' · '+act)
+   if done:
+    st.success('Travail validé : bravo ! ⭐')
+   elif due>today:
+    st.caption('🔒 Ce cours sera accessible à sa date prévue.')
+   else:
+    with st.expander('📖 Commencer le cours et valider mes acquis'):
+     st.write('👩‍🏫 Sofía : ¡Hola! Réponds aux questions pour valider cette activité.')
+     questions=[
+      ('Comment dire « Je suis » pour se présenter ?', ['Soy','Tengo','Voy'], 'Soy'),
+      ('Comment demander « Où est la gare ? » ?', ['¿Dónde está la estación?','¿Cuánto cuesta?','¿Cómo te llamas?'], '¿Dónde está la estación?'),
+      ('Comment dire « Je voudrais de l’eau » ?', ['Quiero agua, por favor.','Soy agua.','Está agua.'], 'Quiero agua, por favor.'),
+      ('Quel verbe complète « Yo ___ español » ?', ['hablo','hablas','hablan'], 'hablo'),
+      ('Comment demander l’addition ?', ['La cuenta, por favor.','La calle, por favor.','La llave, por favor.'], 'La cuenta, por favor.')]
+     q,opts,expected=questions[i]
+     answer=st.radio(q,opts,index=None,key='v92_school_quiz_'+key)
+     if st.button('🎓 Vérifier et valider',key='v92_school_check_'+key,disabled=answer is None):
+      if answer==expected:
+       school['tasks'][key]=True
+       school.setdefault('results',{})[key]={'score':100,'date':today.isoformat(),'activity':act}
+       _save(world);st.success('¡Muy bien! Activité validée. ⭐');st.rerun()
+      else:st.warning('Pas encore. Relis la question et réessaie ; aucune pénalité.')
  st.caption('Les échéances tombent uniquement sur les jours de classe. Les devoirs en retard restent accessibles sans pénalité.')
  st.markdown('#### 👩‍🏫 Leçon et exercices avec Sofía')
  academy.render(world,'es')

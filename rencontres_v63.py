@@ -558,9 +558,8 @@ def page():
         st.caption('💬 Idée de conversation : « ¿Qué tiempo hace hoy? » · Source : Open-Meteo (actualisation toutes les 20 min)')
     else:
         st.caption(f'🌤️ Météo de {city} momentanément indisponible · La conversation reste accessible.')
-    from academia_v84 import render as render_academia
-    render_academia(world,lang)
-    with st.expander('🧳 Mon séjour · Week-end ou semaine',expanded=False):
+    # V92: Academia is available only through Ma classe.
+    with st.expander('🏙️ Explorer · Mon séjour · Week-end ou semaine',expanded=False):
         trip_length=st.selectbox('Durée de ton séjour',list(TRAVEL_DAYS),format_func=lambda x:TRAVEL_DAYS[x],key=f'v83_trip_length_{lang}')
         st.caption(f'📍 Destination : {city} · Niveau {band} · Phrases pratiques pour voyager')
         done=world.setdefault('v83_trip_done',{})
@@ -666,7 +665,16 @@ def page():
         challenge=SOCIAL_PROMPTS[lang][stable_number(date.today(),lang,'challenge')%len(SOCIAL_PROMPTS[lang])]
         st.write('💬 '+challenge)
         st.caption('Essaie cette phrase dans une conversation. Aucune pénalité si tu fais une erreur.')
-    messages,feed,calendar=st.columns([1.05,1.08,.87],gap='medium')
+    st.markdown('''<style>
+    div[data-testid="stTabs"] [data-baseweb="tab-list"]{gap:12px;background:#fff9f3;padding:10px;border-radius:18px;flex-wrap:wrap}
+    div[data-testid="stTabs"] button[role="tab"]{border-radius:14px;padding:10px 18px;font-weight:700;color:#70415a}
+    div[data-testid="stTabs"] button[aria-selected="true"]{background:#9e315b;color:white}
+    div[data-testid="stTabs"] [data-testid="stVerticalBlockBorderWrapper"]{border-radius:18px}
+    .v68-post{border-radius:20px!important;box-shadow:0 7px 25px #49335114!important}
+    div[data-testid="stImage"] img{border-radius:16px;object-fit:cover}
+    </style>''',unsafe_allow_html=True)
+    st.markdown('### 💫 Mon réseau · Choisis ton espace')
+    feed,messages,calendar=st.tabs(['📸 Fil de vie','💬 Mes amis','📅 Mes sorties'])
     with messages:
         st.markdown('<div class="v68-title">💬 Messages</div>',unsafe_allow_html=True)
         selected=min(st.session_state.get(f'v65_selected_{lang}',0),len(people)-1)

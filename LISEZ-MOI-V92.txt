@@ -1,0 +1,15 @@
+MI ESPAÑOL V92 — INSTALLATION
+
+1. Ouvre ton dépôt GitHub.
+2. Remplace uniquement rencontres_v63.py et classe_v91.py par les deux fichiers du ZIP.
+3. Commit changes puis recharge Streamlit.
+
+NOUVEAUTÉS
+- Rencontres : trois onglets Fil de vie / Mes amis / Mes sorties.
+- Academia n'apparaît plus en double dans Rencontres ; elle reste dans Ma classe.
+- Fil de vie : présentation harmonisée et images arrondies.
+- Ma classe : cartes de cours avec mini-question de validation à la place du bouton Fait.
+- Camarades affichés dans le planning.
+- Les autres modules, la sauvegarde Supabase et les vidéos ne sont pas modifiés.
+
+LIMITES : les anciennes photos restent floues à leur résolution d'origine ; les questions du planning sont de courtes vérifications, pas encore des contrôles adaptatifs complets. Les personnages gardent leurs dialogues scénarisés.
