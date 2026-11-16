@@ -641,33 +641,72 @@ h1,h2,h3 {color:#70253a!important;}
  div[data-testid="stHorizontalBlock"] {gap:.65rem!important;}
 }
 </style>""",unsafe_allow_html=True)
-# V91 : deux univers, sans supprimer les modules historiques.
+# V93 : menu latéral, scène centrale et panneau contextuel.
+from datetime import date as _v93_date
 st.markdown("""<style>
-.v91-hero{background:linear-gradient(115deg,#5e2c8a,#af659e,#e9a36d);padding:25px;border-radius:24px;color:white;margin:12px 0 18px;box-shadow:0 12px 28px #61377722}
-.v91-hero h2,.v91-hero p{color:white!important;margin:0}
-.v91-hero p{margin-top:8px;opacity:.95}
-.stButton>button{border-radius:15px!important;min-height:48px;transition:transform .2s}
-.stButton>button:hover{transform:translateY(-2px)}
+.v93-hero{background:linear-gradient(115deg,#67398d,#b65c88,#e9a36d);padding:19px 24px;border-radius:19px;color:white;margin:4px 0 14px}
+.v93-hero h2,.v93-hero p{color:white!important;margin:0}.v93-hero p{margin-top:5px}
+.v93-info{background:#fff9f3;border:1px solid #ebd2c3;border-radius:14px;padding:12px;margin:10px 0;color:#6a3348}
+[data-testid="stSidebar"]{background:linear-gradient(165deg,#fff4e5,#f2e5ff)}
+[data-testid="stSidebar"] .stButton button{justify-content:flex-start}
+/* Les grandes photos du fil ne doivent pas occuper plusieurs écrans. */
+[data-testid="stImage"] img{max-height:380px!important;object-fit:cover!important;border-radius:16px!important}
+@media(max-width:767px){
+ .block-container{padding-left:.75rem!important;padding-right:.75rem!important}
+ [data-testid="stImage"] img{max-height:245px!important}
+ .v93-hero{padding:15px!important}
+ [data-testid="stHorizontalBlock"]{flex-wrap:wrap!important}
+ [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]{min-width:100%!important;flex:1 1 100%!important}
+ [data-testid="stSidebar"]{min-width:230px}
+}
 </style>""",unsafe_allow_html=True)
 if 'v91_universe' not in st.session_state:st.session_state.v91_universe='💬 Rencontres'
-st.markdown('<div class="v91-hero"><h2>🌍 Mi Español</h2><p>Deux univers : vis des rencontres et apprends dans une vraie classe !</p></div>',unsafe_allow_html=True)
-c1,c2=st.columns(2)
-with c1:
- if st.button('💬 Rencontres',key='v91_social',use_container_width=True,type='primary' if st.session_state.v91_universe=='💬 Rencontres' else 'secondary'):
-  st.session_state.v91_universe='💬 Rencontres';st.rerun()
-with c2:
- if st.button('🏫 Ma classe',key='v91_school',use_container_width=True,type='primary' if st.session_state.v91_universe=='🏫 Ma classe' else 'secondary'):
-  st.session_state.v91_universe='🏫 Ma classe';st.rerun()
+with st.sidebar:
+ st.title('🌍 Mi Español')
+ st.caption('Ton monde linguistique')
+ section=st.radio('Navigation', ['💬 Rencontres','🏫 Ma classe'],index=0 if st.session_state.v91_universe=='💬 Rencontres' else 1,key='v93_nav')
+ st.session_state.v91_universe=section
+ st.divider()
+ if section=='💬 Rencontres':
+  st.caption('📸 Fil de vie · 👥 Mes amis · 📅 Mes sorties')
+  st.info('Choisis ton onglet dans le panneau central.')
+ else:
+  st.caption('🇪🇸 Espagnol CECRL · 🇬🇧 🇩🇪 🇮🇹 Survie')
+ st.divider()
+ if st.session_state.get('v80_profile'):
+  st.success('💾 Profil chargé pour cette session')
+ else:
+  st.caption('💾 Charge ton profil dans Rencontres pour sauvegarder sur Supabase.')
+st.markdown('<div class="v93-hero"><h2>🌍 Mi Español</h2><p>Rencontres, école et aventures à ton rythme</p></div>',unsafe_allow_html=True)
+main_col,info_col=st.columns([4.5,1.15],gap='medium')
 page_start=time.perf_counter()
 try:
- if st.session_state.v91_universe=='💬 Rencontres':
-  import rencontres_v63
-  rencontres_v63.page()
- else:
-  import classe_v91
-  classe_v91.page()
+ with main_col:
+  if section=='💬 Rencontres':
+   import rencontres_v63
+   rencontres_v63.page()
+  else:
+   import classe_v91
+   classe_v91.page()
+ with info_col:
+  st.markdown('#### 🔔 Mon tableau de bord')
+  st.markdown('<div class="v93-info">📅 <b>'+_v93_date.today().strftime('%d/%m/%Y')+'</b><br>Une nouvelle journée pour apprendre !</div>',unsafe_allow_html=True)
+  if section=='💬 Rencontres':
+   st.markdown('**👥 Mes amis**')
+   st.caption('Lucía · Carlos · Elena · Pablo')
+   st.markdown('**🎯 À essayer**')
+   st.caption('Réponds à un ami, commente une publication ou accepte une sortie.')
+   st.markdown('**🌦️ Météo**')
+   st.caption('La météo de la ville est affichée dans Rencontres lorsqu’elle est disponible.')
+  else:
+   st.markdown('**📚 Mon école**')
+   st.caption('Cours, devoirs et révisions selon ton calendrier.')
+   st.markdown('**🧳 Survie 7 jours**')
+   st.caption('Anglais · Allemand · Italien')
+  st.markdown('**💾 Sauvegarde**')
+  st.caption('Les données durables nécessitent un profil Supabase chargé.')
 finally:
- diagnostic.record('Univers V91',time.perf_counter()-page_start)
+ diagnostic.record('Univers V93',time.perf_counter()-page_start)
  try:
   import sync_aventure_v29
   sync_aventure_v29.autosave()

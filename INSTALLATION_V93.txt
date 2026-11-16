@@ -1,0 +1,20 @@
+MI ESPAÑOL V93 — INTERFACE RESPONSIVE
+
+Installation GitHub :
+1. Ouvrez le ZIP et remplacez uniquement app.py à la racine de votre projet.
+2. Commit changes, puis redémarrez/rechargez Streamlit.
+3. Ne supprimez aucun autre fichier.
+
+Nouveautés :
+- Menu à gauche (barre latérale Streamlit).
+- Contenu principal au centre, infos utiles à droite sur ordinateur.
+- Sur smartphone : blocs empilés et menu latéral repliable.
+- Photos limitées en hauteur et recadrées visuellement.
+- Les modules de classe, conversations et Supabase existants sont conservés.
+
+Important : le profil Supabase reste chargé pendant la session Streamlit.
+Une reconnexion persistante après fermeture du navigateur n'est PAS ajoutée :
+le code de profil actuel n'est pas un secret d'authentification, et une reconnexion
+sûre exige une véritable authentification (p. ex. Supabase Auth).
+
+Cette version n'ajoute pas encore de nouveaux personnages 3D, ni de nouveaux médias.
