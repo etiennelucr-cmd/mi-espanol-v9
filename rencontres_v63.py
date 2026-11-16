@@ -116,7 +116,7 @@ def reply(lang,text,person,world):
     if any(x in lower for x in ['voyag','travel','viaj','reis','viagg','visit']):return d['trip'].format(city=CITIES[next(k for k in CITIES if language_key(k)==lang)][(home+1)%3][0])
     if any(x in lower for x in ['disput','argu','litig','streit','enfad','angry']):return d['conflict']
     if any(x in lower for x in ['fiest','party','soirée','fest','festa']):return d['invite']
-    if '?' in text:return d['ask']
+    if '?' in text:return d['fallback']
     return d['fallback']
 
 # Daily events are deterministic per session and date: no rerun duplicates.
@@ -375,6 +375,45 @@ def social_context_reply(lang,text,history,person):
         return {'es':'¡Perfecto! ☕ ¿Prefieres una terraza o una cafetería tranquila?', 'en':'Great! ☕ A terrace or a quiet café?', 'de':'Super! ☕ Terrasse oder ruhiges Café?', 'it':'Perfetto! ☕ Terrazza o bar tranquillo?'}[lang]
     return None
 
+def v87_context_reply(lang, text, history, person):
+    """Rule-based turn-taking: direct answers and repetition control, no API needed."""
+    import unicodedata
+    def normal(value):
+        return ''.join(c for c in unicodedata.normalize('NFKD',str(value).casefold()) if not unicodedata.combining(c))
+    msg=normal(text).strip()
+    npc=[normal(x.get('text','')) for x in history if x.get('who')!='you']
+    last=npc[-1] if npc else ''
+    recent=npc[-5:]
+    name=person[0]
+    # Answer the reciprocal question first; otherwise the generic question handler loops.
+    reciprocal=any(re.search(r'\b(y tu|y usted|et toi|and you|und du|e tu)\b',msg) for _ in [0])
+    if lang=='es':
+        if 'que hiciste ayer' in last or ('ayer' in msg and reciprocal):
+            if reciprocal:
+                options=['Ayer fui al parque y después leí un libro. 😊 ¿Te gusta leer?',
+                         'Ayer preparé una cena rica y vi una película. 🍿 ¿Qué películas te gustan?',
+                         'Ayer descansé en casa. ☕ Hoy quiero salir a pasear. ¿Te apetece?']
+                used=[x for x in recent if any(y in x for y in ['ayer fui al parque','ayer prepare una cena','ayer descanse en casa'])]
+                return options[len(used)%len(options)]
+            if any(x in msg for x in ['nada','no hice','en casa','descans','trabaj','estudi']):
+                return '¡A veces descansar viene bien! 😊 ¿Qué te apetece hacer hoy?'
+            return '¡Qué bien! 😊 ¿Y qué fue lo que más te gustó?'
+        if reciprocal:
+            if any(x in last for x in ['como estas','que tal','como te va']):return '¡Estoy muy bien, gracias! 😊 Hoy tengo ganas de tomar un café. ¿Y tú?'
+            if 'musica' in last:return 'A mí me gusta la música pop y también la salsa. 🎵 ¿Cuál es tu canción favorita?'
+            if 'que haces' in last or 'haces hoy' in last:return 'Ahora estoy hablando contigo. 😊 Después voy a pasear un rato. ¿Te gusta caminar?'
+            return '¡Gracias por preguntar! 😊 Hoy he paseado un poco por la ciudad. ¿Tú tienes algún plan?'
+        if any(x in msg for x in ['que alegria verte','alegria verte']):return '¡A mí también me alegra verte! 💙 ¿Cómo te ha ido el día?'
+        if any(x in msg for x in ['por que','porque']) and 'alegria' in last:return 'Porque me gusta hablar contigo. 😊 ¡Siempre aprendemos algo nuevo!'
+        if 'que hiciste ayer' in last and any('que hiciste ayer' in x for x in recent[:-1]):
+            return '¡Me gusta saber de tu día! 😊 ¿Quieres contarme algo de hoy en vez de ayer?'
+    else:
+        if reciprocal:
+            return {'en':'I had a quiet day, thanks for asking! 😊 What would you like to do tomorrow?',
+                    'de':'Ich hatte einen ruhigen Tag, danke! 😊 Was möchtest du morgen machen?',
+                    'it':'Ho passato una giornata tranquilla, grazie! 😊 Cosa vuoi fare domani?'}[lang]
+    return None
+
 def social_storyline(world,lang,people,city):
     # Stable 3-day mini-arc; actions unlock a new post on the next visit/day.
     chapter=date.today().toordinal()%3
@@ -462,6 +501,16 @@ def page():
     @media(max-width:900px){.v82-story{min-height:110px;padding:6px}.v82-story p{font-size:.75rem}}
     .v83-panel{background:linear-gradient(120deg,#ffffff,#f1f6ff);border:1px solid #d6e5ff;border-radius:17px;padding:14px 18px;margin:10px 0;box-shadow:0 5px 20px rgba(32,60,115,.08);color:#193e78}
     .v83-panel strong{font-size:1.03rem}.v83-panel p{margin:6px 0;font-size:.91rem}
+    /* V87: softer, more readable social feed */
+    .v87-post{padding:17px 18px 12px!important;margin-top:22px!important;border-left:1px solid #e9dfef!important;border-radius:20px 20px 10px 10px!important}
+    .v87-author{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .v87-avatar{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:50%;background:linear-gradient(145deg,#fff1dd,#e5d7ff);font-size:1.4rem;border:2px solid #fff}
+    .v87-author b{font-size:1.03rem;color:#35285d}.v87-author small{display:block;font-size:.73rem;color:#8b809d}
+    .v87-topic{margin-left:auto;font-size:.7rem;background:#f4edff;border-radius:12px;padding:5px 8px;color:#7154a1}
+    .v87-post p{font-size:.94rem;line-height:1.6;color:#342c50;margin:14px 0 4px;white-space:pre-wrap}
+    div[data-testid="stImage"] img{border-radius:16px;object-fit:cover;box-shadow:0 5px 17px rgba(54,38,87,.14)}
+    .v68-comment{background:#f4f0ff!important;border:1px solid #ece4f9;color:#463967!important}
+    .v86-feedhero{background:linear-gradient(110deg,#fff6ed,#f3eaff)!important}
     .v86-feedhero{background:linear-gradient(115deg,#fff7f1,#f2eaff);border:1px solid #eadbf6;border-radius:18px;padding:15px 18px;margin:8px 0 12px;box-shadow:0 5px 18px #513b8010;color:#442a76}
     .v86-feedhero b{display:block;font-size:1.2rem}.v86-feedhero span{display:block;font-size:.85rem;margin-top:3px;color:#6c6386}
     .v86-userpost{background:white;border:1px solid #e4d9f5;border-radius:18px;padding:16px;margin:12px 0;color:#342d56;box-shadow:0 5px 16px #42327412}
@@ -635,6 +684,7 @@ def page():
             if v80.ai_enabled():
                 try:response=v80.answer(lang,name,city,band,person[4],history,msg.strip(),world.get('memories',{}).get(key,[]))
                 except Exception:st.toast('IA indisponible : réponse scénarisée utilisée.')
+            if response is None and not any(w in msg.casefold() for w in RECALL_WORDS):response=v87_context_reply(lang,msg,history,person)
             if response is None and asks_weather(msg):response=weather_reply(lang,city,weather)
             if response is None and not any(w in msg.casefold() for w in RECALL_WORDS):response=social_context_reply(lang,msg,history,person)
             if response is None and not any(w in msg.casefold() for w in RECALL_WORDS):response=social_quick_response(lang,msg,person)
@@ -678,7 +728,7 @@ def page():
             if categories=='🏙️ Ville' and topic!=0:continue
             if categories=='👥 Amis' and topic!=1:continue
             if categories=='🐾 Animaux' and topic!=2:continue
-            st.markdown(f'<div class="v68-post"><b>{person[1]} {html.escape(person[0])}</b> <span class="v68-muted">· {day.strftime("%d/%m")}</span><p>{html.escape(post)}</p><span class="v68-muted">{topic_label}</span></div>',unsafe_allow_html=True)
+            st.markdown(f'<div class="v68-post v87-post"><div class="v87-author"><span class="v87-avatar">{person[1]}</span><span><b>{html.escape(person[0])}</b><small>📍 {html.escape(city)} · {day.strftime("%d/%m")}</small></span><span class="v87-topic">{topic_label}</span></div><p>{html.escape(post)}</p></div>',unsafe_allow_html=True)
             # Images illustratives locales : fonctionnent même sans connexion à un service photo.
             photo_name = {0:'parc.jpg',1:'amis.jpg',2:'animaux.jpg'}[topic]
             if topic == 0 and stable_number(city,day.isoformat(),'photo') % 3 == 0:
@@ -688,7 +738,7 @@ def page():
             photo_path = Path(__file__).resolve().parent / 'social_photos_v85' / photo_name
             if photo_path.is_file():
                 st.image(str(photo_path), use_container_width=True)
-                st.caption('📷 Illustration de la publication · Scène fictive du réseau social')
+                st.caption('📷 Image illustrative · publication fictive')
             likes=world.setdefault('post_likes',{})
             if st.button('💙 Aimé' if likes.get(pid) else '♡ J’aime',key=f'v68_like_{pid}'):
                 likes[pid]=not likes.get(pid,False);persist_and_rerun(world)

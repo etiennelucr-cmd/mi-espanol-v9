@@ -1,0 +1,10 @@
+Mi Español V87 — correctif cumulatif depuis V86
+
+1. Dans GitHub, remplace rencontres_v63.py et academia_v84.py par ceux du ZIP.
+2. Ajoute/conserve les dossiers social_photos_v85 et academia_v85_videos.
+3. Ne supprime pas social_v80.py, villes_interactives_v52.py ou les autres fichiers.
+4. Commit changes puis recharge Streamlit.
+
+V87 : Fil de vie avec cartes plus lisibles, avatars illustrés, métadonnées et photos arrondies ; réponses contextuelles pour Lucía et les autres personnages, y compris « Ayer? Nada, ¿y tú? » ; suppression de la boucle de question générique. Aucun service payant ajouté.
+
+Les réponses restent scénarisées, pas une intelligence conversationnelle libre. Vérifier le rendu après déploiement.
