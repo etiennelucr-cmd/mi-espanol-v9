@@ -749,16 +749,7 @@ def page():
             if categories=='🐾 Animaux' and topic!=2:continue
             with st.container(border=True):
                 st.markdown(f'<div class="v88-post"><div class="v87-author"><span class="v87-avatar">{person[1]}</span><span><b>{html.escape(person[0])}</b><small>📍 {html.escape(city)} · {day.strftime("%d/%m")}</small></span><span class="v87-topic">{topic_label}</span></div><p>{html.escape(post)}</p></div>',unsafe_allow_html=True)
-                # Images illustratives locales : fonctionnent même sans connexion à un service photo.
-                photo_name = {0:'parc.jpg',1:'amis.jpg',2:'animaux.jpg'}[topic]
-                if topic == 0 and stable_number(city,day.isoformat(),'photo') % 3 == 0:
-                    photo_name = 'ville.jpg'
-                if topic == 1 and stable_number(city,day.isoformat(),'photo') % 2 == 0:
-                    photo_name = 'cafe.jpg'
-                photo_path = Path(__file__).resolve().parent / 'social_photos_v85' / photo_name
-                if photo_path.is_file():
-                    st.image(str(photo_path), use_container_width=True)
-                    st.caption('📷 Photo illustrative · scène fictive')
+                # V94 : pas de photographies floues dans le fil de vie.
                 likes=world.setdefault('post_likes',{})
                 reactions=world.setdefault('social_reactions',{})
                 saved_posts=world.setdefault('social_bookmarks',[])

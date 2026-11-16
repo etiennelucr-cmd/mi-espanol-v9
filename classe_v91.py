@@ -1,5 +1,6 @@
 """V91: deux parcours scolaires, sans API payante."""
 import calendar
+import html
 from datetime import date, timedelta
 import streamlit as st
 import rencontres_v63 as social
@@ -65,6 +66,61 @@ def _save(world):
   except Exception:return False
  return False
 
+def _visual_timetable(school, breaks):
+ """Grille hebdomadaire illustrative liée au calendrier réel de la scolarité."""
+ st.markdown("""<style>
+ .v94-grid{display:grid;grid-template-columns:52px repeat(5,minmax(125px,1fr));gap:4px;overflow-x:auto;min-width:710px}
+ .v94-cell{background:#f6f8ff;border:1px solid #dae5ff;min-height:65px;padding:5px;border-radius:7px;font-size:12px}
+ .v94-head{background:#dbe9ff;text-align:center;font-weight:750;min-height:38px}
+ .v94-slot{color:white;border-radius:8px;padding:7px;font-size:12px;line-height:1.3;box-shadow:0 2px 4px #0001}
+ .v94-wrap{overflow-x:auto;border-radius:17px;background:white;padding:10px}
+ </style>""",unsafe_allow_html=True)
+ st.markdown('### 📅 Mon emploi du temps interactif')
+ start=date.fromisoformat(school['start'])
+ offset=st.session_state.get('v94_week_offset',0)
+ monday=date.today()-timedelta(days=date.today().weekday())+timedelta(weeks=offset)
+ a,b,c=st.columns([1,3,1])
+ with a:
+  if st.button('◀ Semaine précédente',key='v94_prev'):st.session_state.v94_week_offset=offset-1;st.rerun()
+ with b:st.markdown(f'**{monday:%d/%m/%Y} — {monday+timedelta(days=4):%d/%m/%Y}**')
+ with c:
+  if st.button('Suivante ▶',key='v94_next'):st.session_state.v94_week_offset=offset+1;st.rerun()
+ view=st.segmented_control('Affichage',['Jour','Semaine','Mois'],default='Semaine',key='v94_view')
+ subjects=['📘 Espagnol','📚 Vocabulaire','✏️ Grammaire','🎧 Compréhension','🏛️ Culture','🎯 Exercices']
+ colors=['#0867e9','#ff7900','#09a73e','#8b25d4','#f23871','#e8b400']
+ filters=st.multiselect('Mes matières',subjects,default=subjects,key='v94_subjects')
+ names=[('Présentations et salutations','Ser y estar','Dialogue au café'),('La famille','Parler de son quotidien','Révision et pratique'),('La vie en Espagne','Les adjectifs','Décrire une ville'),('Une journée à Madrid','La ville','Activités interactives'),('Bilan de la semaine','Fêtes et traditions','Révision : ser y estar')]
+ hours=[9,11,15]
+ events=[]
+ for j in range(5):
+  day=monday+timedelta(days=j)
+  if not _schoolday(day,breaks):continue
+  for k,h in enumerate(hours):
+   sub=(j*3+k)%len(subjects);events.append((day,h,subjects[sub],names[j][k],colors[sub]))
+ if view=='Mois':
+  st.calendar if False else None
+  st.info(f'Mois de {monday:%m/%Y} · Utilise les flèches pour parcourir les semaines. Les jours non scolaires sont exclus.')
+ if view=='Jour':
+  selected=st.date_input('Journée',value=monday,key='v94_day')
+  for d,h,subject,title,color in events:
+   if d==selected and subject in filters:st.markdown(f'<div class="v94-slot" style="background:{color};margin:8px 0">{h}:00–{h+1}:00 · <b>{html.escape(subject)}</b> · {html.escape(title)}</div>',unsafe_allow_html=True)
+ else:
+  cells=['<div class="v94-cell v94-head">Heure</div>']+[f'<div class="v94-cell v94-head">{(monday+timedelta(days=j)):%a %d/%m}</div>' for j in range(5)]
+  for h in range(8,18):
+   cells.append(f'<div class="v94-cell v94-head">{h}:00</div>')
+   for j in range(5):
+    d=monday+timedelta(days=j)
+    e=next((x for x in events if x[0]==d and x[1]==h and x[2] in filters),None)
+    content=f'<div class="v94-slot" style="background:{e[4]}"><b>{h}:00–{h+1}:00</b><div>{html.escape(e[2])}</div>{html.escape(e[3])}</div>' if e else ('🌴 Repos' if not _schoolday(d,breaks) and h==9 else '')
+    cells.append(f'<div class="v94-cell">{content}</div>')
+  st.markdown('<div class="v94-wrap"><div class="v94-grid">'+''.join(cells)+'</div></div>',unsafe_allow_html=True)
+ st.caption('Créneaux indicatifs, non réservés : les devoirs et validations réels restent suivis ci-dessous.')
+ with st.expander('➕ Ajouter un cours personnel'):
+  with st.form('v94_add_course'):
+   d=st.date_input('Date du cours',value=date.today());title=st.text_input('Titre du cours');subject=st.selectbox('Matière',subjects);hour=st.selectbox('Heure',list(range(8,18)))
+   if st.form_submit_button('Ajouter') and title.strip():school.setdefault('personal_courses',[]).append({'date':d.isoformat(),'title':title,'subject':subject,'hour':hour});st.success('Cours ajouté à ma liste personnelle.')
+ for e in school.get('personal_courses',[]):st.caption(f"📌 {e['date']} · {e['hour']}:00 · {e['subject']} — {e['title']}")
+
 def _school(world):
  st.markdown('### 🇪🇸 Mon école d’espagnol · A1 à C2')
  school=world.setdefault('v91_school',{})
@@ -85,7 +141,8 @@ def _school(world):
  unit=index//5+1
  st.metric('📅 Semaine pédagogique',unit)
  st.markdown('''<div style="background:linear-gradient(110deg,#fff5dc,#f1eaff);border-radius:20px;padding:16px;margin:12px 0"><b>👩‍🏫 Bienvenue dans la classe de Sofía !</b><p>👩🏻 Lucía · 🧑🏽 Diego · 👩🏼 Emma · 👨🏾 Pablo</p><small>Chaque journée comprend une notion, une mise en pratique et une vérification avant validation.</small></div>''',unsafe_allow_html=True)
- st.markdown('#### 📋 Mon emploi du temps')
+ _visual_timetable(school,breaks)
+ st.markdown('#### 📋 Mes activités et validations')
  activities=['📖 Cours + vocabulaire','✍️ Conjugaison et entraînement','🎭 Mission de survie','📝 Devoir à rendre','🎓 Contrôle et bilan']
  for i,act in enumerate(activities):
   due=_nth_day(start,(unit-1)*5+i,breaks)
@@ -159,7 +216,13 @@ def page():
   except Exception:pass
  choice=st.radio('Choisis ta classe',list(LANGS),horizontal=True,key='v91_lang')
  lang=LANGS[choice]
- if lang=='es':_school(world)
+ if lang=='es':
+  tab1,tab2,tab3,tab4,tab5=st.tabs(['📅 Emploi du temps','📖 Cours interactifs','📝 Devoirs','📈 Progression','📚 Ressources'])
+  with tab1:_school(world)
+  with tab2:academy.render(world,'es')
+  with tab3:st.info('Les devoirs évolutifs sont accessibles dans Emploi du temps, après les activités de la semaine.')
+  with tab4:st.write('Activités validées :',len(world.get('v91_school',{}).get('results',{})))
+  with tab5:st.write('📚 Espagnol CECRL A1 à C2 · grammaire, vocabulaire, culture et situations de la vie quotidienne.')
  else:_survival(world,lang)
  with st.expander('💾 Sauvegarde de ma classe'):
   st.caption('Pour conserver la progression entre appareils, charge d’abord ton profil dans Rencontres, puis reviens ici.')

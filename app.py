@@ -669,7 +669,7 @@ _v939_now=_v939_datetime.now(_v939_ZoneInfo('Europe/Madrid'))
 _v939_month=_v939_now.month
 _v939_season=('Hiver' if _v939_month in (12,1,2) else 'Printemps' if _v939_month in (3,4,5) else 'Été' if _v939_month in (6,7,8) else 'Automne')
 _v939_period=('🌙 Nuit' if _v939_now.hour<6 or _v939_now.hour>=21 else '🌅 Matin' if _v939_now.hour<12 else '☀️ Après-midi' if _v939_now.hour<18 else '🌆 Soir')
-st.markdown(f'<div style="background:linear-gradient(110deg,#194ab9,#7565e8);color:white;border-radius:17px;padding:15px 20px;margin-bottom:12px"><b>🌍 Madrid · Ta vie sociale</b><div style="font-size:.9rem;margin-top:5px">📅 {_v939_now:%d/%m/%Y} · 🕒 {_v939_now:%H:%M} · 🍂 {_v939_season} · {_v939_period}</div></div>',unsafe_allow_html=True)
+st.markdown(f'<div style="background:linear-gradient(110deg,#06458c,#1461bf,#6253dc);color:white;border-radius:17px;padding:16px 22px;margin-bottom:12px"><b>📍 Madrid · Ta vie sociale</b><div style="font-size:.9rem;margin-top:5px">📅 {_v939_now:%d/%m/%Y} · 🕒 {_v939_now:%H:%M} · 🍁 {_v939_season} · {_v939_period} · 🌦️ Météo selon disponibilité</div></div>',unsafe_allow_html=True)
 st.markdown('<div class="v93-hero"><h2>🌍 Mi Español</h2><p>Rencontres, école et aventures à ton rythme</p></div>',unsafe_allow_html=True)
 _v939_c1,_v939_c2=st.columns(2)
 with _v939_c1:
@@ -682,7 +682,7 @@ section=st.session_state['v91_universe']
 with st.sidebar:
  st.title('🌍 Mi Español')
  st.caption('Navigation : utilise les deux boutons sous le bandeau.')
- st.caption('💾 Profil chargé' if st.session_state.get('v80_profile') else '💾 Sauvegarde : profil à charger si nécessaire')
+ st.caption('💾 Profil chargé' if st.session_state.get('v80_profile') else '💾 Sauvegarde locale pendant la session')
 main_col,info_col=st.columns([4.5,1.15],gap='medium')
 page_start=time.perf_counter()
 try:
@@ -701,8 +701,6 @@ try:
    st.caption('Lucía · Carlos · Elena · Pablo')
    st.markdown('**🎯 À essayer**')
    st.caption('Réponds à un ami, commente une publication ou accepte une sortie.')
-   st.markdown('**🌦️ Météo**')
-   st.caption('La météo de la ville est affichée dans Rencontres lorsqu’elle est disponible.')
   else:
    st.markdown('**📚 Mon école**')
    st.caption('Cours, devoirs et révisions selon ton calendrier.')
