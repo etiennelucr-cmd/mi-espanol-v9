@@ -385,6 +385,21 @@ def v87_context_reply(lang, text, history, person):
     last=npc[-1] if npc else ''
     recent=npc[-5:]
     name=person[0]
+    # V88: resolve invitations by context before generic café/question responses.
+    if lang == 'es':
+        import re as _re
+        coffee_context = any(any(w in turn for w in ('cafe', 'cafeteria', 'tomar algo', 'plaza mayor')) for turn in recent[-4:])
+        location_question = bool(_re.search(r'\b(donde|adonde|en que lugar)\b', msg))
+        time_question = bool(_re.search(r'\b(a que hora|cuando|a las|sobre las)\b', msg))
+        hour = _re.search(r'\b(?:a las|sobre las)\s+(\d{1,2})(?:[:h](\d{2}))?\b', msg)
+        word_hours = {'ocho':'20:00','siete':'19:00','seis':'18:00','cinco':'17:00','nueve':'21:00','diez':'22:00','cuatro':'16:00','tres':'15:00','dos':'14:00','una':'13:00'}
+        word_match = next((value for word,value in word_hours.items() if _re.search(r'\b(?:a las|sobre las)\s+'+word+r'\b',msg)),None)
+        if coffee_context and location_question:
+            return '¡En una cafetería cerca de la Plaza Mayor! ☕ ¿A qué hora te viene bien?'
+        if coffee_context and (hour or word_match):
+            return '¡Perfecto! ☕ Nos vemos allí a esa hora. 😊 ¡Hasta pronto!'
+        if coffee_context and time_question:
+            return '¿Qué te parece a las ocho de la tarde? ☕'
     # Answer the reciprocal question first; otherwise the generic question handler loops.
     reciprocal=any(re.search(r'\b(y tu|y usted|et toi|and you|und du|e tu)\b',msg) for _ in [0])
     if lang=='es':
@@ -428,6 +443,15 @@ def social_storyline(world,lang,people,city):
 def page():
     """V68: three genuinely distinct social panels, no duplicate contact buttons."""
     world=store(); keys=list(CITIES)
+    st.markdown("""<style>
+    .v91-life{background:linear-gradient(110deg,#fff,#f0f5ff);border:1px solid #dce6fa;border-radius:18px;padding:12px 17px;margin:8px 0 14px;color:#27446d}
+    .v91-life strong{color:#2255aa}.v91-life small{color:#617594}
+    </style>""",unsafe_allow_html=True)
+    from datetime import datetime as _v91dt
+    _hour=_v91dt.now().hour
+    _moment=('prend son petit-déjeuner ☕' if _hour<11 else 'se promène en ville 🌳' if _hour<17 else 'profite de sa soirée 🌙')
+    st.markdown('<div class="v91-life"><strong>✨ La ville est vivante</strong> · Lucía '+_moment+'<br><small>Les activités changent selon l’heure de ta visite ; les amis peuvent te proposer des sorties.</small></div>',unsafe_allow_html=True)
+
     # Optional per-profile durable storage. Profile codes are not authentication.
     with st.expander('💾 Sauvegarde et IA · V80',expanded=False):
         st.caption('La sauvegarde durable nécessite une connexion PostgreSQL configurée. Le code de profil est un identifiant, pas un mot de passe : ne l’utilise pas pour des données sensibles.')
@@ -507,7 +531,8 @@ def page():
     .v87-avatar{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:50%;background:linear-gradient(145deg,#fff1dd,#e5d7ff);font-size:1.4rem;border:2px solid #fff}
     .v87-author b{font-size:1.03rem;color:#35285d}.v87-author small{display:block;font-size:.73rem;color:#8b809d}
     .v87-topic{margin-left:auto;font-size:.7rem;background:#f4edff;border-radius:12px;padding:5px 8px;color:#7154a1}
-    .v87-post p{font-size:.94rem;line-height:1.6;color:#342c50;margin:14px 0 4px;white-space:pre-wrap}
+    .v88-post{padding:0!important;border:0!important;box-shadow:none!important;background:transparent!important;margin:0!important}
+    .v88-post p{font-size:.94rem;line-height:1.6;color:#342c50;margin:14px 0 4px;white-space:pre-wrap}
     div[data-testid="stImage"] img{border-radius:16px;object-fit:cover;box-shadow:0 5px 17px rgba(54,38,87,.14)}
     .v68-comment{background:#f4f0ff!important;border:1px solid #ece4f9;color:#463967!important}
     .v86-feedhero{background:linear-gradient(110deg,#fff6ed,#f3eaff)!important}
@@ -689,6 +714,18 @@ def page():
             if response is None and not any(w in msg.casefold() for w in RECALL_WORDS):response=social_context_reply(lang,msg,history,person)
             if response is None and not any(w in msg.casefold() for w in RECALL_WORDS):response=social_quick_response(lang,msg,person)
             if response is None:response=reply(lang,msg.strip(),person,world)
+            if lang=='es' and response and 'Nos vemos allí a esa hora' in response:
+                import re as _re
+                import unicodedata as _ud
+                normalized=''.join(c for c in _ud.normalize('NFKD',msg.casefold()) if not _ud.combining(c))
+                match=_re.search(r'\b(?:a las|sobre las)\s+(\d{1,2})(?:[:h](\d{2}))?\b',normalized)
+                words={'ocho':'20:00','siete':'19:00','seis':'18:00','cinco':'17:00','nueve':'21:00','diez':'22:00','cuatro':'16:00','tres':'15:00','dos':'14:00','una':'13:00'}
+                chosen=(f'{int(match.group(1)):02d}:{match.group(2) or "00"}' if match else next((v for k,v in words.items() if _re.search(r'\b(?:a las|sobre las)\s+'+k+r'\b',normalized)),None))
+                if chosen:
+                    appts=world.setdefault('v88_appointments',[])
+                    key_appt=f'{lang}:{name}:{date.today().isoformat()}:{chosen}'
+                    if not any(a.get('id')==key_appt for a in appts):
+                        appts.append({'id':key_appt,'lang':lang,'friend':name,'city':city,'day':date.today().isoformat(),'time':chosen,'place':'Cafetería cerca de la Plaza Mayor'})
             social_bond(world,lang,name,3);record(world,lang,name,'you',msg.strip()[:500]);v80.remember(world,lang,name,msg.strip());record(world,lang,name,name,response)
             counts=st.session_state.setdefault('v65_free_messages',{});counts[lang]=counts.get(lang,0)+1;persist_and_rerun(world)
         # Panneau consultable : 8 types de souvenirs, propres à ce contact.
@@ -728,52 +765,60 @@ def page():
             if categories=='🏙️ Ville' and topic!=0:continue
             if categories=='👥 Amis' and topic!=1:continue
             if categories=='🐾 Animaux' and topic!=2:continue
-            st.markdown(f'<div class="v68-post v87-post"><div class="v87-author"><span class="v87-avatar">{person[1]}</span><span><b>{html.escape(person[0])}</b><small>📍 {html.escape(city)} · {day.strftime("%d/%m")}</small></span><span class="v87-topic">{topic_label}</span></div><p>{html.escape(post)}</p></div>',unsafe_allow_html=True)
-            # Images illustratives locales : fonctionnent même sans connexion à un service photo.
-            photo_name = {0:'parc.jpg',1:'amis.jpg',2:'animaux.jpg'}[topic]
-            if topic == 0 and stable_number(city,day.isoformat(),'photo') % 3 == 0:
-                photo_name = 'ville.jpg'
-            if topic == 1 and stable_number(city,day.isoformat(),'photo') % 2 == 0:
-                photo_name = 'cafe.jpg'
-            photo_path = Path(__file__).resolve().parent / 'social_photos_v85' / photo_name
-            if photo_path.is_file():
-                st.image(str(photo_path), use_container_width=True)
-                st.caption('📷 Image illustrative · publication fictive')
-            likes=world.setdefault('post_likes',{})
-            if st.button('💙 Aimé' if likes.get(pid) else '♡ J’aime',key=f'v68_like_{pid}'):
-                likes[pid]=not likes.get(pid,False);persist_and_rerun(world)
-            # Reactions distinctes des likes, conservées dans le profil.
-            reactions=world.setdefault('social_reactions',{})
-            rc=st.columns(4)
-            for j,emoji in enumerate(SOCIAL_REACTIONS):
-                with rc[j]:
-                    if st.button(emoji,key=f'v82_react_{pid}_{j}',use_container_width=True):
-                        reactions[pid]=emoji;persist_and_rerun(world)
-            if reactions.get(pid):st.caption('Ta réaction : '+reactions[pid])
-            saved_posts=world.setdefault('social_bookmarks',[])
-            if st.button('🔖 Enregistré' if pid in saved_posts else '🔖 Garder ce post',key=f'v82_bookmark_{pid}'):
-                if pid in saved_posts:saved_posts.remove(pid)
-                else:saved_posts.append(pid)
-                persist_and_rerun(world)
-            comments=world['post_comments'][pid]
-            with st.expander(f'💬 {len(comments)} commentaires',expanded=(offset==0)):
-                for j,item in enumerate(comments[-16:]):
-                    st.markdown(f'<div class="v68-comment"><b>{html.escape(item["who"])}</b> · {html.escape(item["text"])}</div>',unsafe_allow_html=True)
-                    if item['who']!='Toi' and st.button('↪ Répondre',key=f'v68_reply_{pid}_{j}'):
-                        st.session_state[f'v68_target_{pid}']=item['who'];persist_and_rerun(world)
-                target=st.session_state.get(f'v68_target_{pid}')
-                if target:st.caption(f'↪ Réponse à {target}')
-                with st.form(f'v68_comment_form_{pid}',clear_on_submit=True):
-                    comment=st.text_input('Ton commentaire',placeholder='Écrire un commentaire…')
-                    posted=st.form_submit_button('Publier',type='primary')
-                if posted and comment.strip():
-                    comments.append({'who':'Toi','text':(f'@{target} ' if target else '')+comment.strip()[:350]})
-                    st.session_state.pop(f'v68_target_{pid}',None)
-                    counts=st.session_state.setdefault('v65_free_messages',{});counts[lang]=counts.get(lang,0)+1;persist_and_rerun(world)
-                with st.expander('💡 Idées de commentaires'):
-                    for i,suggestion in enumerate(POST_LINES[lang][topic][1:]):
-                        if st.button(suggestion,key=f'v68_suggest_{pid}_{i}'):
-                            comments.append({'who':'Toi','text':suggestion});persist_and_rerun(world)
+            with st.container(border=True):
+                st.markdown(f'<div class="v88-post"><div class="v87-author"><span class="v87-avatar">{person[1]}</span><span><b>{html.escape(person[0])}</b><small>📍 {html.escape(city)} · {day.strftime("%d/%m")}</small></span><span class="v87-topic">{topic_label}</span></div><p>{html.escape(post)}</p></div>',unsafe_allow_html=True)
+                # Images illustratives locales : fonctionnent même sans connexion à un service photo.
+                photo_name = {0:'parc.jpg',1:'amis.jpg',2:'animaux.jpg'}[topic]
+                if topic == 0 and stable_number(city,day.isoformat(),'photo') % 3 == 0:
+                    photo_name = 'ville.jpg'
+                if topic == 1 and stable_number(city,day.isoformat(),'photo') % 2 == 0:
+                    photo_name = 'cafe.jpg'
+                photo_path = Path(__file__).resolve().parent / 'social_photos_v85' / photo_name
+                if photo_path.is_file():
+                    st.image(str(photo_path), use_container_width=True)
+                    st.caption('📷 Photo illustrative · scène fictive')
+                likes=world.setdefault('post_likes',{})
+                reactions=world.setdefault('social_reactions',{})
+                saved_posts=world.setdefault('social_bookmarks',[])
+                st.caption(f'💙 {1 if likes.get(pid) else 0} J’aime · 💬 {len(world["post_comments"][pid])} commentaires')
+                action_cols=st.columns(3)
+                with action_cols[0]:
+                    if st.button('💙 Aimé' if likes.get(pid) else '♡ J’aime',key=f'v68_like_{pid}',use_container_width=True):
+                        likes[pid]=not likes.get(pid,False);persist_and_rerun(world)
+                with action_cols[1]:
+                    if st.button('💬 Commenter',key=f'v88_comment_{pid}',use_container_width=True):
+                        st.session_state[f'v88_show_comments_{pid}']=True
+                with action_cols[2]:
+                    if st.button('🔖 Gardé' if pid in saved_posts else '🔖 Garder',key=f'v82_bookmark_{pid}',use_container_width=True):
+                        if pid in saved_posts:saved_posts.remove(pid)
+                        else:saved_posts.append(pid)
+                        persist_and_rerun(world)
+                with st.expander('😊 Autres réactions'):
+                    rc=st.columns(4)
+                    for j,emoji in enumerate(SOCIAL_REACTIONS):
+                        with rc[j]:
+                            if st.button(emoji,key=f'v82_react_{pid}_{j}',use_container_width=True):
+                                reactions[pid]=emoji;persist_and_rerun(world)
+                    if reactions.get(pid):st.caption('Ta réaction : '+reactions[pid])
+                comments=world['post_comments'][pid]
+                with st.expander(f'💬 {len(comments)} commentaires',expanded=st.session_state.get(f'v88_show_comments_{pid}',False)):
+                    for j,item in enumerate(comments[-16:]):
+                        st.markdown(f'<div class="v68-comment"><b>{html.escape(item["who"])}</b> · {html.escape(item["text"])}</div>',unsafe_allow_html=True)
+                        if item['who']!='Toi' and st.button('↪ Répondre',key=f'v68_reply_{pid}_{j}'):
+                            st.session_state[f'v68_target_{pid}']=item['who'];persist_and_rerun(world)
+                    target=st.session_state.get(f'v68_target_{pid}')
+                    if target:st.caption(f'↪ Réponse à {target}')
+                    with st.form(f'v68_comment_form_{pid}',clear_on_submit=True):
+                        comment=st.text_input('Ton commentaire',placeholder='Écrire un commentaire…')
+                        posted=st.form_submit_button('Publier',type='primary')
+                    if posted and comment.strip():
+                        comments.append({'who':'Toi','text':(f'@{target} ' if target else '')+comment.strip()[:350]})
+                        st.session_state.pop(f'v68_target_{pid}',None)
+                        counts=st.session_state.setdefault('v65_free_messages',{});counts[lang]=counts.get(lang,0)+1;persist_and_rerun(world)
+                    with st.expander('💡 Idées de commentaires'):
+                        for i,suggestion in enumerate(POST_LINES[lang][topic][1:]):
+                            if st.button(suggestion,key=f'v68_suggest_{pid}_{i}'):
+                                comments.append({'who':'Toi','text':suggestion});persist_and_rerun(world)
     with calendar:
         st.markdown('<div class="v68-title">🎉 Événements</div>',unsafe_allow_html=True)
         st.caption(f'À {city} · Selon la date et les habitants')
@@ -795,6 +840,9 @@ def page():
                 for i,opt in enumerate((opt1,opt2)):
                     if st.button(opt,key=f'v82_poll_{pollid}_{i}',use_container_width=True):
                         votes[pollid]=opt;persist_and_rerun(world)
+        for appointment in world.get('v88_appointments',[]):
+            if appointment.get('lang')==lang and appointment.get('city')==city:
+                st.success(f'☕ Rendez-vous avec {appointment["friend"]} · {appointment["day"]} à {appointment["time"]} · {appointment["place"]}')
         with st.expander('📅 Agenda social · 7 jours'):
             for offset in range(7):
                 day=date.today()+timedelta(days=offset)

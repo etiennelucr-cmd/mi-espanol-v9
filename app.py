@@ -641,107 +641,34 @@ h1,h2,h3 {color:#70253a!important;}
  div[data-testid="stHorizontalBlock"] {gap:.65rem!important;}
 }
 </style>""",unsafe_allow_html=True)
-# V56 : navigation immersive, quatre entrées, contenu affiché uniquement à la demande.
+# V91 : deux univers, sans supprimer les modules historiques.
 st.markdown("""<style>
-.v56-banner{background:linear-gradient(115deg,#702139,#a83348 62%,#bb5942);border-radius:25px;
- padding:26px 18px;text-align:center;box-shadow:0 10px 24px #632b3033;margin-bottom:12px}
-.v56-banner h1{color:#fff9eb!important;font-size:clamp(1.65rem,4vw,2.5rem);margin:0}
-.v56-banner p{color:#ffe8d5!important;margin:8px 0 0}
-.v56-subtitle{font-size:1.15rem;font-weight:800;color:#70253a;margin:12px 0 8px}
-.v56-tip{padding:12px 16px;border-radius:15px;background:#fce6c9;border:1px solid #cb976e;color:#5d3440}
-@media(max-width:720px){.v56-banner{padding:18px 12px}.v56-banner h1{font-size:1.65rem}
- .v56-menu div[data-testid="stHorizontalBlock"]{flex-wrap:wrap!important}}
+.v91-hero{background:linear-gradient(115deg,#5e2c8a,#af659e,#e9a36d);padding:25px;border-radius:24px;color:white;margin:12px 0 18px;box-shadow:0 12px 28px #61377722}
+.v91-hero h2,.v91-hero p{color:white!important;margin:0}
+.v91-hero p{margin-top:8px;opacity:.95}
+.stButton>button{border-radius:15px!important;min-height:48px;transition:transform .2s}
+.stButton>button:hover{transform:translateY(-2px)}
 </style>""",unsafe_allow_html=True)
-# V66: only the social section adopts a Messenger-inspired palette.
-if st.session_state.get('v47_page') == '💬 Mes rencontres':
-    st.markdown('''<style>
-    .stApp {background:linear-gradient(160deg,#f5f8ff,#e9f2ff)!important}
-    .block-container {max-width:1450px!important;padding-top:.65rem!important}
-    .v56-banner {display:none!important}
-    .stButton>button,div.stButton>button {background:#fff!important;color:#174ea6!important;border:1px solid #c9dafa!important;min-height:42px!important;border-radius:12px!important;box-shadow:none!important}
-    .stButton>button[kind="primary"],div.stButton>button[kind="primary"] {background:#0866ff!important;color:#fff!important;border-color:#0866ff!important}
-    .stButton>button:hover {border-color:#0866ff!important;color:#0866ff!important}
-    .stButton>button[kind="primary"]:hover {background:#0054d7!important;color:#fff!important}
-    [data-testid="stForm"] {background:#fff!important;border:1px solid #dce7fa!important;border-radius:15px!important}
-    [data-testid="stExpander"] {border-color:#dce7fa!important}
-    </style>''',unsafe_allow_html=True)
-# V67: the social area has its own compact header and a single return action.
-if 'v47_page' not in st.session_state:
-    st.session_state.v47_page='🏙️ Visiter les villes'
-is_social=st.session_state.v47_page=='💬 Mes rencontres'
-if is_social:
-    st.markdown("""<style>
-    .stApp{background:#f1f5ff!important}
-    .block-container{max-width:1450px!important;padding-top:.45rem!important}
-    .v67-top{background:#fff;border:1px solid #dce6fc;border-radius:16px;padding:9px 15px;color:#0866ff;font-weight:800;font-size:1.3rem;min-height:46px;display:flex;align-items:center}
-    @media(max-width:720px){.v67-top{font-size:1.05rem;padding:8px 10px}}
-    </style>""",unsafe_allow_html=True)
-    top_left,top_right=st.columns([3,1],gap='small',vertical_alignment='center')
-    with top_left:
-        st.markdown('<div class="v67-top">💬 Mes rencontres</div>',unsafe_allow_html=True)
-    with top_right:
-        if st.button('🏠 Retour au menu',key='v67_return_menu',use_container_width=True):
-            st.session_state.v47_page='🏙️ Visiter les villes'
-            st.rerun()
-else:
-    st.markdown('<div class="v56-banner"><h1>🌍 Mon aventure linguistique</h1><p>Explore les villes, parle aux habitants et progresse à ton rythme !</p></div>',unsafe_allow_html=True)
-    menu=[('🗺️ Explorer les villes','🏙️ Visiter les villes'),('🎮 Mes défis','🎮 Aventure multilingue'),
-          ('💬 Mes rencontres','💬 Mes rencontres'),('📖 Apprendre','📖 Apprendre'),('🏆 Ma progression','🌍 Mes langues & mes capacités')]
-    cols=st.columns(2,gap='small')
-    for i,(label,target) in enumerate(menu):
-        with cols[i%2]:
-            if st.button(label,key=f'v56_main_{i}',use_container_width=True,type='primary' if st.session_state.v47_page==target else 'secondary'):
-                st.session_state.v47_page=target
-                st.rerun()
-legacy={'🇪🇸 Mon aventure V42':'🇪🇸 Mon aventure V42','🎲 Mini-jeux':'🎲 Mini-jeux V42',
- '📖 Lexique complet':'📖 Lexique','🗺️ Parcours CECRL':'🗺️ Carte de progression CECRL',
- '📊 Bilans':'📊 Tableau de bord V42','🤖 Coach IA':'🤖 Coach IA',
- '📚 Cours classiques':'📚 Cours','✍️ Expression écrite':'✍️ Expression écrite',
- '🎧 Écoute et oral':'🎧 Écoute et expression orale','💾 Révisions':'🧪 Contrôles et révisions'}
-if st.session_state.v47_page=='📖 Apprendre':
-    st.markdown('<div class="v56-subtitle">📖 Que veux-tu apprendre aujourd’hui ?</div>',unsafe_allow_html=True)
-    nav_items=[('🧳 Programme 7 jours','📅 Mon itinéraire · 7 jours'),
-     ('💬 Phrases utiles','🧰 Expressions de survie'),('📚 Vocabulaire','🧰 Expressions de survie'),
-     ('✏️ Exercices','📅 Mon itinéraire · 7 jours'),('🗺️ Situations réelles','🧰 Expressions de survie'),
-     ('🏡 Vie quotidienne','🧰 Expressions de survie')]
-    for start in (0,3):
-        cs=st.columns(3,gap='small')
-        for c,(label,section) in zip(cs,nav_items[start:start+3]):
-            with c:
-                if st.button(label,key='v56_learn_'+label,use_container_width=True):
-                    st.session_state.v47_page=label
-                    st.session_state.voyage_section=section
-                    st.rerun()
-if st.session_state.v47_page not in ('🏙️ Visiter les villes','🎮 Aventure multilingue','🌍 Mes langues & mes capacités','💬 Mes rencontres'):
-    with st.expander('⚙️ Autres activités et outils classiques (facultatif)'):
-        selected_legacy=st.selectbox('Choisir une activité',list(legacy),key='v56_legacy_choice')
-        if st.button('Ouvrir cette activité',key='v56_open_legacy'):
-            st.session_state.v47_page=selected_legacy
-            st.rerun()
-if st.session_state.v47_page=='📖 Apprendre':
-    st.markdown('<div class="v56-tip">👆 Choisis une activité ci-dessus. Les leçons et les exercices s’ouvriront ici, sans encombrer l’accueil.</div>',unsafe_allow_html=True)
-page=legacy.get(st.session_state.v47_page,'🧳 Espagnol de survie · 7 jours')
+if 'v91_universe' not in st.session_state:st.session_state.v91_universe='💬 Rencontres'
+st.markdown('<div class="v91-hero"><h2>🌍 Mi Español</h2><p>Deux univers : vis des rencontres et apprends dans une vraie classe !</p></div>',unsafe_allow_html=True)
+c1,c2=st.columns(2)
+with c1:
+ if st.button('💬 Rencontres',key='v91_social',use_container_width=True,type='primary' if st.session_state.v91_universe=='💬 Rencontres' else 'secondary'):
+  st.session_state.v91_universe='💬 Rencontres';st.rerun()
+with c2:
+ if st.button('🏫 Ma classe',key='v91_school',use_container_width=True,type='primary' if st.session_state.v91_universe=='🏫 Ma classe' else 'secondary'):
+  st.session_state.v91_universe='🏫 Ma classe';st.rerun()
 page_start=time.perf_counter()
 try:
-    if st.session_state.v47_page=='🏙️ Visiter les villes':
-        import carte_v57
-        carte_v57.page()
-    elif st.session_state.v47_page=='💬 Mes rencontres':
-        import rencontres_v63
-        rencontres_v63.page()
-    elif st.session_state.v47_page=='🎮 Aventure multilingue':
-        import aventure_multilingue_v50
-        aventure_multilingue_v50.page()
-    elif st.session_state.v47_page=='🌍 Mes langues & mes capacités':
-        import suivi_langues_v48
-        suivi_langues_v48.page()
-    elif st.session_state.v47_page!='📖 Apprendre':
-        pages[page]()
+ if st.session_state.v91_universe=='💬 Rencontres':
+  import rencontres_v63
+  rencontres_v63.page()
+ else:
+  import classe_v91
+  classe_v91.page()
 finally:
-    diagnostic.record("Page sélectionnée",time.perf_counter()-page_start)
-    diagnostic.report()
-    try:
-        import sync_aventure_v29
-        sync_aventure_v29.autosave()
-    except Exception:
-        pass
+ diagnostic.record('Univers V91',time.perf_counter()-page_start)
+ try:
+  import sync_aventure_v29
+  sync_aventure_v29.autosave()
+ except Exception:pass

@@ -1,0 +1,10 @@
+Mi Español V91 — Rencontres & Ma classe
+
+1. Dans GitHub, remplace app.py, rencontres_v63.py et academia_v84.py.
+2. Ajoute le nouveau fichier classe_v91.py à la racine du projet.
+3. Ne supprime pas les autres fichiers, dossiers de photos et vidéos.
+4. Commit changes, puis recharge Streamlit.
+
+IMPORTANT : Les jours fériés nationaux français sont calculés ; renseigne manuellement les périodes de vacances scolaires de ta zone dans Ma classe.
+Le planning et les devoirs sont une première version fonctionnelle, pas une école certifiante.
+La sauvegarde persistante nécessite un profil Supabase déjà chargé dans Rencontres.
