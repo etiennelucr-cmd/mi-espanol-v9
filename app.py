@@ -649,6 +649,7 @@ st.markdown("""<style>
 .v93-info{background:#fff9f3;border:1px solid #ebd2c3;border-radius:14px;padding:12px;margin:10px 0;color:#6a3348}
 [data-testid="stSidebar"]{background:linear-gradient(165deg,#fff4e5,#f2e5ff)}
 [data-testid="stSidebar"] .stButton button{justify-content:flex-start}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 /* Les grandes photos du fil ne doivent pas occuper plusieurs écrans. */
 [data-testid="stImage"] img{max-height:380px!important;object-fit:cover!important;border-radius:16px!important}
 @media(max-width:767px){
@@ -670,7 +671,7 @@ _v939_month=_v939_now.month
 _v939_season=('Hiver' if _v939_month in (12,1,2) else 'Printemps' if _v939_month in (3,4,5) else 'Été' if _v939_month in (6,7,8) else 'Automne')
 _v939_period=('🌙 Nuit' if _v939_now.hour<6 or _v939_now.hour>=21 else '🌅 Matin' if _v939_now.hour<12 else '☀️ Après-midi' if _v939_now.hour<18 else '🌆 Soir')
 st.markdown(f'<div style="background:linear-gradient(110deg,#06458c,#1461bf,#6253dc);color:white;border-radius:17px;padding:16px 22px;margin-bottom:12px"><b>📍 Madrid · Ta vie sociale</b><div style="font-size:.9rem;margin-top:5px">📅 {_v939_now:%d/%m/%Y} · 🕒 {_v939_now:%H:%M} · 🍁 {_v939_season} · {_v939_period} · 🌦️ Météo selon disponibilité</div></div>',unsafe_allow_html=True)
-st.markdown('<div class="v93-hero"><h2>🌍 Mi Español</h2><p>Rencontres, école et aventures à ton rythme</p></div>',unsafe_allow_html=True)
+st.markdown('<div class="v93-hero"><h2>🌍 Mi Español</h2><p>🌱 Rencontres, école et aventures à ton rythme — avance sans pression</p></div>',unsafe_allow_html=True)
 _v939_c1,_v939_c2=st.columns(2)
 with _v939_c1:
  if st.button('💬 Rencontres',key='v939_open_social',use_container_width=True):
@@ -683,7 +684,7 @@ with st.sidebar:
  st.title('🌍 Mi Español')
  st.caption('Navigation : utilise les deux boutons sous le bandeau.')
  st.caption('💾 Profil chargé' if st.session_state.get('v80_profile') else '💾 Sauvegarde locale pendant la session')
-main_col,info_col=st.columns([4.5,1.15],gap='medium')
+
 page_start=time.perf_counter()
 try:
  with main_col:
@@ -693,21 +694,6 @@ try:
   else:
    import classe_v91
    classe_v91.page()
- with info_col:
-  st.markdown('#### 🔔 Mon tableau de bord')
-  st.markdown('<div class="v93-info">📅 <b>'+_v93_date.today().strftime('%d/%m/%Y')+'</b><br>Une nouvelle journée pour apprendre !</div>',unsafe_allow_html=True)
-  if section=='💬 Rencontres':
-   st.markdown('**👥 Mes amis**')
-   st.caption('Lucía · Carlos · Elena · Pablo')
-   st.markdown('**🎯 À essayer**')
-   st.caption('Réponds à un ami, commente une publication ou accepte une sortie.')
-  else:
-   st.markdown('**📚 Mon école**')
-   st.caption('Cours, devoirs et révisions selon ton calendrier.')
-   st.markdown('**🧳 Survie 7 jours**')
-   st.caption('Anglais · Allemand · Italien')
-  st.markdown('**💾 Sauvegarde**')
-  st.caption('Les données durables nécessitent un profil Supabase chargé.')
 finally:
  diagnostic.record('Univers V93',time.perf_counter()-page_start)
  try:
