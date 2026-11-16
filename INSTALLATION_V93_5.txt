@@ -1,0 +1,5 @@
+V93.5 — Rencontres en trois colonnes visibles simultanément.
+
+Remplacer uniquement rencontres_v63.py sur GitHub. Conserver app.py et classe_v91.py.
+
+Sur ordinateur : Fil de vie | Mes amis | Mes sorties. Sur mobile : colonnes empilées.

@@ -1,6 +1,7 @@
 """V63 : simulation sociale légère, locale, sans service IA externe."""
 import json, os, re, uuid, hashlib, html, urllib.parse, urllib.request, urllib.request, urllib.parse
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 import streamlit as st
 import social_v80 as v80
@@ -440,6 +441,49 @@ def social_storyline(world,lang,people,city):
       'it':['organizza un giro in città ☕','ha invitato gli amici al parco 🌳','condivide foto della giornata 📸']}
     return actor,lines[lang][chapter],chapter
 
+CITY_TIMEZONES = {
+    'Madrid':'Europe/Madrid','Barcelona':'Europe/Madrid','Barcelone':'Europe/Madrid',
+    'Valencia':'Europe/Madrid','Valence':'Europe/Madrid',
+    'London':'Europe/London','Londres':'Europe/London','Edinburgh':'Europe/London','Édimbourg':'Europe/London',
+    'Dublin':'Europe/Dublin','Berlin':'Europe/Berlin','Hambourg':'Europe/Berlin',
+    'München':'Europe/Berlin','Münich':'Europe/Berlin','Munich':'Europe/Berlin',
+    'Roma':'Europe/Rome','Rome':'Europe/Rome','Firenze':'Europe/Rome','Florence':'Europe/Rome',
+    'Venezia':'Europe/Rome','Venise':'Europe/Rome','Venice':'Europe/Rome',
+}
+
+def social_context(city, weather):
+    '''Contexte de la ville, avec fuseau horaire et saison de l'hémisphère nord.'''
+    try:
+        local_now=datetime.now(ZoneInfo(CITY_TIMEZONES.get(city,'Europe/Madrid')))
+    except (KeyError, ValueError):
+        local_now=datetime.now(ZoneInfo('Europe/Madrid'))
+    hour=local_now.hour
+    period=('nuit' if hour<6 or hour>=21 else 'matin' if hour<12 else 'apres-midi' if hour<18 else 'soir')
+    season=('hiver' if local_now.month in (12,1,2) else 'printemps' if local_now.month in (3,4,5)
+            else 'ete' if local_now.month in (6,7,8) else 'automne')
+    return local_now, period, season
+
+def render_social_context(city, weather):
+    now,period,season=social_context(city,weather)
+    icons={'nuit':'🌙','matin':'🌅','apres-midi':'🌤️','soir':'🌆'}
+    seasons={'hiver':'❄️ Hiver','printemps':'🌷 Printemps','ete':'☀️ Été','automne':'🍂 Automne'}
+    rainy=bool(weather and any(word in weather['label'].lower() for word in ('pluie','bruine','orage','neige')))
+    if rainy:
+        activity='Lucía propose un café ou une activité à l’intérieur ☕'
+    elif period=='matin':activity='Lucía commence sa journée et passe à la boulangerie 🥐'
+    elif period=='apres-midi':activity='Lucía se promène en ville et retrouve ses amis 🌳'
+    elif period=='soir':activity='Lucía retrouve ses amis pour une sortie 🌆'
+    else:activity='La ville se repose ; quelques amis sont encore éveillés 🌙'
+    weather_text=(f"{weather['icon']} {weather['label']} · {weather['temp']} °C" if weather else '🌤️ Météo indisponible')
+    theme={'nuit':'#242344','matin':'#fff0d6','apres-midi':'#eaf5ff','soir':'#f6e4ee'}[period]
+    ink='#ffffff' if period=='nuit' else '#343052'
+    st.markdown(f'''<div style="background:{theme};color:{ink};border-radius:18px;padding:17px 20px;margin:10px 0 16px;border:1px solid #d8d6e8">
+    <div style="font-size:1.12rem;font-weight:750">{icons[period]} {html.escape(city)} · {now.strftime('%H:%M')}</div>
+    <div style="font-size:.87rem;margin-top:5px">📅 {now.strftime('%d/%m/%Y')} · {seasons[season]} · {html.escape(weather_text)}</div>
+    <div style="font-size:.86rem;margin-top:9px">✨ {html.escape(activity)}</div>
+    <div style="font-size:.73rem;opacity:.8;margin-top:5px">Heure locale de la ville · ambiance actualisée à chaque visite</div>
+    </div>''',unsafe_allow_html=True)
+
 def page():
     """V68: three genuinely distinct social panels, no duplicate contact buttons."""
     world=store(); keys=list(CITIES)
@@ -447,10 +491,11 @@ def page():
     .v91-life{background:linear-gradient(110deg,#fff,#f0f5ff);border:1px solid #dce6fa;border-radius:18px;padding:12px 17px;margin:8px 0 14px;color:#27446d}
     .v91-life strong{color:#2255aa}.v91-life small{color:#617594}
     </style>""",unsafe_allow_html=True)
-    from datetime import datetime as _v91dt
-    _hour=_v91dt.now().hour
-    _moment=('prend son petit-déjeuner ☕' if _hour<11 else 'se promène en ville 🌳' if _hour<17 else 'profite de sa soirée 🌙')
-    st.markdown('<div class="v91-life"><strong>✨ La ville est vivante</strong> · Lucía '+_moment+'<br><small>Les activités changent selon l’heure de ta visite ; les amis peuvent te proposer des sorties.</small></div>',unsafe_allow_html=True)
+    # V93.3 : accès direct aux trois espaces sociaux dès l'ouverture.
+    st.markdown('### 💬 Rencontres')
+    # Trois espaces affichés simultanément sur ordinateur ; Streamlit les empile sur mobile.
+    feed,messages,calendar=st.columns([1.12,1.12,0.86], gap='small')
+     # Le bandeau contextuel est affiché après le choix de la ville et la météo.
 
     # Optional per-profile durable storage. Profile codes are not authentication.
     with st.expander('💾 Sauvegarde et IA · V80',expanded=False):
@@ -553,86 +598,14 @@ def page():
     band,provisional=social_band(lang)
     st.markdown(f'<div class="v68-head"><strong>🌍 {html.escape(city)} · Ta vie sociale</strong><small>📅 {date.today().strftime("%d/%m/%Y")} · {html.escape(lang.upper())} · Niveau {band} {"(provisoire)" if provisional else "(indicatif)"}</small></div>',unsafe_allow_html=True)
     weather=city_weather(city)
+    render_social_context(city,weather)
     if weather:
         st.markdown(f'<div class="v81-weather"><div><strong>📍 {html.escape(city)} · Météo en direct</strong><div class="muted">{weather["icon"]} {html.escape(weather["label"])} · 💧 {weather["humidity"]}% humidité · 💨 {weather["wind"]} km/h</div></div><div class="temp">{weather["temp"]} °C</div></div>',unsafe_allow_html=True)
         st.caption('💬 Idée de conversation : « ¿Qué tiempo hace hoy? » · Source : Open-Meteo (actualisation toutes les 20 min)')
     else:
         st.caption(f'🌤️ Météo de {city} momentanément indisponible · La conversation reste accessible.')
     # V92: Academia is available only through Ma classe.
-    with st.expander('🏙️ Explorer · Mon séjour · Week-end ou semaine',expanded=False):
-        trip_length=st.selectbox('Durée de ton séjour',list(TRAVEL_DAYS),format_func=lambda x:TRAVEL_DAYS[x],key=f'v83_trip_length_{lang}')
-        st.caption(f'📍 Destination : {city} · Niveau {band} · Phrases pratiques pour voyager')
-        done=world.setdefault('v83_trip_done',{})
-        for day_number,theme,phrase in trip_missions(lang,city,trip_length):
-            mission_id=f'{lang}:{city}:{trip_length}:{day_number}'
-            c1,c2=st.columns([4,1])
-            with c1:st.markdown(f'**Jour {day_number} · {theme}** — {phrase}')
-            with c2:
-                if st.checkbox('Fait',value=bool(done.get(mission_id)),key=f'v83_done_{mission_id}'):
-                    done[mission_id]=True
-                else:done.pop(mission_id,None)
-        completed=sum(bool(done.get(f'{lang}:{city}:{trip_length}:{d}')) for d in range(1,trip_length+1))
-        st.progress(completed/trip_length,text=f'{completed}/{trip_length} missions accomplies')
-    with st.expander('🗣️ Situations réelles · Entraînement A1',expanded=False):
-        scene_idx=st.selectbox('Choisis une situation',range(len(TRAVEL_SCENES[lang])),format_func=lambda i:TRAVEL_SCENES[lang][i][0],key=f'v83_scene_{lang}')
-        theme,opening,answer,options=TRAVEL_SCENES[lang][scene_idx]
-        st.caption(f'📍 {city} · {theme} · Niveau {band} · Dialogue interactif gratuit')
-        mode=st.radio('Mode de pratique',['✍️ Écrire librement','🧩 Réponses guidées'],horizontal=True,key=f'v83_mode_{lang}_{scene_idx}')
-        dialogue=travel_dialogue(lang,scene_idx)
-        progress=world.setdefault('v83_dialogue_progress',{})
-        scene_key=f'{lang}:{city}:{scene_idx}'
-        state=progress.setdefault(scene_key,{'step':0,'history':[],'completed':False})
-        step=min(int(state.get('step',0)),len(dialogue))
-        st.progress(step/len(dialogue),text=f'Étape {step}/{len(dialogue)}')
-        for entry in state.get('history',[])[-8:]:
-            st.markdown(f'**{html.escape(str(entry.get("speaker","")))} :** {html.escape(str(entry.get("text","")))}')
-        if step<len(dialogue):
-            speaker,line,translation,keywords,suggestion=dialogue[step]
-            st.markdown(f'**{speaker} :** {line}')
-            if st.checkbox('🇫🇷 Afficher la traduction',key=f'v83_translate_{scene_key}_{step}'):
-                st.caption(translation)
-            with st.form(key=f'v83_dialogue_form_{scene_key}_{step}',clear_on_submit=False):
-                if mode.startswith('✍️'):
-                    response=st.text_input('Ta réponse',placeholder='Réponds dans la langue étudiée…',key=f'v83_free_{scene_key}_{step}')
-                else:
-                    guided=options if step==0 else (suggestion,TRAVEL_SCENES[lang][scene_idx][3][-1])
-                    response=st.radio('Choisis une réponse',list(dict.fromkeys(guided)),key=f'v83_guided_{scene_key}_{step}')
-                show_hint=st.checkbox('💡 Voir un indice',key=f'v83_hint_{scene_key}_{step}')
-                if show_hint:st.caption('Exemple possible : '+suggestion)
-                sent=st.form_submit_button('💬 Répondre et continuer',type='primary')
-            if sent:
-                if not response.strip():st.warning('Écris une réponse pour continuer.')
-                elif travel_match(response,keywords) or (mode.startswith('🧩') and response in options):
-                    state['history'].extend([{'speaker':speaker,'text':line},{'speaker':'🧳 Toi','text':response.strip()[:180]}])
-                    state['step']=step+1
-                    if state['step']==len(dialogue):
-                        state['completed']=True
-                        practices=world.setdefault('v83_practice',{}).setdefault(lang,[])
-                        practices.append({'city':city,'scene':theme,'answer':response.strip()[:180],'day':date.today().isoformat(),'steps':len(dialogue)})
-                        world['v83_practice'][lang]=practices[-50:]
-                        world.setdefault('v83_trip_done',{})[f'{lang}:{city}:{st.session_state.get(f"v83_trip_length_{lang}",2)}:{scene_idx+1}']=True
-                    persist_and_rerun(world)
-                else:
-                    st.info('💡 Essaie une phrase simple. Exemple : '+suggestion+' Tu peux aussi choisir le mode guidé.')
-        else:
-            st.success('🏆 Mission réussie ! Tu as terminé le dialogue. ¡Muy bien!')
-            st.caption('Expressions pratiquées : '+ ' · '.join(item[4] for item in dialogue))
-        if st.button('🔄 Recommencer cette scène',key=f'v83_restart_{scene_key}'):
-            progress[scene_key]={'step':0,'history':[],'completed':False}
-            persist_and_rerun(world)
-        st.caption('Simulation pédagogique à règles : elle reconnaît plusieurs formulations simples, mais ne comprend pas toutes les réponses possibles et ne juge pas la prononciation.')
-    with st.expander('📍 Guide express · Phrases utiles sur place',expanded=False):
-        st.markdown(f'**{city}** · '+('🌧️ Prévois un endroit couvert.' if weather and 'pluie' in weather['label'].casefold() else '🌤️ Vérifie la météo avant de sortir.'))
-        for theme,opening,answer,options in TRAVEL_SCENES[lang]:
-            st.markdown(f'**{theme}** · `{opening}`')
-        st.caption('Tu peux utiliser ces phrases pendant ton séjour ou les pratiquer dans les situations A1 ci-dessus.')
-    with st.expander('🚆 Voyager ou déménager'):
-        dest=st.selectbox('Destination',range(len(cities)),index=current,format_func=lambda i:cities[i][0],key=f'v68_dest_{lang}')
-        ca,cb=st.columns(2)
-        for col,action in ((ca,'Voyager'),(cb,'Déménager')):
-            with col:
-                if st.button(('🧳 ' if action=='Voyager' else '🏡 ')+action,key=f'v68_{action}_{lang}',use_container_width=True):
-                    world['city'][lang]=dest;st.session_state.v57_lang=language;st.session_state.v57_city=dest;st.session_state.pop('v57_place',None);persist_and_rerun(world)
+    # V93.2 : ateliers de langue transférés dans Ma classe.
     # Ensure initial greetings are created before daily simulation; no repeated greetings on reruns.
     for person in people:
         key=f'{lang}:{person[0]}'
@@ -673,8 +646,6 @@ def page():
     .v68-post{border-radius:20px!important;box-shadow:0 7px 25px #49335114!important}
     div[data-testid="stImage"] img{border-radius:16px;object-fit:cover}
     </style>''',unsafe_allow_html=True)
-    st.markdown('### 💫 Mon réseau · Choisis ton espace')
-    feed,messages,calendar=st.tabs(['📸 Fil de vie','💬 Mes amis','📅 Mes sorties'])
     with messages:
         st.markdown('<div class="v68-title">💬 Messages</div>',unsafe_allow_html=True)
         selected=min(st.session_state.get(f'v65_selected_{lang}',0),len(people)-1)
@@ -883,3 +854,91 @@ def page():
                 st.session_state.v80_last_digest=digest
         except Exception:
             st.warning('La sauvegarde automatique n’a pas abouti. Réessaie depuis le panneau V80.')
+
+
+def atelier_pratique_classe(world, lang):
+    """Ateliers de voyage auparavant affichés dans Rencontres."""
+    language=next((k for k in CITIES if language_key(k)==lang),None)
+    if language is None:
+        st.info('Aucun atelier disponible pour cette langue.')
+        return
+    cities=CITIES[language]
+    current=world.setdefault('city',{}).get(lang,0)
+    current=max(0,min(current,len(cities)-1))
+    city=cities[current][0]
+    band,_=social_band(lang)
+    weather=None  # Ne pas faire de nouvelle requête météo depuis la classe.
+    with st.expander('🏙️ Explorer · Mon séjour · Week-end ou semaine',expanded=False):
+        trip_length=st.selectbox('Durée de ton séjour',list(TRAVEL_DAYS),format_func=lambda x:TRAVEL_DAYS[x],key=f'v83_trip_length_{lang}')
+        st.caption(f'📍 Destination : {city} · Niveau {band} · Phrases pratiques pour voyager')
+        done=world.setdefault('v83_trip_done',{})
+        for day_number,theme,phrase in trip_missions(lang,city,trip_length):
+            mission_id=f'{lang}:{city}:{trip_length}:{day_number}'
+            c1,c2=st.columns([4,1])
+            with c1:st.markdown(f'**Jour {day_number} · {theme}** — {phrase}')
+            with c2:
+                if st.checkbox('Fait',value=bool(done.get(mission_id)),key=f'v83_done_{mission_id}'):
+                    done[mission_id]=True
+                else:done.pop(mission_id,None)
+        completed=sum(bool(done.get(f'{lang}:{city}:{trip_length}:{d}')) for d in range(1,trip_length+1))
+        st.progress(completed/trip_length,text=f'{completed}/{trip_length} missions accomplies')
+    with st.expander('🗣️ Situations réelles · Entraînement A1',expanded=False):
+        scene_idx=st.selectbox('Choisis une situation',range(len(TRAVEL_SCENES[lang])),format_func=lambda i:TRAVEL_SCENES[lang][i][0],key=f'v83_scene_{lang}')
+        theme,opening,answer,options=TRAVEL_SCENES[lang][scene_idx]
+        st.caption(f'📍 {city} · {theme} · Niveau {band} · Dialogue interactif gratuit')
+        mode=st.radio('Mode de pratique',['✍️ Écrire librement','🧩 Réponses guidées'],horizontal=True,key=f'v83_mode_{lang}_{scene_idx}')
+        dialogue=travel_dialogue(lang,scene_idx)
+        progress=world.setdefault('v83_dialogue_progress',{})
+        scene_key=f'{lang}:{city}:{scene_idx}'
+        state=progress.setdefault(scene_key,{'step':0,'history':[],'completed':False})
+        step=min(int(state.get('step',0)),len(dialogue))
+        st.progress(step/len(dialogue),text=f'Étape {step}/{len(dialogue)}')
+        for entry in state.get('history',[])[-8:]:
+            st.markdown(f'**{html.escape(str(entry.get("speaker","")))} :** {html.escape(str(entry.get("text","")))}')
+        if step<len(dialogue):
+            speaker,line,translation,keywords,suggestion=dialogue[step]
+            st.markdown(f'**{speaker} :** {line}')
+            if st.checkbox('🇫🇷 Afficher la traduction',key=f'v83_translate_{scene_key}_{step}'):
+                st.caption(translation)
+            with st.form(key=f'v83_dialogue_form_{scene_key}_{step}',clear_on_submit=False):
+                if mode.startswith('✍️'):
+                    response=st.text_input('Ta réponse',placeholder='Réponds dans la langue étudiée…',key=f'v83_free_{scene_key}_{step}')
+                else:
+                    guided=options if step==0 else (suggestion,TRAVEL_SCENES[lang][scene_idx][3][-1])
+                    response=st.radio('Choisis une réponse',list(dict.fromkeys(guided)),key=f'v83_guided_{scene_key}_{step}')
+                show_hint=st.checkbox('💡 Voir un indice',key=f'v83_hint_{scene_key}_{step}')
+                if show_hint:st.caption('Exemple possible : '+suggestion)
+                sent=st.form_submit_button('💬 Répondre et continuer',type='primary')
+            if sent:
+                if not response.strip():st.warning('Écris une réponse pour continuer.')
+                elif travel_match(response,keywords) or (mode.startswith('🧩') and response in options):
+                    state['history'].extend([{'speaker':speaker,'text':line},{'speaker':'🧳 Toi','text':response.strip()[:180]}])
+                    state['step']=step+1
+                    if state['step']==len(dialogue):
+                        state['completed']=True
+                        practices=world.setdefault('v83_practice',{}).setdefault(lang,[])
+                        practices.append({'city':city,'scene':theme,'answer':response.strip()[:180],'day':date.today().isoformat(),'steps':len(dialogue)})
+                        world['v83_practice'][lang]=practices[-50:]
+                        world.setdefault('v83_trip_done',{})[f'{lang}:{city}:{st.session_state.get(f"v83_trip_length_{lang}",2)}:{scene_idx+1}']=True
+                    persist_and_rerun(world)
+                else:
+                    st.info('💡 Essaie une phrase simple. Exemple : '+suggestion+' Tu peux aussi choisir le mode guidé.')
+        else:
+            st.success('🏆 Mission réussie ! Tu as terminé le dialogue. ¡Muy bien!')
+            st.caption('Expressions pratiquées : '+ ' · '.join(item[4] for item in dialogue))
+        if st.button('🔄 Recommencer cette scène',key=f'v83_restart_{scene_key}'):
+            progress[scene_key]={'step':0,'history':[],'completed':False}
+            persist_and_rerun(world)
+        st.caption('Simulation pédagogique à règles : elle reconnaît plusieurs formulations simples, mais ne comprend pas toutes les réponses possibles et ne juge pas la prononciation.')
+    with st.expander('📍 Guide express · Phrases utiles sur place',expanded=False):
+        st.markdown(f'**{city}** · '+('🌧️ Prévois un endroit couvert.' if weather and 'pluie' in weather['label'].casefold() else '🌤️ Vérifie la météo avant de sortir.'))
+        for theme,opening,answer,options in TRAVEL_SCENES[lang]:
+            st.markdown(f'**{theme}** · `{opening}`')
+        st.caption('Tu peux utiliser ces phrases pendant ton séjour ou les pratiquer dans les situations A1 ci-dessus.')
+    with st.expander('🚆 Voyager ou déménager'):
+        dest=st.selectbox('Destination',range(len(cities)),index=current,format_func=lambda i:cities[i][0],key=f'v68_dest_{lang}')
+        ca,cb=st.columns(2)
+        for col,action in ((ca,'Voyager'),(cb,'Déménager')):
+            with col:
+                if st.button(('🧳 ' if action=='Voyager' else '🏡 ')+action,key=f'v68_{action}_{lang}',use_container_width=True):
+                    world['city'][lang]=dest;st.session_state.v57_lang=language;st.session_state.v57_city=dest;st.session_state.pop('v57_place',None);persist_and_rerun(world)
