@@ -172,7 +172,7 @@ def _school(world):
       else:st.warning('Pas encore. Relis la question et réessaie ; aucune pénalité.')
  st.caption('Les échéances tombent uniquement sur les jours de classe. Les devoirs en retard restent accessibles sans pénalité.')
  st.markdown('#### 👩‍🏫 Leçon et exercices avec Sofía')
- academy.render(world,'es')
+ st.info('Retrouve les cours interactifs de Sofía dans l’onglet 📖 Cours interactifs ci-dessus.')
  with st.expander('📝 Mon devoir évolutif'):
   levels=['A1','A2','B1','B2','C1','C2'];lv=st.selectbox('Niveau du devoir',levels,key='v91_homework_level')
   prompts={'A1':'Écris 5 phrases pour te présenter (nom, origine, ville, goûts, âge).','A2':'Raconte ton dernier week-end au passé en 6 phrases.','B1':'Écris un message de 8 phrases pour résoudre un problème de réservation.','B2':'Rédige une réclamation polie avec arguments et solution proposée.','C1':'Défends ton opinion sur un sujet de société avec des nuances.','C2':'Reformule un problème complexe dans deux registres de langue.'}
