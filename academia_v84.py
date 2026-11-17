@@ -96,7 +96,7 @@ def render(world,lang):
         c3.metric('🏅 Leçons',sum(bool(v) for v in data['completed'].values()))
         st.markdown('<div class="ac90-card"><strong>👩‍🏫 Sofía et ta classe</strong><div class="ac90-chips"><span class="ac90-chip">👩🏻 Lucía · curieuse</span><span class="ac90-chip">🧑🏽 Diego · aventurier</span><span class="ac90-chip">👩🏼 Emma · débutante</span><span class="ac90-chip">👨🏾 Pablo · sociable</span></div><small>Des camarades fictifs : ils t’accompagnent dans les situations du quotidien.</small></div>',unsafe_allow_html=True)
         levels=[x for x in LEVELS if x in lessons_by_level]
-        level=st.selectbox('📚 Niveau de pratique',levels,index=levels.index(data.get('level','A1')) if data.get('level','A1') in levels else 0,key=f'ac90_level_{lang}',help='Libre choix pour s’entraîner ; ce n’est pas une certification.')
+        level=st.selectbox('📚 Niveau de pratique',levels,index=levels.index(data.get('level','A1')) if data.get('level','A1') in levels else 0,key=f'ac95_academia_level_{lang}',help='Libre choix pour s’entraîner ; ce n’est pas une certification.')
         data['level']=level
         lesson_list=lessons_by_level[level]
         daily_idx=int(hashlib.sha256(f'{today}|{lang}|{level}'.encode()).hexdigest()[:8],16)%len(lesson_list)

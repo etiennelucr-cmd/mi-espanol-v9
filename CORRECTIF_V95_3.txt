@@ -1,0 +1,8 @@
+Mi Español V95.3 - correctif cumulé
+- Météo en haut, suppression des doublons météo/contexte et du défi en bas.
+- Fil de vie sans photographies floues.
+- Emploi du temps et activités côte à côte sur ordinateur, empilés sur mobile.
+- Clé de niveau Academia renommée pour éviter un conflit avec une ancienne instance.
+- Documentation historique et fichiers de test redondants retirés.
+
+Déploiement : conserver les secrets Streamlit dans les paramètres Cloud.

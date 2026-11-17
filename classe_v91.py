@@ -69,8 +69,8 @@ def _save(world):
 def _visual_timetable(school, breaks):
  """Grille hebdomadaire illustrative liée au calendrier réel de la scolarité."""
  st.markdown("""<style>
- .v94-grid{display:grid;grid-template-columns:52px repeat(5,minmax(125px,1fr));gap:4px;overflow-x:auto;min-width:710px}
- .v94-cell{background:#f6f8ff;border:1px solid #dae5ff;min-height:65px;padding:5px;border-radius:7px;font-size:12px}
+ .v94-grid{display:grid;grid-template-columns:42px repeat(5,minmax(95px,1fr));gap:4px;overflow-x:auto;min-width:580px}
+ .v94-cell{background:#f6f8ff;border:1px solid #dae5ff;min-height:47px;padding:5px;border-radius:7px;font-size:12px}
  .v94-head{background:#dbe9ff;text-align:center;font-weight:750;min-height:38px}
  .v94-slot{color:white;border-radius:8px;padding:7px;font-size:12px;line-height:1.3;box-shadow:0 2px 4px #0001}
  .v94-wrap{overflow-x:auto;border-radius:17px;background:white;padding:10px}
@@ -141,7 +141,14 @@ def _school(world):
  unit=index//5+1
  st.metric('📅 Semaine pédagogique',unit)
  st.markdown('''<div style="background:linear-gradient(110deg,#fff5dc,#f1eaff);border-radius:20px;padding:16px;margin:12px 0"><b>👩‍🏫 Bienvenue dans la classe de Sofía !</b><p>👩🏻 Lucía · 🧑🏽 Diego · 👩🏼 Emma · 👨🏾 Pablo</p><small>Chaque journée comprend une notion, une mise en pratique et une vérification avant validation.</small></div>''',unsafe_allow_html=True)
- _visual_timetable(school,breaks)
+ # Affichage compact côte à côte sur grand écran ; empilé sur mobile.
+ timetable_col, activities_col = st.columns([1.35, 1], gap='medium')
+ with timetable_col:
+  _visual_timetable(school,breaks)
+ with activities_col:
+  _school_activities(world, school, breaks, start, today, unit)
+
+def _school_activities(world, school, breaks, start, today, unit):
  st.markdown('#### 📋 Mes activités et validations')
  activities=['📖 Cours + vocabulaire','✍️ Conjugaison et entraînement','🎭 Mission de survie','📝 Devoir à rendre','🎓 Contrôle et bilan']
  for i,act in enumerate(activities):

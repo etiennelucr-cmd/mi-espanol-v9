@@ -596,14 +596,8 @@ def page():
     current=world['city'].setdefault(lang,st.session_state.get('v57_city',0) if language==st.session_state.get('v57_lang') else 0)
     current=max(0,min(current,len(cities)-1));city=cities[current][0]
     band,provisional=social_band(lang)
-    st.markdown(f'<div class="v68-head"><strong>🌍 {html.escape(city)} · Ta vie sociale</strong><small>📅 {date.today().strftime("%d/%m/%Y")} · {html.escape(lang.upper())} · Niveau {band} {"(provisoire)" if provisional else "(indicatif)"}</small></div>',unsafe_allow_html=True)
-    weather=city_weather(city)
-    render_social_context(city,weather)
-    if weather:
-        st.markdown(f'<div class="v81-weather"><div><strong>📍 {html.escape(city)} · Météo en direct</strong><div class="muted">{weather["icon"]} {html.escape(weather["label"])} · 💧 {weather["humidity"]}% humidité · 💨 {weather["wind"]} km/h</div></div><div class="temp">{weather["temp"]} °C</div></div>',unsafe_allow_html=True)
-        st.caption('💬 Idée de conversation : « ¿Qué tiempo hace hoy? » · Source : Open-Meteo (actualisation toutes les 20 min)')
-    else:
-        st.caption(f'🌤️ Météo de {city} momentanément indisponible · La conversation reste accessible.')
+    # Le contexte et la météo figurent dans le bandeau supérieur de l'application.
+    # Pas de second panneau météo ni de doublon de statistiques sous le fil de vie.
     # V92: Academia is available only through Ma classe.
     # V93.2 : ateliers de langue transférés dans Ma classe.
     # Ensure initial greetings are created before daily simulation; no repeated greetings on reruns.
@@ -612,12 +606,7 @@ def page():
         if not world['log'].get(key):record(world,lang,person[0],person[0],WORDS[lang]['hello'])
     events=daily_update(world,lang,people,cities)
     social_day(world,lang,people)
-    count,streak=social_metrics(world,lang)
-    st.markdown(f'<div class="v82-stats">📨 {count} messages · 🔥 {streak} jour(s) de suite · 🎯 Niveau {html.escape(band)} · 🟢 {len(people)} contacts</div>',unsafe_allow_html=True)
-    with st.expander('🎯 Défi du jour · niveau adapté'):
-        challenge=SOCIAL_PROMPTS[lang][stable_number(date.today(),lang,'challenge')%len(SOCIAL_PROMPTS[lang])]
-        st.write('💬 '+challenge)
-        st.caption('Essaie cette phrase dans une conversation. Aucune pénalité si tu fais une erreur.')
+    # Défi quotidien accessible dans la classe, sans bloc supplémentaire ici.
     st.markdown('''<style>
     div[data-testid="stTabs"] [data-baseweb="tab-list"]{gap:12px;background:#fff9f3;padding:10px;border-radius:18px;flex-wrap:wrap}
     div[data-testid="stTabs"] button[role="tab"]{border-radius:14px;padding:10px 18px;font-weight:700;color:#70415a}
@@ -726,9 +715,9 @@ def page():
         recent_news=[x for x in world.get('v83_event_news',[]) if x.get('city')==city][-2:]
         for news in reversed(recent_news):
             st.markdown(f'<div class="v83-panel"><strong>✨ Actualité de tes amis</strong><p>{html.escape(news["friend"])} · {html.escape(news["event"])} · {html.escape(news["day"])}</p></div>',unsafe_allow_html=True)
-        st.markdown(f'<div class="v86-feedhero"><b>📸 Fil de vie · {html.escape(city)}</b><span>Les photos et les nouvelles de tes amis</span></div>',unsafe_allow_html=True)
+        st.markdown(f'<div class="v86-feedhero"><b>📸 Fil de vie · {html.escape(city)}</b><span>Les nouvelles de tes amis</span></div>',unsafe_allow_html=True)
         categories=st.radio('Afficher les publications', ['🌟 Tout','🏙️ Ville','👥 Amis','🐾 Animaux'],horizontal=True,key=f'v86_filter_{lang}',label_visibility='collapsed')
-        st.caption('Illustrations 2D · Publications et stories fictives pour pratiquer la langue')
+        st.caption('Publications et stories fictives pour pratiquer la langue, sans images floues')
         with st.expander('✏️ Partager un moment',expanded=False):
             with st.form(f'v86_share_{lang}',clear_on_submit=True):
                 message=st.text_area('Ton actualité',placeholder='Hoy he visitado un parque...')
