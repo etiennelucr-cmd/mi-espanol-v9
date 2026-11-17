@@ -139,10 +139,10 @@ def _school(world):
   if _schoolday(d,breaks):index+=1
   d+=timedelta(days=1)
  unit=index//5+1
- st.metric('📅 Semaine pédagogique',unit)
- st.markdown('''<div style="background:linear-gradient(110deg,#fff5dc,#f1eaff);border-radius:20px;padding:16px;margin:12px 0"><b>👩‍🏫 Bienvenue dans la classe de Sofía !</b><p>👩🏻 Lucía · 🧑🏽 Diego · 👩🏼 Emma · 👨🏾 Pablo</p><small>Chaque journée comprend une notion, une mise en pratique et une vérification avant validation.</small></div>''',unsafe_allow_html=True)
+ st.caption(f'📅 Semaine pédagogique {unit}')
+ st.markdown('👩‍🏫 **Classe de Sofía** · Lucía · Diego · Emma · Pablo')
  # Affichage compact côte à côte sur grand écran ; empilé sur mobile.
- timetable_col, activities_col = st.columns([1.35, 1], gap='medium')
+ timetable_col, activities_col = st.columns([1.2, 1], gap='small')
  with timetable_col:
   _visual_timetable(school,breaks)
  with activities_col:

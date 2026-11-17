@@ -826,7 +826,7 @@ def page():
                 if idx==2:message=message.format(pet=friend[4])
                 record(world,lang,friend[0],friend[0],message);world['event_done'].append(e['id']);world.setdefault('v83_event_news',[]).append({'city':city,'friend':friend[0],'event':e['name'],'day':date.today().isoformat()});world['v83_event_news']=world['v83_event_news'][-20:]
                 social_bond(world,lang,friend[0],5);st.session_state[f'v65_selected_{lang}']=people.index(friend);persist_and_rerun(world)
-    st.caption('ℹ️ V82 : simulation locale, activités datées et météo Open-Meteo. Pas de simulation en arrière-plan · V80 : IA facultative selon configuration ; sinon moteur scénarisé. Niveau CECRL indicatif. Sauvegarde durable uniquement avec base externe et profil chargé.')
+    # Ancien pied de page supprimé : contexte météo dans le bandeau du haut.
     # Save the world after all widgets have been processed. Avoid database calls on every rerun
     # by using a digest of the serialized social state.
     if st.session_state.get('v80_profile') and v80.db_enabled():

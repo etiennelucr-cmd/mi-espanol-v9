@@ -1,0 +1,1 @@
+Mi Español V95.4 : bandeau météo unique en haut ; pied de page social supprimé ; classe compacte avec emploi du temps et activités côte à côte sur ordinateur, empilés sur mobile. Si les anciens blocs météo persistent, vérifier la branche déployée sur Streamlit Cloud.
