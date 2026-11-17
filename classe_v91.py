@@ -73,7 +73,7 @@ def _visual_timetable(school, breaks):
  .v94-cell{background:#f6f8ff;border:1px solid #dae5ff;min-height:47px;padding:5px;border-radius:7px;font-size:12px}
  .v94-head{background:#dbe9ff;text-align:center;font-weight:750;min-height:38px}
  .v94-slot{color:white;border-radius:8px;padding:7px;font-size:12px;line-height:1.3;box-shadow:0 2px 4px #0001}
- .v94-wrap{overflow-x:auto;border-radius:17px;background:white;padding:10px}
+ .v94-wrap{overflow-x:auto;max-width:100%;border-radius:17px;background:white;padding:10px}
  </style>""",unsafe_allow_html=True)
  st.markdown('### 📅 Mon emploi du temps interactif')
  start=date.fromisoformat(school['start'])

@@ -812,6 +812,7 @@ def page():
                 name=EVENT_NAMES[seed%len(EVENT_NAMES)]
                 st.caption(f'{day.strftime("%d/%m")} · {name} · {people[(seed//5)%len(people)][0]}')
         with st.expander('🏆 Mon activité'):
+            count, streak = social_metrics(world, lang)
             st.metric('Messages envoyés',count)
             st.metric('Série de jours',streak)
             st.caption('💙 Les amitiés progressent avec les messages, les stories et les cadeaux.')

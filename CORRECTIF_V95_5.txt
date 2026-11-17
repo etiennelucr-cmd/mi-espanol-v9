@@ -1,0 +1,1 @@
+V95.5 — Correction NameError dans Rencontres : initialisation de count et streak via social_metrics(world, lang) dans Mon activité. Emploi du temps : conteneur avec défilement horizontal pour éviter de couper les colonnes. Vérification syntaxique Python effectuée.
