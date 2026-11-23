@@ -141,6 +141,12 @@ SOURCES = [
  ('INTEF · Le verbe : temps et mode', 'https://descargas.intef.es/recursos_educativos/It_didac/Leng_ESO/1/04/04_El_verbo_tiempo_modo_voz/tiempo_modo_y_voz.html'),
 ]
 
+# Ateliers culturels et communicatifs adossés aux programmes français LVE 2025/2026.
+# L'ordre d'origine des leçons V4 est préservé pour la compatibilité des sauvegardes.
+from programmes_officiels import enrichir, REFERENCES_OFFICIELLES
+SCOLAIRE = enrichir(SCOLAIRE, L)
+SOURCES += REFERENCES_OFFICIELLES
+
 def validate():
     assert list(SCOLAIRE)==CLASSES
     assert list(CECRL)==['A1','A2','B1','B2','C1','C2']
