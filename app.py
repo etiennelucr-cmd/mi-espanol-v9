@@ -374,11 +374,11 @@ def mission_questions(mission_index):
 
 
 def new_profile():
-    return {'version':63,'name':'Élève','grade':0,'school':{},'school_exams':{},
+    return {'version':64,'name':'Élève','grade':0,'school':{},'school_exams':{},
             'cefr':{},'cefr_exams':{},'grammar':{},'grammar_exams':{},
             'verbs':{},'tenses':{},'conjugation':{},'german':{},'italian':{},'english':{},
             'travel_german':{},'travel_italian':{},'travel_english':{},
-            'llcer':{},'notes':{},'stars':0,'legacy_spanish':{}}
+            'llcer':{},'notes':{},'stars':0,'legacy_spanish':{},'last_language':''}
 
 
 def normalize(src):
@@ -396,7 +396,7 @@ def normalize(src):
     default['grade']=max(0,min(requested,current_school_grade(default['school_exams'],len(CLASSES)-1)))
     try:default['stars']=max(0,int(default['stars']))
     except (TypeError,ValueError):default['stars']=0
-    default['version']=63
+    default['version']=64
     return default
 
 
@@ -419,7 +419,13 @@ def persist():
 
 
 def award(section,key,points=5):
-    if p[section].get(key) is True:return False
+    # Une réponse réussie compte comme activité même lors d'une révision.
+    p['last_language']={'travel_german':'🇩🇪 Allemand',
+                        'travel_italian':'🇮🇹 Italien',
+                        'travel_english':'🇬🇧 Anglais'}.get(section,'🇪🇸 Espagnol')
+    if p[section].get(key) is True:
+        persist()
+        return False
     p[section][key]=True
     p['stars']+=points
     persist()
@@ -437,6 +443,76 @@ def s_keys(grade):return [school_key(grade,i) for i in range(len(SCOLAIRE[CLASSE
 def c_keys(level):return [cefr_key(level,i) for i in range(len(CECRL[level]))]
 def g_keys(level):return [grammar_key(level,i) for i in range(len(GRAMMAIRE[level]))]
 def permitted(section,keys):return available_indices(p[section],keys)
+
+
+# Statistiques fondées uniquement sur les acquis validés et les étapes du programme.
+# Les parcours scolaires, CECRL, grammaire, verbes et temps forment ensemble
+# le parcours espagnol. La LLCER optionnelle n'entre pas dans son dénominateur.
+def progress_all_languages(profile):
+    # Conserver les clés réelles et ne jamais compter les clés inconnues d'un vieux JSON.
+    school_keys=[school_key(g,i) for g in range(len(CLASSES)) for i in range(len(SCOLAIRE[CLASSES[g]]))]
+    school_exam_keys=[str(g) for g in range(len(CLASSES))]
+    cefr_keys=[cefr_key(level,i) for level in CECRL for i in range(len(CECRL[level]))]
+    cefr_exam_keys=list(CECRL)
+    grammar_keys=[grammar_key(level,i) for level in GRAMMAIRE for i in range(len(GRAMMAIRE[level]))]
+    grammar_exam_keys=list(GRAMMAIRE)
+    categories=[('school',school_keys),('school_exams',school_exam_keys),
+                ('cefr',cefr_keys),('cefr_exams',cefr_exam_keys),
+                ('grammar',grammar_keys),('grammar_exams',grammar_exam_keys),
+                ('verbs',VERBS),('tenses',TENSE_ORDER)]
+    spanish_total=sum(len(keys) for _,keys in categories)
+    spanish_done=sum(sum(profile.get(bucket,{}).get(key) is True for key in keys) for bucket,keys in categories)
+    accessible_cefr=unlocked_groups(profile.get('cefr_exams',{}),list(CECRL))
+    cefr_label=accessible_cefr[-1] if accessible_cefr else 'A1'
+    if profile.get('cefr_exams',{}).get('C2') is True:
+        cefr_label='C2 validé'
+    spanish_level=f"{CLASSES[profile['grade']]} · {cefr_label if cefr_label.endswith('validé') else cefr_label+' en cours'}"
+    result=[{'label':'🇪🇸 Espagnol','track':'spanish','done':spanish_done,'total':spanish_total,
+             'level':spanish_level,'unit':'acquis','color':'esp'}]
+    for label,track,color in [('🇩🇪 Allemand','travel_german','de'),
+                              ('🇮🇹 Italien','travel_italian','it'),
+                              ('🇬🇧 Anglais','travel_english','en')]:
+        total=len(MISSIONS)
+        done=sum(profile.get(track,{}).get(str(i)) is True for i in range(total))
+        level='Guide terminé' if done==total else f'Mission {done+1}/{total} · A1++'
+        result.append({'label':label,'track':track,'done':done,'total':total,
+                       'level':level,'unit':'missions','color':color})
+    for item in result:
+        item['percent']=100*item['done']/item['total'] if item['total'] else 0.0
+    return result
+
+
+def render_language_progress(items,selected_language,last_language):
+    # La moyenne des 4 taux donne le même poids à chaque langue, indépendamment
+    # de la longueur bien différente de l'école espagnole et des guides de voyage.
+    global_pct=sum(item['percent'] for item in items)/len(items)
+    best=max(items,key=lambda item:item['percent']) if items else None
+    best_label=best['label'] if best and best['percent']>0 else 'À découvrir'
+    recent=last_language if last_language in [item['label'] for item in items] else 'Non renseignée'
+    head=(f'<div class="language-overview-title"><div>📊 <strong>Mes progrès par langue</strong>'
+          f'<span class="language-overview-hint">Basés sur les validations · sans pression</span></div>'
+          f'<div class="language-global">🌟 Progression globale <strong>{round(global_pct)} %</strong></div></div>')
+    global_bar=(f'<div class="language-global-bar" role="progressbar" '
+                f'aria-label="Progression globale" aria-valuenow="{round(global_pct)}" '
+                f'aria-valuemin="0" aria-valuemax="100">'
+                f'<div class="language-global-fill" style="width:{global_pct:.3f}%"></div></div>')
+    cards=[]
+    for item in items:
+        pct=round(item['percent'])
+        selected=' active' if item['label']==selected_language else ''
+        cards.append(f"""<div class="language-card {item['color']}{selected}">
+           <div class="language-card-top"><strong>{html.escape(item['label'])}</strong>
+           <span class="language-pct">{pct} %</span></div>
+           <div class="language-level">{html.escape(item['level'])}</div>
+           <div class="language-bar" role="progressbar" aria-label="{html.escape(item['label'],quote=True)}"
+                aria-valuenow="{pct}" aria-valuemin="0" aria-valuemax="100">
+             <div class="language-fill" style="width:{item['percent']:.3f}%"></div></div>
+           <div class="language-count">{item['done']}/{item['total']} {item['unit']} validés</div>
+        </div>""")
+    footer=f"""<div class="language-overview-footer"><span>🏅 Langue la plus avancée : <strong>{html.escape(best_label)}</strong></span>
+       <span>📍 Dernière langue travaillée : <strong>{html.escape(recent)}</strong></span>
+       <span class="language-overview-small">Moyenne des 4 parcours · le détail de l’espagnol comprend aussi les bilans.</span></div>"""
+    return f'<section class="language-overview" aria-label="Progression des quatre langues">{head}{global_bar}<div class="language-grid">{"".join(cards)}</div>{footer}</section>'
 
 
 def b64_asset(name):
@@ -493,6 +569,47 @@ button[kind="primary"]{background:linear-gradient(100deg,#7c4ac0,#b45bb5)!import
 @media(max-width:1100px){.hero-art{min-width:260px;width:34%}.hero-copy .tags{margin-top:12px}.kpis{gap:8px}.kpi{padding:12px;gap:6px}.kpi .emoji{font-size:2.5rem}.kpi .big{font-size:1.8rem}}
 @media(max-width:760px){.block-container{padding:.65rem .63rem 1.7rem!important}.hero-school{min-height:165px;padding-left:15px;border-radius:20px}.hero-copy{padding:17px 0}.hero-copy h1{font-size:1.52rem}.hero-copy .subtitle{font-size:.9rem}.hero-copy .tags{font-size:.72rem;gap:7px}.hero-art{min-width:105px;width:30%;clip-path:ellipse(100% 95% at 95% 50%)}.kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.kpi{min-height:93px}.kpi .emoji{font-size:2.3rem}.kpi .big{font-size:1.8rem}.teacher-box .name{font-size:1.3rem}.lesson-header .heading{font-size:1.5rem}}
 @media(max-width:390px){.hero-art{display:none}.kpi{padding:9px}.kpi .emoji{font-size:1.9rem}.kpi .label{font-size:.78rem}.kpi .big{font-size:1.48rem}}
+
+/* V6.4 : suivi de la progression des 4 langues. */
+.language-overview{background:rgba(255,255,255,.82);border:1px solid #ecdce9;
+  border-radius:21px;margin:13px 0 16px;padding:13px 15px 11px;box-shadow:0 7px 20px #70497915}
+.language-overview-title{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  color:#552c74;font-size:1.03rem;margin-bottom:11px;flex-wrap:wrap}
+.language-overview-hint{display:inline-block;margin-left:12px;font-size:.76rem;font-weight:600;color:#88778d}
+.language-global{padding:7px 11px;border-radius:999px;background:#f2e8fb;font-weight:800;
+  white-space:nowrap;font-size:.86rem}
+.language-global strong{font-size:1.12rem;color:#682e97;margin-left:5px}
+.language-global-bar{height:6px;background:#efe5f4;border-radius:99px;overflow:hidden;margin:-2px 0 11px}
+.language-global-fill{height:100%;background:linear-gradient(90deg,#9859d1,#eea074);border-radius:99px} 
+.language-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.language-card{border-radius:16px;padding:12px 13px 10px;border:2px solid transparent;
+  background:linear-gradient(135deg,#fff8fb,#fae8f3);min-width:0}
+.language-card.active{border-color:#9b72c7;box-shadow:0 0 0 2px #e9d8f8}
+.language-card.de{background:linear-gradient(135deg,#f8fbff,#e3efff)}
+.language-card.it{background:linear-gradient(135deg,#f8fefa,#e1f5e9)}
+.language-card.en{background:linear-gradient(135deg,#fffaf2,#ffeed4)}
+.language-card-top{display:flex;align-items:center;justify-content:space-between;gap:6px;color:#35264c;font-size:.94rem}
+.language-pct{font-weight:900;font-size:1.26rem;color:#843991;white-space:nowrap}
+.language-card.de .language-pct{color:#2466aa}.language-card.it .language-pct{color:#248456}
+.language-card.en .language-pct{color:#a3640f}
+.language-level{color:#6c5874;font-size:.79rem;font-weight:750;margin:4px 0 10px;
+  overflow-wrap:anywhere}
+.language-bar{height:10px;border-radius:99px;background:#e9dae9;overflow:hidden}
+.language-card.de .language-bar{background:#d6e7f7}.language-card.it .language-bar{background:#d7ebde}
+.language-card.en .language-bar{background:#f1dfbc}
+.language-fill{height:100%;background:linear-gradient(90deg,#b177cb,#7947b5);border-radius:99px;transition:width .3s}
+.language-card.de .language-fill{background:linear-gradient(90deg,#5ab4ff,#3474bd)}
+.language-card.it .language-fill{background:linear-gradient(90deg,#65c69c,#258a62)}
+.language-card.en .language-fill{background:linear-gradient(90deg,#f1b85b,#dc8429)}
+.language-count{margin-top:6px;font-size:.78rem;color:#705e75}
+.language-overview-footer{display:flex;flex-wrap:wrap;gap:7px 19px;margin:10px 2px 0;color:#644b70;font-size:.77rem}
+.language-overview-small{color:#8a7a92}
+@media(max-width:980px){.language-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .language-overview-hint{display:block;margin-left:0}}
+@media(max-width:480px){.language-overview{padding:10px 9px}
+  .language-grid{gap:7px}.language-card{padding:9px 8px}.language-card-top{font-size:.8rem}
+  .language-pct{font-size:1.07rem}.language-level,.language-count{font-size:.73rem}
+  .language-global{font-size:.78rem}}
 </style>'''
 st.markdown(CSS,unsafe_allow_html=True)
 
@@ -508,6 +625,11 @@ st.markdown(f'''<div class="hero-school"><div class="hero-copy">
 
 st.markdown('<div class="lang-caption">🌍 Choisis ton parcours :</div>',unsafe_allow_html=True)
 lang=st.segmented_control('Langue',['🇪🇸 Espagnol','🇩🇪 Allemand','🇮🇹 Italien','🇬🇧 Anglais'],default='🇪🇸 Espagnol',key='language_label',label_visibility='collapsed') or '🇪🇸 Espagnol'
+# Afficher toutes les langues au même endroit, même lorsque l'onglet change.
+progress_items=progress_all_languages(p)
+st.markdown(render_language_progress(progress_items,lang,p.get('last_language','')),
+            unsafe_allow_html=True)
+
 esp=lang=='🇪🇸 Espagnol'
 track={'🇩🇪 Allemand':'travel_german','🇮🇹 Italien':'travel_italian','🇬🇧 Anglais':'travel_english'}.get(lang,'travel_german')
 if esp:
@@ -984,7 +1106,7 @@ else:
 st.divider()
 with st.expander('💾 Exporter / importer ma progression · Important sur Streamlit Cloud'):
     st.download_button('⬇️ Télécharger ma sauvegarde JSON',json.dumps(p,ensure_ascii=False,indent=2),
-                       file_name='mi_espanol_progression_v6_3.json',mime='application/json',use_container_width=True,key='export_profile')
+                       file_name='mi_espanol_progression_v6_4.json',mime='application/json',use_container_width=True,key='export_profile')
     uploaded=st.file_uploader('Importer un profil V2 à V6',type=['json'],key='import_profile')
     if uploaded is not None and st.button('📂 Restaurer le profil',key='restore_profile'):
         try:
@@ -999,4 +1121,4 @@ with st.expander('💾 Exporter / importer ma progression · Important sur Strea
             st.rerun()
         except (UnicodeError,ValueError,TypeError) as error:st.error(str(error))
     st.caption('Sur Streamlit Cloud, les sauvegardes locales peuvent disparaître. Conserve ce fichier JSON pour retrouver tes résultats. Ne publie jamais ton fichier personnel sur GitHub.')
-st.caption(f'🇪🇸 Mi Español V6.3 · Guide de 30 jours DE/IT/EN : {len(MISSIONS)} missions et {TOTAL_EXPRESSIONS} expressions par langue · Révisions mixtes · Cours d’espagnol inchangés.')
+st.caption(f'🇪🇸 Mi Español V6.4 · Progression par langue · Guide de 30 jours DE/IT/EN : {len(MISSIONS)} missions et {TOTAL_EXPRESSIONS} expressions par langue · Révisions mixtes · Cours d’espagnol inchangés.')
