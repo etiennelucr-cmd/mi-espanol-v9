@@ -1,0 +1,31 @@
+MI ESPAÑOL V5.1 - CORRECTIF DE PROFIL
+
+Symptôme : KeyError: 'grammar_exams' à la ligne du déblocage de la grammaire.
+Cause : un ancien profil déjà présent dans Streamlit session_state n'est pas
+renormalisé après mise à jour vers V5. Le nouveau champ grammar_exams manque.
+
+CORRECTIF RAPIDE DIRECTEMENT DANS GITHUB :
+
+Dans app.py, rechercher :
+
+if 'profile' not in st.session_state:
+    st.session_state.profile = load_profile()
+p = st.session_state.profile
+
+Remplacer par :
+
+if 'profile' not in st.session_state:
+    st.session_state.profile = load_profile()
+st.session_state.profile = normalize(st.session_state.profile)
+p = st.session_state.profile
+
+Le correctif remplit les clés manquantes de façon générale, au lieu de simplement
+masquer grammar_exams. Les acquis existants restent conservés.
+
+AUTRE MÉTHODE :
+Mettre correctif_v5_1.py à côté du app.py V5, puis exécuter une fois :
+    python correctif_v5_1.py
+Une sauvegarde de l'ancien app.py est conservée automatiquement.
+
+Après publication sur GitHub, redémarrer l'application Streamlit Cloud au besoin.
+La compilation Python ne garantit pas le bon fonctionnement sur le cloud.
