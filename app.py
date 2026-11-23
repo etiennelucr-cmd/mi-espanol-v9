@@ -29,24 +29,355 @@ TENSE_ORDER=['presente','imperfecto','preterito','perfecto','futuro','condiciona
  'preterito_anterior','subj_futuro','subj_futuro_perfecto']
 assert set(TENSE_ORDER)==set(TENSES)
 
-MISSIONS=[
- ('Premiers contacts','Saluer et se présenter',('Bonjour','Guten Tag','Buongiorno'),('Merci','Danke','Grazie')),
- ('Nombres et prix','Comprendre un prix',('Combien ça coûte ?','Wie viel kostet das?','Quanto costa?'),('Dix','Zehn','Dieci')),
- ('Au restaurant','Commander à manger',('Je voudrais de l’eau','Ich hätte gern Wasser','Vorrei dell’acqua'),('L’addition, s’il vous plaît','Die Rechnung, bitte','Il conto, per favore')),
- ('À l’hôtel','Arriver à l’hôtel',('J’ai une réservation','Ich habe eine Reservierung','Ho una prenotazione'),('Une chambre','Ein Zimmer','Una camera')),
- ('Transports','Acheter un billet',('Un billet, s’il vous plaît','Eine Fahrkarte, bitte','Un biglietto, per favore'),('La gare','Der Bahnhof','La stazione')),
- ('Directions','Trouver son chemin',('Où est la gare ?','Wo ist der Bahnhof?','Dov’è la stazione?'),('À gauche','Links','A sinistra')),
- ('Achats','Faire des courses',('Je cherche…','Ich suche…','Cerco…'),('Trop cher','Zu teuer','Troppo caro')),
- ('Météo et loisirs','Parler simplement',('Il fait beau','Das Wetter ist schön','C’è bel tempo'),('Aujourd’hui','Heute','Oggi')),
- ('Santé et urgences','Demander de l’aide',('J’ai besoin d’aide','Ich brauche Hilfe','Ho bisogno di aiuto'),('Un médecin','Ein Arzt','Un medico')),
- ('Conversation','Échanger avec les habitants',('Je ne comprends pas','Ich verstehe nicht','Non capisco'),('Parlez plus lentement','Sprechen Sie langsamer','Parli più lentamente')),
+# Guide du voyageur : 10 missions compactes ; expressions de référence disponibles
+# dans le guide express même si une mission est verrouillée (cas d'urgence).
+# Format phrase : (français, allemand poli en Sie, italien poli en Lei).
+TRAVEL_GUIDE = [
+    ('Premiers contacts', 'Saluer, demander de répéter et se faire comprendre', [
+        ('Bonjour !', 'Guten Tag!', 'Buongiorno!'),
+        ('Excusez-moi.', 'Entschuldigung.', 'Mi scusi.'),
+        ('Parlez-vous anglais ?', 'Sprechen Sie Englisch?', 'Parla inglese?'),
+        ('Je ne comprends pas.', 'Ich verstehe nicht.', 'Non capisco.'),
+        ('Pouvez-vous répéter, s’il vous plaît ?', 'Können Sie das bitte wiederholen?', 'Può ripetere, per favore?'),
+        ('Parlez plus lentement, s’il vous plaît.', 'Sprechen Sie bitte langsamer.', 'Parli più lentamente, per favore.'),
+        ('Merci beaucoup.', 'Vielen Dank.', 'Grazie mille.'),
+    ]),
+    ('Prix, horaires et informations', 'Comprendre les prix, horaires et moyens de paiement', [
+        ('Combien ça coûte ?', 'Wie viel kostet das?', 'Quanto costa?'),
+        ('À quelle heure cela commence ?', 'Um wie viel Uhr beginnt das?', 'A che ora comincia?'),
+        ('Pouvez-vous l’écrire ?', 'Können Sie das bitte aufschreiben?', 'Può scriverlo, per favore?'),
+        ('Puis-je payer par carte ?', 'Kann ich mit Karte bezahlen?', 'Posso pagare con la carta?'),
+        ('Où est le distributeur de billets ?', 'Wo ist der nächste Geldautomat?', 'Dov’è il bancomat più vicino?'),
+        ('Est-ce ouvert aujourd’hui ?', 'Ist das heute geöffnet?', 'È aperto oggi?'),
+        ('Je voudrais un reçu, s’il vous plaît.', 'Ich hätte gern eine Quittung, bitte.', 'Vorrei una ricevuta, per favore.'),
+    ]),
+    ('Restaurant et alimentation', 'Commander, demander les toilettes et signaler une allergie', [
+        ('Je voudrais une bouteille d’eau.', 'Ich hätte gern eine Flasche Wasser.', 'Vorrei una bottiglia d’acqua.'),
+        ('L’addition, s’il vous plaît.', 'Die Rechnung, bitte.', 'Il conto, per favore.'),
+        ('Avez-vous un menu en anglais ?', 'Haben Sie eine Speisekarte auf Englisch?', 'Avete un menù in inglese?'),
+        ('Je suis végétarien / végétarienne.', 'Ich bin Vegetarier / Vegetarierin.', 'Sono vegetariano / vegetariana.'),
+        ('Je suis allergique aux fruits à coque.', 'Ich bin allergisch gegen Nüsse.', 'Sono allergico/a alla frutta a guscio.'),
+        ('Où sont les toilettes ?', 'Wo ist die Toilette?', 'Dov’è il bagno?'),
+        ('C’est à emporter.', 'Zum Mitnehmen, bitte.', 'Da asporto, per favore.'),
+    ]),
+    ('Hôtel, clés et ascenseur', 'Réception, clé perdue, carte en panne et ascenseur', [
+        ('J’ai une réservation.', 'Ich habe eine Reservierung.', 'Ho una prenotazione.'),
+        ('J’ai perdu la clé de ma chambre.', 'Ich habe meinen Zimmerschlüssel verloren.', 'Ho perso la chiave della camera.'),
+        ('Où est l’ascenseur ?', 'Wo ist der Aufzug?', 'Dov’è l’ascensore?'),
+        ('Ma carte de chambre ne fonctionne pas.', 'Meine Zimmerkarte funktioniert nicht.', 'La tessera della mia camera non funziona.'),
+        ('Puis-je avoir une autre clé ?', 'Kann ich bitte einen Ersatzschlüssel bekommen?', 'Posso avere una chiave di ricambio, per favore?'),
+        ('L’ascenseur est en panne.', 'Der Aufzug ist kaputt.', 'L’ascensore è guasto.'),
+        ('Je suis coincé(e) dans l’ascenseur.', 'Ich stecke im Aufzug fest.', 'Sono bloccato/a nell’ascensore.'),
+        ('Où puis-je déposer mes bagages ?', 'Wo kann ich mein Gepäck abstellen?', 'Dove posso lasciare i bagagli?'),
+    ]),
+    ('Transports et aéroport', 'Billets, retards, correspondances et bagages', [
+        ('Un billet, s’il vous plaît.', 'Eine Fahrkarte, bitte.', 'Un biglietto, per favore.'),
+        ('Où est le quai ?', 'Wo ist der Bahnsteig?', 'Dov’è il binario?'),
+        ('Ce train va-t-il à la gare centrale ?', 'Fährt dieser Zug zum Hauptbahnhof?', 'Questo treno va alla stazione centrale?'),
+        ('J’ai raté mon train.', 'Ich habe meinen Zug verpasst.', 'Ho perso il treno.'),
+        ('Le train a-t-il du retard ?', 'Hat der Zug Verspätung?', 'Il treno è in ritardo?'),
+        ('Où est l’arrêt de bus ?', 'Wo ist die Bushaltestelle?', 'Dov’è la fermata dell’autobus?'),
+        ('Mes bagages ne sont pas arrivés.', 'Mein Gepäck ist nicht angekommen.', 'Il mio bagaglio non è arrivato.'),
+        ('Pouvez-vous appeler un taxi ?', 'Können Sie bitte ein Taxi rufen?', 'Può chiamare un taxi, per favore?'),
+    ]),
+    ('Chemin, étages et objets', 'Se repérer, chercher un objet et retrouver ce qu’on a perdu', [
+        ('Où se trouve cette adresse ?', 'Wo ist diese Adresse?', 'Dov’è questo indirizzo?'),
+        ('Je cherche mes clés.', 'Ich suche meine Schlüssel.', 'Sto cercando le mie chiavi.'),
+        ('Où puis-je trouver un chargeur ?', 'Wo finde ich ein Ladegerät?', 'Dove posso trovare un caricabatterie?'),
+        ('À quel étage est-ce ?', 'In welchem Stockwerk ist das?', 'A che piano si trova?'),
+        ('Dois-je aller à gauche ou à droite ?', 'Muss ich nach links oder nach rechts gehen?', 'Devo andare a sinistra o a destra?'),
+        ('Est-ce loin à pied ?', 'Ist das zu Fuß weit?', 'È lontano a piedi?'),
+        ('J’ai perdu mon téléphone.', 'Ich habe mein Handy verloren.', 'Ho perso il telefono.'),
+        ('Où sont les objets trouvés ?', 'Wo ist das Fundbüro?', 'Dov’è l’ufficio oggetti smarriti?'),
+    ]),
+    ('Achats et services', 'Chercher un produit, régler un problème ou faire un retour', [
+        ('Je cherche une pharmacie.', 'Ich suche eine Apotheke.', 'Cerco una farmacia.'),
+        ('Avez-vous une taille plus grande ?', 'Haben Sie das eine Nummer größer?', 'Ce l’ha di una taglia più grande?'),
+        ('Je peux essayer ?', 'Kann ich das anprobieren?', 'Posso provarlo?'),
+        ('Je voudrais rendre cet article.', 'Ich möchte diesen Artikel zurückgeben.', 'Vorrei restituire questo articolo.'),
+        ('Cela ne fonctionne pas.', 'Das funktioniert nicht.', 'Non funziona.'),
+        ('Où puis-je acheter une carte SIM ?', 'Wo kann ich eine SIM-Karte kaufen?', 'Dove posso comprare una scheda SIM?'),
+        ('Est-ce que vous acceptez les espèces ?', 'Nehmen Sie Bargeld an?', 'Accettate contanti?'),
+    ]),
+    ('Sorties et vie quotidienne', 'Visites, réservations, météo et connexion', [
+        ('Je voudrais réserver pour deux personnes.', 'Ich möchte für zwei Personen reservieren.', 'Vorrei prenotare per due persone.'),
+        ('Où puis-je acheter des billets ?', 'Wo kann ich Eintrittskarten kaufen?', 'Dove posso acquistare i biglietti?'),
+        ('Est-ce gratuit ?', 'Ist der Eintritt kostenlos?', 'L’ingresso è gratuito?'),
+        ('Quel temps fera-t-il demain ?', 'Wie wird das Wetter morgen?', 'Che tempo farà domani?'),
+        ('Quel est le mot de passe du Wi-Fi ?', 'Wie lautet das WLAN-Passwort?', 'Qual è la password del Wi-Fi?'),
+        ('À quelle heure fermez-vous ?', 'Um wie viel Uhr schließen Sie?', 'A che ora chiudete?'),
+        ('Puis-je prendre une photo ici ?', 'Darf ich hier ein Foto machen?', 'Posso fare una foto qui?'),
+    ]),
+    ('Santé, sécurité et urgences', 'Demander immédiatement de l’aide, soigner et signaler un vol', [
+        ('J’ai besoin d’aide.', 'Ich brauche Hilfe.', 'Ho bisogno di aiuto.'),
+        ('Appelez une ambulance !', 'Rufen Sie einen Krankenwagen!', 'Chiami un’ambulanza!'),
+        ('J’ai besoin d’un médecin.', 'Ich brauche einen Arzt.', 'Ho bisogno di un medico.'),
+        ('J’ai très mal ici.', 'Ich habe hier starke Schmerzen.', 'Ho molto dolore qui.'),
+        ('Je suis allergique à ce médicament.', 'Ich bin gegen dieses Medikament allergisch.', 'Sono allergico/a a questo farmaco.'),
+        ('On m’a volé mon sac.', 'Meine Tasche wurde gestohlen.', 'Mi hanno rubato la borsa.'),
+        ('J’ai perdu mon passeport.', 'Ich habe meinen Reisepass verloren.', 'Ho perso il passaporto.'),
+        ('Appelez la police !', 'Rufen Sie die Polizei!', 'Chiami la polizia!'),
+    ]),
+    ('Imprévus et dépannage', 'Pannes, changements de programme, bagages et documents', [
+        ('Il y a un problème avec ma réservation.', 'Es gibt ein Problem mit meiner Reservierung.', 'C’è un problema con la mia prenotazione.'),
+        ('Il n’y a pas d’eau chaude.', 'Es gibt kein warmes Wasser.', 'Non c’è acqua calda.'),
+        ('La climatisation ne fonctionne pas.', 'Die Klimaanlage funktioniert nicht.', 'L’aria condizionata non funziona.'),
+        ('J’ai besoin d’un nouveau billet.', 'Ich brauche eine neue Fahrkarte.', 'Ho bisogno di un nuovo biglietto.'),
+        ('Pouvez-vous m’aider à retrouver mon sac ?', 'Können Sie mir helfen, meine Tasche wiederzufinden?', 'Può aiutarmi a ritrovare la mia borsa?'),
+        ('Je souhaite changer ma réservation.', 'Ich möchte meine Reservierung ändern.', 'Vorrei modificare la mia prenotazione.'),
+        ('Où se trouve le consulat ?', 'Wo befindet sich das Konsulat?', 'Dove si trova il consolato?'),
+        ('Pouvez-vous appeler la réception ?', 'Können Sie bitte die Rezeption anrufen?', 'Può chiamare la reception, per favore?'),
+    ]),
 ]
+
+# MI ESPAÑOL V6.3 · Guide A1++ de 30 jours, 15 situations et 4 langues de travail.
+# La liste V6.2 (allemand/italien) est conservée à l'identique dans les 10 premiers modules.
+# Chaque phrase est maintenant (français, allemand, italien, anglais).
+EN_CORE = [
+ [
+   'Hello!', 'Excuse me.', 'Do you speak English?', "I don't understand.",
+   'Could you repeat that, please?', 'Could you speak more slowly, please?', 'Thank you very much.',
+ ],
+ [
+   'How much does it cost?', 'What time does it start?', 'Could you write it down?',
+   'Can I pay by card?', 'Where is the nearest ATM?', 'Is it open today?',
+   "I'd like a receipt, please.",
+ ],
+ [
+   "I'd like a bottle of water.", 'The bill, please.', 'Do you have a menu in English?',
+   "I'm vegetarian.", "I'm allergic to nuts.", 'Where is the toilet?',
+   'To take away, please.',
+ ],
+ [
+   'I have a reservation.', 'I have lost my room key.', 'Where is the lift?',
+   "My room key card doesn't work.", 'Could I have a replacement key, please?',
+   'The lift is out of order.', "I'm stuck in the lift.",
+   'Where can I leave my luggage?',
+ ],
+ [
+   'One ticket, please.', 'Where is the platform?', 'Does this train go to the main station?',
+   'I missed my train.', 'Is the train delayed?', 'Where is the bus stop?',
+   "My luggage hasn't arrived.", 'Could you call a taxi, please?',
+ ],
+ [
+   'Where is this address?', "I'm looking for my keys.", 'Where can I find a phone charger?',
+   'Which floor is it on?', 'Should I turn left or right?', 'Is it far on foot?',
+   "I've lost my phone.", 'Where is the lost property office?',
+ ],
+ [
+   "I'm looking for a pharmacy.", 'Do you have a larger size?', 'Can I try it on?',
+   "I'd like to return this item.", "It doesn't work.",
+   'Where can I buy a SIM card?', 'Do you accept cash?',
+ ],
+ [
+   "I'd like to book for two people.", 'Where can I buy tickets?', 'Is it free?',
+   'What will the weather be like tomorrow?', "What's the Wi-Fi password?",
+   'What time do you close?', 'May I take a photo here?',
+ ],
+ [
+   'I need help.', 'Call an ambulance!', 'I need a doctor.',
+   'I have severe pain here.', "I'm allergic to this medicine.",
+   'My bag has been stolen.', "I've lost my passport.", 'Call the police!',
+ ],
+ [
+   'There is a problem with my booking.', 'There is no hot water.',
+   "The air conditioning doesn't work.", 'I need a new ticket.',
+   'Could you help me find my bag?', "I'd like to change my booking.",
+   'Where is the consulate?', 'Could you call reception, please?',
+ ],
+]
+
+# Les ajouts enrichissent les 10 missions déjà acquises, sans changer leurs identifiants.
+# Format : français | allemand poli | italien poli | anglais courant.
+_EXTRA_RAW = [
+'''Bonsoir, avez-vous un moment ?|Guten Abend, haben Sie einen Moment Zeit?|Buonasera, ha un momento?|Good evening, do you have a moment?
+Je parle seulement un peu allemand / italien / anglais.|Ich spreche nur ein wenig Deutsch.|Parlo solo un po' di italiano.|I only speak a little English.
+Pouvez-vous me montrer sur votre téléphone ?|Können Sie es mir auf Ihrem Handy zeigen?|Può mostrarmelo sul suo telefono?|Could you show me on your phone?
+Comment dit-on cela dans votre langue ?|Wie sagt man das auf Deutsch?|Come si dice in italiano?|How do you say that in English?
+Je viens de France.|Ich komme aus Frankreich.|Vengo dalla Francia.|I'm from France.
+Je suis ici pour un mois.|Ich bin für einen Monat hier.|Sono qui per un mese.|I'm here for a month.
+Je ne parle pas bien cette langue.|Ich spreche diese Sprache nicht gut.|Non parlo bene questa lingua.|I don't speak this language very well.
+Puis-je vous poser une question ?|Darf ich Ihnen eine Frage stellen?|Posso farle una domanda?|May I ask you a question?''',
+'''Pouvez-vous me donner la monnaie ?|Können Sie mir bitte Wechselgeld geben?|Può darmi il resto, per favore?|Could you give me my change, please?
+Puis-je avoir une facture ?|Kann ich bitte eine Rechnung bekommen?|Posso avere una fattura, per favore?|Could I have an invoice, please?
+Où puis-je changer de l'argent ?|Wo kann ich Geld wechseln?|Dove posso cambiare dei soldi?|Where can I exchange money?
+Mon paiement a été refusé.|Meine Zahlung wurde abgelehnt.|Il mio pagamento è stato rifiutato.|My payment was declined.
+Ma carte a été avalée par le distributeur.|Der Geldautomat hat meine Karte eingezogen.|Il bancomat ha trattenuto la mia carta.|The ATM has kept my card.
+Combien de temps faut-il attendre ?|Wie lange muss man warten?|Quanto tempo bisogna aspettare?|How long is the wait?
+Est-ce compris dans le prix ?|Ist das im Preis inbegriffen?|È compreso nel prezzo?|Is that included in the price?
+Est-ce qu'il y a une réduction ?|Gibt es einen Rabatt?|C'è uno sconto?|Is there a discount?''',
+'''Une table pour une personne, s'il vous plaît.|Einen Tisch für eine Person, bitte.|Un tavolo per una persona, per favore.|A table for one, please.
+Je ne mange pas de viande.|Ich esse kein Fleisch.|Non mangio carne.|I don't eat meat.
+Est-ce que ce plat contient du lait ?|Enthält dieses Gericht Milch?|Questo piatto contiene latte?|Does this dish contain milk?
+Pouvez-vous faire ce plat sans gluten ?|Können Sie dieses Gericht ohne Gluten zubereiten?|Può preparare questo piatto senza glutine?|Can you make this dish gluten-free?
+Puis-je avoir de l'eau du robinet ?|Kann ich Leitungswasser haben?|Posso avere dell'acqua del rubinetto?|Could I have tap water?
+Ce n'est pas ce que j'ai commandé.|Das habe ich nicht bestellt.|Non è quello che ho ordinato.|This isn't what I ordered.
+Où est le supermarché le plus proche ?|Wo ist der nächste Supermarkt?|Dov'è il supermercato più vicino?|Where is the nearest supermarket?''',
+'''Le chauffage ne fonctionne pas.|Die Heizung funktioniert nicht.|Il riscaldamento non funziona.|The heating isn't working.
+La chambre est trop bruyante.|Das Zimmer ist zu laut.|La camera è troppo rumorosa.|The room is too noisy.
+Puis-je changer de chambre ?|Kann ich das Zimmer wechseln?|Posso cambiare camera?|Can I change rooms?
+À quelle heure dois-je quitter la chambre ?|Bis wann muss ich auschecken?|A che ora devo lasciare la camera?|What time is check-out?
+Y a-t-il des escaliers ?|Gibt es eine Treppe?|Ci sono delle scale?|Are there any stairs?
+Pouvez-vous m'aider à porter ma valise ?|Können Sie mir mit meinem Koffer helfen?|Può aiutarmi con la valigia?|Could you help me with my suitcase?
+Je suis bloqué dehors.|Ich habe mich ausgesperrt.|Sono rimasto/a chiuso/a fuori.|I'm locked out.''',
+'''Où se trouve la porte d'embarquement ?|Wo ist das Abfluggate?|Dov'è il gate d'imbarco?|Where is the boarding gate?
+À quelle heure part le prochain bus ?|Wann fährt der nächste Bus ab?|A che ora parte il prossimo autobus?|When is the next bus?
+Dois-je changer de train ?|Muss ich umsteigen?|Devo cambiare treno?|Do I need to change trains?
+Où puis-je acheter un pass de transport ?|Wo kann ich eine Tageskarte kaufen?|Dove posso comprare un abbonamento per i mezzi?|Where can I buy a transport pass?
+Ce siège est-il libre ?|Ist dieser Platz frei?|Questo posto è libero?|Is this seat free?
+J'ai oublié un objet dans le taxi.|Ich habe etwas im Taxi vergessen.|Ho dimenticato qualcosa nel taxi.|I left something in the taxi.
+Je dois aller à cette adresse.|Ich muss zu dieser Adresse.|Devo andare a questo indirizzo.|I need to go to this address.''',
+'''Pouvez-vous me l'indiquer sur la carte ?|Können Sie es mir auf der Karte zeigen?|Può indicarmelo sulla mappa?|Could you show me on the map?
+Comment aller au centre-ville ?|Wie komme ich ins Stadtzentrum?|Come arrivo in centro?|How do I get to the city centre?
+Y a-t-il un passage piéton ?|Gibt es einen Zebrastreifen?|C'è un attraversamento pedonale?|Is there a pedestrian crossing?
+Est-ce accessible en fauteuil roulant ?|Ist das rollstuhlgerecht?|È accessibile in sedia a rotelle?|Is it wheelchair accessible?
+Je crois que je suis perdu(e).|Ich glaube, ich habe mich verlaufen.|Credo di essermi perso/a.|I think I'm lost.
+Pouvez-vous m'indiquer une rue plus calme ?|Können Sie mir eine ruhigere Straße zeigen?|Può indicarmi una strada più tranquilla?|Could you point me towards a quieter street?
+J'ai trouvé un objet, où puis-je le déposer ?|Ich habe etwas gefunden. Wo kann ich es abgeben?|Ho trovato un oggetto. Dove posso consegnarlo?|I found something. Where can I hand it in?''',
+'''Où est le bureau de poste ?|Wo ist die Post?|Dov'è l'ufficio postale?|Where is the post office?
+Je cherche une batterie externe.|Ich suche eine Powerbank.|Cerco un caricabatterie portatile.|I'm looking for a power bank.
+Je cherche un adaptateur de prise.|Ich suche einen Steckdosenadapter.|Cerco un adattatore per la presa elettrica.|I'm looking for a plug adapter.
+Y a-t-il une prise électrique ?|Gibt es eine Steckdose?|C'è una presa elettrica?|Is there a power socket?
+Puis-je recevoir un colis ici ?|Kann ich hier ein Paket empfangen?|Posso ricevere un pacco qui?|Can I receive a parcel here?
+Cet article est-il sous garantie ?|Hat dieser Artikel Garantie?|Questo articolo è in garanzia?|Is this item under warranty?
+Je cherche une laverie automatique.|Ich suche einen Waschsalon.|Cerco una lavanderia a gettoni.|I'm looking for a laundrette.
+Pouvez-vous m'aider à utiliser cette machine ?|Können Sie mir helfen, dieses Gerät zu benutzen?|Può aiutarmi a usare questa macchina?|Could you help me use this machine?''',
+'''Dois-je réserver à l'avance ?|Muss ich im Voraus reservieren?|Devo prenotare in anticipo?|Do I need to book in advance?
+Y a-t-il des places disponibles ?|Sind noch Plätze frei?|Ci sono ancora posti disponibili?|Are there any places available?
+Puis-je recharger mon téléphone ici ?|Kann ich mein Handy hier aufladen?|Posso ricaricare il telefono qui?|Can I charge my phone here?
+Où est l'entrée ?|Wo ist der Eingang?|Dov'è l'ingresso?|Where is the entrance?
+Où est la sortie ?|Wo ist der Ausgang?|Dov'è l'uscita?|Where is the exit?
+Peut-on louer un vélo ici ?|Kann man hier ein Fahrrad mieten?|Si può noleggiare una bicicletta qui?|Can I hire a bicycle here?
+Est-ce adapté aux enfants ?|Ist das für Kinder geeignet?|È adatto ai bambini?|Is it suitable for children?
+Y a-t-il une visite guidée en anglais ?|Gibt es eine Führung auf Englisch?|C'è una visita guidata in inglese?|Is there a guided tour in English?''',
+'''Je me sens mal.|Mir geht es nicht gut.|Non mi sento bene.|I feel unwell.
+J'ai de la fièvre.|Ich habe Fieber.|Ho la febbre.|I have a fever.
+J'ai perdu mon portefeuille.|Ich habe mein Portemonnaie verloren.|Ho perso il portafoglio.|I've lost my wallet.
+Où est l'hôpital le plus proche ?|Wo ist das nächste Krankenhaus?|Dov'è l'ospedale più vicino?|Where is the nearest hospital?
+J'ai besoin de médicaments.|Ich brauche Medikamente.|Ho bisogno di medicine.|I need some medicine.
+Je suis diabétique.|Ich habe Diabetes.|Ho il diabete.|I have diabetes.
+Mon enfant a besoin d'aide.|Mein Kind braucht Hilfe.|Mio figlio / mia figlia ha bisogno di aiuto.|My child needs help.
+J'ai besoin d'un interprète.|Ich brauche einen Dolmetscher / eine Dolmetscherin.|Ho bisogno di un interprete.|I need an interpreter.''',
+'''Le Wi-Fi ne fonctionne pas.|Das WLAN funktioniert nicht.|Il Wi-Fi non funziona.|The Wi-Fi isn't working.
+Mon téléphone n'a plus de batterie.|Der Akku meines Handys ist leer.|Il telefono è scarico.|My phone has run out of battery.
+Il manque une serviette.|Ein Handtuch fehlt.|Manca un asciugamano.|A towel is missing.
+Il y a une fuite d'eau.|Es gibt ein Wasserleck.|C'è una perdita d'acqua.|There's a water leak.
+La fenêtre ne se ferme pas.|Das Fenster lässt sich nicht schließen.|La finestra non si chiude.|The window won't close.
+Pourriez-vous venir voir le problème ?|Könnten Sie sich das Problem bitte ansehen?|Potrebbe venire a vedere il problema?|Could you come and take a look at the problem?
+Est-ce que je peux être remboursé(e) ?|Kann ich eine Rückerstattung bekommen?|Posso ottenere un rimborso?|Can I get a refund?''',
+]
+
+# Cinq missions additionnelles qui complètent les anciens acquis pour couvrir un séjour d'un mois.
+_NEW_RAW = [
+('Arrivée et aéroport', 'Documents, bagages, guichets et contrôle', '''Voici mon passeport.|Hier ist mein Reisepass.|Ecco il mio passaporto.|Here is my passport.
+Voici mon billet électronique.|Hier ist mein elektronisches Ticket.|Ecco il mio biglietto elettronico.|Here is my e-ticket.
+Où se trouve l'enregistrement ?|Wo ist der Check-in-Schalter?|Dov'è il banco del check-in?|Where is the check-in desk?
+Mon vol est annulé.|Mein Flug wurde gestrichen.|Il mio volo è stato cancellato.|My flight has been cancelled.
+Où puis-je récupérer mes bagages ?|Wo kann ich mein Gepäck abholen?|Dove posso ritirare i bagagli?|Where can I collect my luggage?
+Je n'ai qu'un bagage à main.|Ich habe nur Handgepäck.|Ho solo un bagaglio a mano.|I only have hand luggage.
+Où est le contrôle de sécurité ?|Wo ist die Sicherheitskontrolle?|Dov'è il controllo di sicurezza?|Where is security screening?
+Où puis-je faire une déclaration de perte ?|Wo kann ich eine Verlustmeldung machen?|Dove posso fare una denuncia di smarrimento?|Where can I report a lost item?
+Combien de temps dure l'escale ?|Wie lange dauert der Zwischenstopp?|Quanto dura lo scalo?|How long is the stopover?
+Pouvez-vous m'aider avec ce formulaire ?|Können Sie mir bei diesem Formular helfen?|Può aiutarmi con questo modulo?|Could you help me with this form?'''),
+('Appartement et vie quotidienne', 'Location, ménage, linge, voisins et équipements', '''Je loue cet appartement pour un mois.|Ich habe diese Wohnung für einen Monat gemietet.|Ho affittato questo appartamento per un mese.|I'm renting this flat for a month.
+Où sont les poubelles ?|Wo sind die Mülltonnen?|Dove sono i bidoni della spazzatura?|Where are the bins?
+Comment fonctionne la machine à laver ?|Wie funktioniert die Waschmaschine?|Come funziona la lavatrice?|How does the washing machine work?
+Où puis-je acheter de la lessive ?|Wo kann ich Waschmittel kaufen?|Dove posso comprare il detersivo?|Where can I buy laundry detergent?
+Il n'y a plus de papier toilette.|Das Toilettenpapier ist alle.|È finita la carta igienica.|We've run out of toilet paper.
+Comment ouvrir cette porte ?|Wie öffne ich diese Tür?|Come si apre questa porta?|How do I open this door?
+L'électricité est coupée.|Der Strom ist ausgefallen.|È saltata la corrente.|The power has gone out.
+Où est le compteur d'eau ?|Wo ist der Wasserzähler?|Dov'è il contatore dell'acqua?|Where is the water meter?
+Puis-je utiliser la cuisine ?|Darf ich die Küche benutzen?|Posso usare la cucina?|Can I use the kitchen?
+Je dois joindre le propriétaire.|Ich muss den Vermieter kontaktieren.|Devo contattare il proprietario.|I need to contact the landlord. '''),
+('Voiture et déplacements', 'Location, stationnement, carburant et petites pannes', '''Je voudrais louer une voiture.|Ich möchte ein Auto mieten.|Vorrei noleggiare un'auto.|I'd like to hire a car.
+Où puis-je me garer ?|Wo kann ich parken?|Dove posso parcheggiare?|Where can I park?
+Le parking est-il payant ?|Ist das Parken hier kostenpflichtig?|Il parcheggio è a pagamento?|Do I have to pay to park here?
+Je cherche une station-service.|Ich suche eine Tankstelle.|Cerco un distributore di benzina.|I'm looking for a petrol station.
+Quel carburant dois-je utiliser ?|Welchen Kraftstoff muss ich tanken?|Quale carburante devo usare?|Which fuel should I use?
+La voiture ne démarre pas.|Das Auto springt nicht an.|L'auto non parte.|The car won't start.
+J'ai un pneu crevé.|Ich habe einen platten Reifen.|Ho una gomma a terra.|I have a flat tyre.
+J'ai besoin d'une dépanneuse.|Ich brauche einen Abschleppwagen.|Ho bisogno di un carro attrezzi.|I need a tow truck.
+J'ai eu un petit accident.|Ich hatte einen kleinen Unfall.|Ho avuto un piccolo incidente.|I've had a minor accident.
+Où est l'agence de location ?|Wo ist die Autovermietung?|Dov'è l'agenzia di autonoleggio?|Where is the car rental office?'''),
+('Loisirs, plage et excursions', 'Promenades, nature, billets et sécurité', '''Où commence le sentier ?|Wo beginnt der Wanderweg?|Dove inizia il sentiero?|Where does the trail start?
+Combien de temps dure la promenade ?|Wie lange dauert die Wanderung?|Quanto dura la passeggiata?|How long does the walk take?
+Est-ce dangereux de nager ici ?|Ist es gefährlich, hier zu schwimmen?|È pericoloso nuotare qui?|Is it dangerous to swim here?
+Où peut-on louer un parasol ?|Wo kann man einen Sonnenschirm mieten?|Dove posso noleggiare un ombrellone?|Where can I hire a beach umbrella?
+Je cherche un endroit à l'ombre.|Ich suche einen Platz im Schatten.|Cerco un posto all'ombra.|I'm looking for somewhere in the shade.
+La plage est-elle surveillée ?|Ist dieser Strand bewacht?|Questa spiaggia è sorvegliata?|Is there a lifeguard on this beach?
+Où se trouve le point de rendez-vous ?|Wo ist der Treffpunkt?|Dov'è il punto d'incontro?|Where is the meeting point?
+J'ai besoin d'eau potable.|Ich brauche Trinkwasser.|Ho bisogno di acqua potabile.|I need drinking water.
+Le chemin est-il ouvert ?|Ist der Weg geöffnet?|Il sentiero è aperto?|Is the trail open?
+Pouvez-vous prendre une photo de nous ?|Können Sie ein Foto von uns machen?|Può farci una foto?|Could you take a photo of us?'''),
+('Fin du séjour et retour', 'Départ, bagages, colis, remboursements et remerciements', '''Je pars demain matin.|Ich reise morgen früh ab.|Parto domani mattina.|I'm leaving tomorrow morning.
+Puis-je laisser mes bagages ici jusqu'à ce soir ?|Kann ich mein Gepäck bis heute Abend hier lassen?|Posso lasciare qui i bagagli fino a stasera?|Can I leave my luggage here until this evening?
+Je voudrais envoyer un colis en France.|Ich möchte ein Paket nach Frankreich schicken.|Vorrei spedire un pacco in Francia.|I'd like to send a parcel to France.
+Où puis-je acheter un timbre ?|Wo kann ich eine Briefmarke kaufen?|Dove posso comprare un francobollo?|Where can I buy a stamp?
+Puis-je récupérer ma caution ?|Kann ich meine Kaution zurückbekommen?|Posso riavere la cauzione?|Can I get my deposit back?
+J'ai besoin d'une facture finale.|Ich brauche eine Schlussrechnung.|Ho bisogno di una fattura finale.|I need a final invoice.
+Pouvez-vous m'indiquer l'itinéraire le plus rapide vers l'aéroport ?|Können Sie mir den schnellsten Weg zum Flughafen zeigen?|Può indicarmi il percorso più veloce per l'aeroporto?|Could you show me the quickest route to the airport?
+Où dois-je rendre la clé ?|Wo muss ich den Schlüssel abgeben?|Dove devo restituire la chiave?|Where should I return the key?
+Merci pour votre accueil !|Vielen Dank für Ihre Gastfreundschaft!|Grazie per l'ospitalità!|Thank you for your hospitality!
+J'ai passé un excellent séjour.|Ich hatte einen wunderschönen Aufenthalt.|Ho trascorso un soggiorno bellissimo.|I've had a wonderful stay.'''),
+]
+
+def _parse_translations(raw):
+    result=[]
+    for line in raw.strip().splitlines():
+        fields=tuple(field.strip() for field in line.split('|'))
+        if len(fields)!=4 or not all(fields):
+            raise ValueError(f'Phrase invalide : {line!r}')
+        result.append(fields)
+    return result
+
+assert len(EN_CORE)==len(TRAVEL_GUIDE)==10
+_OLD_GUIDE=TRAVEL_GUIDE
+TRAVEL_GUIDE=[]
+for _idx, (_name,_description,_phrases) in enumerate(_OLD_GUIDE):
+    if len(_phrases)!=len(EN_CORE[_idx]):
+        raise ValueError('Traductions anglaises manquantes : '+_name)
+    _full=[(*_phrase,EN_CORE[_idx][_j]) for _j,_phrase in enumerate(_phrases)]
+    _full.extend(_parse_translations(_EXTRA_RAW[_idx]))
+    TRAVEL_GUIDE.append((_name,_description,_full))
+for _name,_description,_raw in _NEW_RAW:
+    TRAVEL_GUIDE.append((_name,_description,_parse_translations(_raw)))
+
+MISSIONS=[(title,description,phrases[0],phrases[1]) for title,description,phrases in TRAVEL_GUIDE]
+GUIDE_DAYS=len(MISSIONS)*2
+TOTAL_EXPRESSIONS=sum(len(rows) for _,_,rows in TRAVEL_GUIDE)
+assert len(MISSIONS)==15 and GUIDE_DAYS==30
+assert len(_OLD_GUIDE)==10
+assert TOTAL_EXPRESSIONS>=190 and all(len(group)>=10 for _,_,group in TRAVEL_GUIDE)
+
+# Révisions intercalées : les acquis de 1, 3 et 6 missions auparavant sont sollicités.
+# Révision accessible dès le jour 2 de la mission, sans date limite.
+def mixed_review(mission_index, max_items=2):
+    if mission_index <= 0:return []
+    sources=[]
+    for ago in (1,3,6,mission_index):
+        previous=mission_index-ago
+        if previous>=0 and previous not in sources:
+            sources.append(previous)
+    results=[]
+    for source in sources[:max_items]:
+        group=TRAVEL_GUIDE[source][2]
+        phrase=group[(mission_index+source*3)%len(group)]
+        results.append((source,phrase))
+    return results
+
+# Index validés par mission ; trois expressions nouvelles + deux de révision.
+def mission_questions(mission_index):
+    phrases=TRAVEL_GUIDE[mission_index][2]
+    core=[(mission_index,phrases[k]) for k in (1,4,7)]
+    return core+mixed_review(mission_index)
+
 
 
 def new_profile():
-    return {'version':6,'name':'Élève','grade':0,'school':{},'school_exams':{},
+    return {'version':63,'name':'Élève','grade':0,'school':{},'school_exams':{},
             'cefr':{},'cefr_exams':{},'grammar':{},'grammar_exams':{},
-            'verbs':{},'tenses':{},'conjugation':{},'german':{},'italian':{},
+            'verbs':{},'tenses':{},'conjugation':{},'german':{},'italian':{},'english':{},
+            'travel_german':{},'travel_italian':{},'travel_english':{},
             'llcer':{},'notes':{},'stars':0,'legacy_spanish':{}}
 
 
@@ -65,7 +396,7 @@ def normalize(src):
     default['grade']=max(0,min(requested,current_school_grade(default['school_exams'],len(CLASSES)-1)))
     try:default['stars']=max(0,int(default['stars']))
     except (TypeError,ValueError):default['stars']=0
-    default['version']=6
+    default['version']=63
     return default
 
 
@@ -172,13 +503,13 @@ hero_img=(f'<img class="hero-art" alt="Illustration 2D d’une salle de classe a
 st.markdown(f'''<div class="hero-school"><div class="hero-copy">
 <h1>🇪🇸 Mi Español · Mon école des langues</h1>
 <div class="subtitle">Progresse à ton rythme du CP à la Terminale !</div>
-<div class="tags"><span>🎓 Espagnol scolaire</span><span>🌍 A1 → C2</span><span>🌱 Allemand et italien de survie</span><span>⭐ {int(p['stars'])} étoiles</span></div>
+<div class="tags"><span>🎓 Espagnol scolaire</span><span>🌍 A1 → C2</span><span>🌱 Allemand, italien et anglais de survie</span><span>⭐ {int(p['stars'])} étoiles</span></div>
 </div>{hero_img}</div>''',unsafe_allow_html=True)
 
 st.markdown('<div class="lang-caption">🌍 Choisis ton parcours :</div>',unsafe_allow_html=True)
-lang=st.segmented_control('Langue',['🇪🇸 Espagnol','🇩🇪 Allemand','🇮🇹 Italien'],default='🇪🇸 Espagnol',key='language_label',label_visibility='collapsed') or '🇪🇸 Espagnol'
+lang=st.segmented_control('Langue',['🇪🇸 Espagnol','🇩🇪 Allemand','🇮🇹 Italien','🇬🇧 Anglais'],default='🇪🇸 Espagnol',key='language_label',label_visibility='collapsed') or '🇪🇸 Espagnol'
 esp=lang=='🇪🇸 Espagnol'
-track='german' if lang=='🇩🇪 Allemand' else 'italian'
+track={'🇩🇪 Allemand':'travel_german','🇮🇹 Italien':'travel_italian','🇬🇧 Anglais':'travel_english'}.get(lang,'travel_german')
 if esp:
     grade=int(p['grade'])
     s_done=done_count('school',s_keys(grade))
@@ -186,7 +517,7 @@ if esp:
     cards=[('🏫','Ma classe',CLASSES[grade],'rose'),('📖','Leçons du niveau',f'{s_done}/{len(s_keys(grade))}','blue'),('🎯','Ateliers A1–C2',f'{c_done}/{sum(map(len,CECRL.values()))}','mint'),('⭐','Mes étoiles',str(p['stars']),'yellow')]
 else:
     m_done=done_count(track,[str(i) for i in range(len(MISSIONS))])
-    cards=[('🌍','Mon parcours','A1++','rose'),('🗣️','Missions acquises',f'{m_done}/10','blue'),('🎯','Voyage pratique','10 missions','mint'),('⭐','Mes étoiles',str(p['stars']),'yellow')]
+    cards=[('🌍','Mon parcours','A1++','rose'),('🗣️','Missions acquises',f'{m_done}/{len(MISSIONS)}','blue'),('🎯','Phrases utiles',str(sum(len(item[2]) for item in TRAVEL_GUIDE)),'mint'),('⭐','Mes étoiles',str(p['stars']),'yellow')]
 card_html=''.join(f'<div class="kpi {kind}"><span class="emoji">{symbol}</span><div><div class="label">{html.escape(title)}</div><div class="big">{html.escape(value)}</div></div></div>' for symbol,title,value,kind in cards)
 st.markdown('<div class="kpis">'+card_html+'</div>',unsafe_allow_html=True)
 
@@ -515,51 +846,151 @@ if esp:
         st.info('Les ateliers sont inspirés des programmes français LVE, et les cours de langue maternelle s’inspirent aussi des attendus de l’Espagne. Aucune certification officielle n’est délivrée.')
         for title,url in SOURCES:st.markdown(f'- [{title}]({url})')
 else:
-    teacher='Lena' if track=='german' else 'Giulia'
-    ix=1 if track=='german' else 2
-    st.markdown(f'<div class="section-note">👩‍🏫 <b>{teacher}</b> t’accompagne dans 10 missions de survie. Le niveau A1++ est une appellation interne (A1 renforcé), pas une certification CECRL.</div>',unsafe_allow_html=True)
-    l,r=st.columns([0.94,2.15],gap='medium')
-    with l:
-        with st.container(border=True):
-            st.markdown('### 🎒 Mon voyage')
-            count=done_count(track,[str(i) for i in range(len(MISSIONS))])
-            st.progress(count/len(MISSIONS))
-            st.caption(f'🧭 {count}/{len(MISSIONS)} missions réussies')
-            st.info('🌱 À ton rythme : relis, écoute, répète et réussis chaque mission pour avancer.')
-    with r:
-        indices=permitted(track,[str(i) for i in range(len(MISSIONS))])
-        j=st.selectbox('🧭 Missions accessibles',indices,
-                       format_func=lambda i:f'{i+1}. {MISSIONS[i][0]}'+(' ✓' if p[track].get(str(i)) else ''),key=f'{track}_mission')
-        title,description,first,second=MISSIONS[j]
-        st.markdown(f'<div class="lesson-header"><div class="breadcrumb">{html.escape(lang)} · Mission {j+1}/10</div><div class="heading">🧭 {html.escape(title)}</div><span class="chip">{html.escape(description)}</span></div>',unsafe_allow_html=True)
-        col1,col2=st.columns(2)
-        with col1:st.markdown(colored_panel('rule','🗣️ Phrase essentielle',first[ix]+' · '+first[0]),unsafe_allow_html=True)
-        with col2:st.markdown(colored_panel('example','💬 Autre expression',second[ix]+' · '+second[0]),unsafe_allow_html=True)
-        tts_button(first[ix]+'. '+second[ix],code='de-DE' if track=='german' else 'it-IT',id_suffix=track+str(j))
-        with st.form(f'survival_form_{track}_{j}'):
-            response=st.radio(f'Comment dire « {first[0]} » ?', [first[ix],second[ix],'Je ne sais pas'],index=None,key=f'survival_{track}_{j}')
-            submit=st.form_submit_button('✅ Corriger et débloquer la suite',type='primary',use_container_width=True)
-        if submit:
-            if response==first[ix]:award(track,str(j),5);st.success('🎉 Mission validée, la prochaine est accessible !')
-            elif response is None:st.warning('Choisis une réponse.')
-            else:st.info('Réessaie : la bonne expression est « '+first[ix]+' ».')
-        if p[track].get(str(j)) is True:st.success('✓ Mission déjà validée')
-    if done_count(track,[str(i) for i in range(len(MISSIONS))])==len(MISSIONS):st.success('🏆 Bravo ! Toutes les missions de voyage sont acquises.')
+    options={'travel_german':('Lena',1,'de-DE','german','allemand'),
+             'travel_italian':('Giulia',2,'it-IT','italian','italien'),
+             'travel_english':('Olivia',3,'en-GB','english','anglais')}
+    teacher,ix,code,former,language_name=options[track]
+    st.markdown(f'<div class="section-note">🧳 <b>Voyage d’un mois en {language_name}</b> avec {teacher} : <b>{len(MISSIONS)} missions</b> et <b>{TOTAL_EXPRESSIONS} expressions</b> pratiques. Deux petites séances par mission = <b>30 journées indicatives</b>, à ton rythme, sans échéance. Les acquis anciens sont révisés dans les nouvelles situations.</div>',unsafe_allow_html=True)
+    study,reference,plan=st.tabs(['🧳 Mes 15 missions','🧭 Guide express · Accès libre','🗓️ Mon voyage de 30 jours'])
+    with study:
+        l,r=st.columns([0.93,2.15],gap='medium')
+        with l:
+            with st.container(border=True):
+                st.markdown('### 🎒 Mon mois de voyage')
+                count=done_count(track,[str(i) for i in range(len(MISSIONS))])
+                st.progress(count/len(MISSIONS))
+                st.caption(f'🧭 {count}/{len(MISSIONS)} missions validées')
+                st.info('🌱 Chaque mission comporte 2 séances : découverte, puis révision et validation. Pas de calendrier obligatoire.')
+                if p[former]:
+                    st.caption('✅ Les acquis de ton ancienne formation sont conservés. Les phrases reviennent dans les révisions des nouvelles missions.')
+                if count:
+                    st.caption('♻️ Les missions déjà réussies peuvent être refaites pour réviser les nouvelles expressions.')
+            with st.container(border=True):
+                st.markdown('### 🆘 Guide toujours disponible')
+                st.write('En cas de difficulté réelle, consulte **Guide express** : toutes les expressions sont accessibles, même sans avoir réussi les missions.')
+                st.caption('En Allemagne et en Italie : 112 est un numéro d’urgence. Ailleurs, vérifie le numéro d’urgence local. En cas de danger, demande immédiatement de l’aide.')
+        with r:
+            indices=permitted(track,[str(i) for i in range(len(MISSIONS))])
+            j=st.selectbox('🧭 Missions accessibles',indices,
+                format_func=lambda i:f'Jours {2*i+1}–{2*i+2} · {MISSIONS[i][0]} '+('✓' if p[track].get(str(i)) is True else '🔓'),
+                key=f'{track}_mission')
+            title,description,phrases=TRAVEL_GUIDE[j]
+            st.markdown(f'<div class="lesson-header"><div class="breadcrumb">{html.escape(lang)} · Mission {j+1}/{len(MISSIONS)} · Jours {j*2+1} et {j*2+2}</div><div class="heading">🧳 {html.escape(title)}</div><span class="chip">{html.escape(description)}</span></div>',unsafe_allow_html=True)
+            st.markdown('#### 📘 Séance 1 · Découvrir et parler')
+            st.caption('Lis, écoute et répète les expressions essentielles (environ 5 à 10 minutes).')
+            core=[phrases[k] for k in (0,1,4)]
+            for n,phrase in enumerate(core,1):
+                fr=phrase[0];translation=phrase[ix]
+                st.markdown(f'<div class="lesson-panel {"rule" if n%2 else "example"}" style="min-height:auto;margin-bottom:8px;padding:12px 16px"><div class="head">{html.escape(translation)}</div><p>🇫🇷 {html.escape(fr)}</p></div>',unsafe_allow_html=True)
+            tts_button('. '.join(phrase[ix] for phrase in core),code=code,id_suffix=track+str(j))
+            with st.expander(f'📚 Voir toutes les expressions de cette mission ({len(phrases)})',expanded=False):
+                for phrase in phrases:
+                    st.markdown('**'+phrase[ix]+'**')
+                    st.caption('🇫🇷 '+phrase[0])
+            st.markdown('#### 🔁 Séance 2 · Réviser et valider')
+            review=mixed_review(j)
+            if review:
+                st.info('♻️ Rappel des missions '+', '.join(str(index+1) for index,_ in review)+'. Les phrases déjà vues reviennent avec les nouvelles situations.')
+                with st.expander('👀 Revoir les expressions précédentes avant le quiz'):
+                    for prev,phrase in review:
+                        st.markdown(f'**Mission {prev+1} · {phrase[ix]}**')
+                        st.caption('🇫🇷 '+phrase[0])
+            else:
+                st.caption('Première mission : révise les nouvelles phrases avant ton défi.')
+            questions=mission_questions(j)
+            st.caption(f'Pour valider : {len(questions) if j==0 else len(questions)-1}/{len(questions)} bonnes réponses, autant de tentatives que nécessaire.')
+            with st.form(f'survival_month_form_{track}_{j}'):
+                responses=[]
+                for qi,(origin,phrase) in enumerate(questions):
+                    fr=phrase[0];correct=phrase[ix]
+                    suggestions=[item[ix] for item in phrases if item[ix]!=correct]
+                    if origin!=j:
+                        suggestions += [item[ix] for item in TRAVEL_GUIDE[origin][2] if item[ix]!=correct]
+                    choices=sorted(set([correct]+list(dict.fromkeys(suggestions))[:2]),key=str.casefold)
+                    assert len(choices)>=3
+                    label=f'{qi+1}. '+('♻️ Révision · ' if origin!=j else '')+f'Comment dire « {fr} » ?'
+                    responses.append(st.radio(label,choices,index=None,key=f'survival_month_{track}_{j}_{qi}'))
+                submitted=st.form_submit_button('✅ Corriger et débloquer la suite',type='primary',use_container_width=True)
+            if submitted:
+                if any(ans is None for ans in responses):
+                    st.warning('Réponds à chaque question pour valider la mission.')
+                else:
+                    score=sum(answer==phrase[ix] for answer,(_,phrase) in zip(responses,questions))
+                    threshold=len(questions) if j==0 else len(questions)-1
+                    if score>=threshold:
+                        fresh=award(track,str(j),5)
+                        st.success(f'🎉 {score}/{len(questions)} : acquis validés ! '+('Mission suivante débloquée.' if fresh else 'Bonne révision de tes acquis !'))
+                    else:
+                        st.info(f'{score}/{len(questions)}. Objectif : {threshold} bonnes réponses. Relis les phrases et réessaie sans pénalité.')
+                    for answer,(origin,phrase) in zip(responses,questions):
+                        if answer!=phrase[ix]:
+                            st.caption('Révision : '+phrase[0]+' → '+phrase[ix])
+            if p[track].get(str(j)) is True:
+                st.success('✓ Mission acquise · les phrases nouvelles et anciennes restent disponibles.')
+    with reference:
+        st.markdown('### 🧭 Guide du touriste · Toutes les situations du mois')
+        st.caption(f'{TOTAL_EXPRESSIONS} phrases, recherche immédiate et écoute, **même pour les missions verrouillées**. Pratique pendant un vrai voyage.')
+        a,b=st.columns([1.1,1.5])
+        with a:
+            category=st.selectbox('Situation',range(len(TRAVEL_GUIDE)),
+                format_func=lambda i:f'{i+1}. {TRAVEL_GUIDE[i][0]}',key='guide_category_'+track)
+        with b:
+            search=st.text_input('🔍 Chercher une expression',
+                placeholder='ascenseur, clé, taxi, restaurant, panne, bagages…',key='guide_search_'+track)
+        if search.strip():
+            import unicodedata
+            def fold(value):
+                return ''.join(char for char in unicodedata.normalize('NFKD',value.casefold()) if not unicodedata.combining(char))
+            term=fold(search.strip())
+            selected=[(i,phrase) for i,(_,_,group) in enumerate(TRAVEL_GUIDE) for phrase in group
+                      if any(term in fold(text) for text in phrase) or term in fold(TRAVEL_GUIDE[i][0])]
+        else:
+            selected=[(category,phrase) for phrase in TRAVEL_GUIDE[category][2]]
+        st.caption(f'{len(selected)} résultat(s) · {len(TRAVEL_GUIDE)} catégories de voyage')
+        if selected:
+            st.dataframe([{'Situation':TRAVEL_GUIDE[i][0], 'Français':phrase[0],
+                           language_name.capitalize():phrase[ix]} for i,phrase in selected],
+                           use_container_width=True,hide_index=True)
+            chosen_phrase=st.selectbox('🔊 Écouter une expression',range(len(selected)),
+                format_func=lambda i:selected[i][1][0],key='guide_phrase_'+track)
+            st.info(selected[chosen_phrase][1][ix])
+            tts_button(selected[chosen_phrase][1][ix],code=code,id_suffix='guide_'+track)
+        else:
+            st.info('Aucun résultat. Essaie un autre terme : clé, ascenseur, gare, visa, chargeur, médicament…')
+        st.caption('Expressions de voyage généralistes : vérifie toujours les démarches et numéros propres au pays. En urgence, demande de l’aide sans attendre une leçon.')
+    with plan:
+        st.markdown('### 🗓️ Plan de voyage · 30 journées, sans échéances')
+        st.caption('15 missions × 2 séances de 5 à 10 minutes. C’est un **ordre d’apprentissage**, pas un calendrier : une journée peut être faite quand tu veux, ou répartie sur plusieurs jours.')
+        week_ranges=[(0,4),(4,8),(8,12),(12,15)]
+        for week,(start,end) in enumerate(week_ranges,1):
+            st.markdown(f'#### Semaine {week} · Jours {start*2+1} à {end*2}')
+            rows=[]
+            for index in range(start,end):
+                name=TRAVEL_GUIDE[index][0]
+                done=p[track].get(str(index)) is True
+                rows.extend([
+                    {'Jour':index*2+1,'Activité':f'{name} · découverte','Statut':'✓ Déjà vu' if done else 'À découvrir'},
+                    {'Jour':index*2+2,'Activité':f'{name} · révision + mini-quiz','Statut':'✓ Acquis' if done else ('Débloqué' if index in permitted(track,[str(i) for i in range(len(MISSIONS))]) else '🔒 À venir')},
+                ])
+            st.dataframe(rows,use_container_width=True,hide_index=True)
+        st.info('♻️ À chaque nouvelle mission, le mini-quiz reprend aussi des expressions de missions précédentes. Les anciennes réussites sont conservées.')
+    if done_count(track,[str(i) for i in range(len(MISSIONS))])==len(MISSIONS):
+        st.success('🏆 Bravo ! Ton parcours complet de survie pour un mois de voyage est terminé. Tu peux revoir les 15 situations librement.')
     with st.expander('✏️ Mon carnet de voyage'):
-        note=st.text_area('Mes phrases utiles',value=p['notes'].get(track,''),key='travel_notes_'+track)
-        if st.button('💾 Sauvegarder mon carnet',key='save_travel_'+track):
-            p['notes'][track]=note;persist();st.success('Carnet enregistré dans la session.')
+        note=st.text_area('Mes phrases personnelles',value=p['notes'].get(former,''),key='travel_notes_'+former)
+        if st.button('💾 Enregistrer mon carnet',key='save_travel_'+former):
+            p['notes'][former]=note;persist();st.success('Carnet enregistré dans la session.')
 
 st.divider()
 with st.expander('💾 Exporter / importer ma progression · Important sur Streamlit Cloud'):
     st.download_button('⬇️ Télécharger ma sauvegarde JSON',json.dumps(p,ensure_ascii=False,indent=2),
-                       file_name='mi_espanol_progression_v6.json',mime='application/json',use_container_width=True,key='export_profile')
+                       file_name='mi_espanol_progression_v6_3.json',mime='application/json',use_container_width=True,key='export_profile')
     uploaded=st.file_uploader('Importer un profil V2 à V6',type=['json'],key='import_profile')
     if uploaded is not None and st.button('📂 Restaurer le profil',key='restore_profile'):
         try:
             if uploaded.size>2_000_000:raise ValueError('Le fichier dépasse 2 Mo.')
             incoming=json.loads(uploaded.getvalue().decode('utf-8'))
-            if not isinstance(incoming,dict) or not any(k in incoming for k in ('grade','school','cefr','grammar','german','italian','spanish')):
+            if not isinstance(incoming,dict) or not any(k in incoming for k in ('grade','school','cefr','grammar','german','italian','english','travel_english','spanish')):
                 raise ValueError('Ce fichier ne ressemble pas à une sauvegarde Mi Español.')
             st.session_state.profile=normalize(incoming)
             p=st.session_state.profile
@@ -568,4 +999,4 @@ with st.expander('💾 Exporter / importer ma progression · Important sur Strea
             st.rerun()
         except (UnicodeError,ValueError,TypeError) as error:st.error(str(error))
     st.caption('Sur Streamlit Cloud, les sauvegardes locales peuvent disparaître. Conserve ce fichier JSON pour retrouver tes résultats. Ne publie jamais ton fichier personnel sur GitHub.')
-st.caption('🇪🇸 Mi Español V6 · Interface 2D responsive · Cours V5 préservés · Déblocage par validation des acquis · Aucun diplôme officiel.')
+st.caption(f'🇪🇸 Mi Español V6.3 · Guide de 30 jours DE/IT/EN : {len(MISSIONS)} missions et {TOTAL_EXPRESSIONS} expressions par langue · Révisions mixtes · Cours d’espagnol inchangés.')
