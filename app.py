@@ -8,6 +8,9 @@ import html
 import json
 import os
 from pathlib import Path
+from datetime import datetime, date, timedelta
+from zoneinfo import ZoneInfo
+import math
 import streamlit as st
 import streamlit.components.v1 as components
 from programme import CLASSES, EQUIVALENCES, SCOLAIRE, CECRL, SOURCES
@@ -374,11 +377,12 @@ def mission_questions(mission_index):
 
 
 def new_profile():
-    return {'version':64,'name':'Élève','grade':0,'school':{},'school_exams':{},
+    return {'version':65,'name':'Élève','grade':0,'school':{},'school_exams':{},
             'cefr':{},'cefr_exams':{},'grammar':{},'grammar_exams':{},
             'verbs':{},'tenses':{},'conjugation':{},'german':{},'italian':{},'english':{},
             'travel_german':{},'travel_italian':{},'travel_english':{},
-            'llcer':{},'notes':{},'stars':0,'legacy_spanish':{},'last_language':''}
+            'llcer':{},'notes':{},'stars':0,'legacy_spanish':{},'last_language':'',
+            'forecast_sessions':{},'validation_log':[]}
 
 
 def normalize(src):
@@ -396,7 +400,7 @@ def normalize(src):
     default['grade']=max(0,min(requested,current_school_grade(default['school_exams'],len(CLASSES)-1)))
     try:default['stars']=max(0,int(default['stars']))
     except (TypeError,ValueError):default['stars']=0
-    default['version']=64
+    default['version']=65
     return default
 
 
@@ -428,6 +432,12 @@ def award(section,key,points=5):
         return False
     p[section][key]=True
     p['stars']+=points
+    if section in ('cefr','cefr_exams','school','school_exams','grammar','grammar_exams',
+                   'verbs','tenses','travel_german','travel_italian','travel_english'):
+        p.setdefault('validation_log',[]).append({
+            'day':datetime.now(ZoneInfo('Europe/Paris')).date().isoformat(),
+            'section':section,'key':str(key)})
+        p['validation_log']=p['validation_log'][-400:]
     persist()
     return True
 
@@ -482,7 +492,83 @@ def progress_all_languages(profile):
     return result
 
 
-def render_language_progress(items,selected_language,last_language):
+# Prévisions non contractuelles : 2 séances courtes par validation, configurables par langue.
+# Elles concernent des jalons INTERNES au logiciel, et non une certification CECRL.
+FORECAST_TRACKS=('spanish','travel_german','travel_italian','travel_english')
+PACE_OPTIONS=[1,2,3,4,5,6,7,10,14]
+
+
+def paris_today():
+    return datetime.now(ZoneInfo('Europe/Paris')).date()
+
+
+def observed_validations_per_week(profile, sections, now):
+    """Rythme des validations lorsque l'historique comporte assez de jours de recul."""
+    entries=[]
+    for event in profile.get('validation_log',[]):
+        if not isinstance(event,dict) or event.get('section') not in sections:
+            continue
+        try:day=date.fromisoformat(event.get('day',''))
+        except (ValueError,TypeError):continue
+        if 0 <= (now-day).days <= 56:
+            entries.append((day,str(event.get('section')),str(event.get('key'))))
+    entries=sorted(set(entries))
+    if len(entries)<4 or (entries[-1][0]-entries[0][0]).days < 7:
+        return None
+    duration=(entries[-1][0]-entries[0][0]).days
+    rate=7*(len(entries)-1)/duration
+    return min(12,max(0.25,rate))
+
+
+def projected_day(remaining, pace_sessions, today, observed_rate=None):
+    if remaining<=0:return 'Acquis ✓'
+    if observed_rate is not None:
+        days=math.ceil(7*remaining/observed_rate)
+    else:
+        days=math.ceil(7*remaining*2/max(1,pace_sessions))
+    days=min(36500,days)
+    return (today+timedelta(days=days)).strftime('%d/%m/%Y')
+
+
+def language_forecasts(profile, pace, today=None, use_history=False):
+    today=today or paris_today()
+    results={}
+    # Espagnol : premier niveau CECRL dont le bilan n'a pas encore été réussi.
+    upcoming=next((level for level in CECRL if profile.get('cefr_exams',{}).get(level) is not True),None)
+    grade_index=max(0,min(len(CLASSES)-1,profile.get('grade',0)))
+    grade=CLASSES[grade_index]
+    if upcoming is None:
+        cefr_title,cefr_remaining='Ateliers C2 terminés',0
+    else:
+        cefr_title=f'Bilan interne {upcoming}'
+        cefr_remaining=(sum(profile.get('cefr',{}).get(f'{upcoming}:{i}') is not True
+                             for i in range(len(CECRL[upcoming])))+1)
+    school_done=sum(profile.get('school',{}).get(f'{grade_index}:{i}') is True
+                    for i in range(len(SCOLAIRE[grade])))
+    school_remaining=(len(SCOLAIRE[grade])-school_done+
+                      (0 if profile.get('school_exams',{}).get(str(grade_index)) is True else 1))
+    school_title=f'Bilan de {grade}' if grade_index==len(CLASSES)-1 else f'Passage {grade} → {CLASSES[grade_index+1]}'
+    rate_es=observed_validations_per_week(profile, {'school','school_exams','cefr','cefr_exams'},today) if use_history else None
+    results['spanish']={
+       'items':[(cefr_title,projected_day(cefr_remaining,pace['spanish'],today,rate_es)),
+                (school_title,projected_day(school_remaining,pace['spanish'],today,rate_es))],
+       'source':'rythme constaté' if rate_es is not None else 'rythme choisi'}
+    # Voyages : jalons de 5, 10 puis 15 missions, sans prétention de niveau CECRL.
+    for track in FORECAST_TRACKS[1:]:
+        n=sum(profile.get(track,{}).get(str(i)) is True for i in range(len(MISSIONS)))
+        target=next((x for x in (5,10,len(MISSIONS)) if n<x),None)
+        rate=observed_validations_per_week(profile,{track},today) if use_history else None
+        if target is None:
+            rows=[('Guide de voyage terminé','Acquis ✓')]
+        else:
+            title='Guide complet de survie' if target==len(MISSIONS) else f'Palier {target} missions'
+            rows=[(title,projected_day(target-n,pace[track],today,rate))]
+        results[track]={'items':rows,
+                        'source':'rythme constaté' if rate is not None else 'rythme choisi'}
+    return results
+
+
+def render_language_progress(items,selected_language,last_language,forecasts=None):
     # La moyenne des 4 taux donne le même poids à chaque langue, indépendamment
     # de la longueur bien différente de l'école espagnole et des guides de voyage.
     global_pct=sum(item['percent'] for item in items)/len(items)
@@ -500,6 +586,12 @@ def render_language_progress(items,selected_language,last_language):
     for item in items:
         pct=round(item['percent'])
         selected=' active' if item['label']==selected_language else ''
+        estimate=(forecasts or {}).get(item['track'],{})
+        rows=estimate.get('items',[])
+        forecast_rows=''.join(
+           '<div class="forecast-line"><span>🎯 '+html.escape(name)+'</span>'+
+           '<strong>'+html.escape(day)+'</strong></div>' for name,day in rows)
+        forecast_html=('<div class="forecast-rows">'+forecast_rows+'</div>') if forecast_rows else ''
         cards.append(f"""<div class="language-card {item['color']}{selected}">
            <div class="language-card-top"><strong>{html.escape(item['label'])}</strong>
            <span class="language-pct">{pct} %</span></div>
@@ -508,6 +600,7 @@ def render_language_progress(items,selected_language,last_language):
                 aria-valuenow="{pct}" aria-valuemin="0" aria-valuemax="100">
              <div class="language-fill" style="width:{item['percent']:.3f}%"></div></div>
            <div class="language-count">{item['done']}/{item['total']} {item['unit']} validés</div>
+           {forecast_html}
         </div>""")
     footer=f"""<div class="language-overview-footer"><span>🏅 Langue la plus avancée : <strong>{html.escape(best_label)}</strong></span>
        <span>📍 Dernière langue travaillée : <strong>{html.escape(recent)}</strong></span>
@@ -610,6 +703,14 @@ button[kind="primary"]{background:linear-gradient(100deg,#7c4ac0,#b45bb5)!import
   .language-grid{gap:7px}.language-card{padding:9px 8px}.language-card-top{font-size:.8rem}
   .language-pct{font-size:1.07rem}.language-level,.language-count{font-size:.73rem}
   .language-global{font-size:.78rem}}
+
+/* V6.5 : estimations de jalons par langue, sans imposer de date limite. */
+.forecast-rows{border-top:1px solid #dfd2e2;margin-top:9px;padding-top:7px;display:grid;gap:5px}
+.forecast-line{font-size:.75rem;display:flex;align-items:flex-start;justify-content:space-between;
+ gap:6px;flex-wrap:wrap;color:#65526d;line-height:1.35}
+.forecast-line strong{color:#472b62;white-space:nowrap;font-size:.79rem}
+.forecast-intro{font-size:.76rem;color:#806c88;margin:-4px 0 5px}
+@media(max-width:480px){.forecast-line{font-size:.71rem}.forecast-line strong{font-size:.74rem}}
 </style>'''
 st.markdown(CSS,unsafe_allow_html=True)
 
@@ -626,9 +727,34 @@ st.markdown(f'''<div class="hero-school"><div class="hero-copy">
 st.markdown('<div class="lang-caption">🌍 Choisis ton parcours :</div>',unsafe_allow_html=True)
 lang=st.segmented_control('Langue',['🇪🇸 Espagnol','🇩🇪 Allemand','🇮🇹 Italien','🇬🇧 Anglais'],default='🇪🇸 Espagnol',key='language_label',label_visibility='collapsed') or '🇪🇸 Espagnol'
 # Afficher toutes les langues au même endroit, même lorsque l'onglet change.
+# Chaque estimation repose sur des étapes concrètes et peut être adaptée sans imposer de délai.
+with st.expander('📅 Mes prévisions de niveaux · ajuster le rythme (facultatif)',expanded=False):
+    st.caption('Dates indicatives : deux séances courtes estimées par validation. Elles ne garantissent pas un niveau officiel A1/A2/C1/C2.')
+    pace_columns=st.columns(4)
+    chosen_pace={}
+    labels={'spanish':'🇪🇸 Espagnol','travel_german':'🇩🇪 Allemand',
+            'travel_italian':'🇮🇹 Italien','travel_english':'🇬🇧 Anglais'}
+    for col,track_name in zip(pace_columns,FORECAST_TRACKS):
+        with col:
+            previous=p.get('forecast_sessions',{}).get(track_name,4)
+            idx=PACE_OPTIONS.index(previous) if previous in PACE_OPTIONS else 3
+            value=st.selectbox(labels[track_name]+' · séances/semaine',PACE_OPTIONS,index=idx,
+                               key='forecast_pace_'+track_name)
+            chosen_pace[track_name]=value or PACE_OPTIONS[idx]
+    if chosen_pace!=p.get('forecast_sessions',{}):
+        p['forecast_sessions']=chosen_pace
+        persist()
+    forecast_mode=st.radio('Base du calcul',
+            ['Rythme choisi','Rythme réellement observé (si disponible)'],
+            horizontal=True,key='forecast_mode') or 'Rythme choisi'
+    if forecast_mode!='Rythme choisi':
+        st.caption('Le rythme observé est utilisé après au moins 4 validations distinctes réparties sur 7 jours ; sinon le rythme choisi reste appliqué.')
+    st.caption('Les paliers allemand / italien / anglais correspondent au guide du touriste, **pas à une certification CECRL A1**.')
+forecast_data=language_forecasts(p,chosen_pace,use_history=(forecast_mode!='Rythme choisi'))
 progress_items=progress_all_languages(p)
-st.markdown(render_language_progress(progress_items,lang,p.get('last_language','')),
+st.markdown(render_language_progress(progress_items,lang,p.get('last_language',''),forecast_data),
             unsafe_allow_html=True)
+st.caption('📅 Prévisions indicatives selon la fréquence de travail · le programme reste sans date limite. Espagnol : bilan interne A1–C2 et passage de classe ; voyages : 5, 10, puis 15 missions. Les QCM ne prouvent pas seuls la maîtrise d’une langue.')
 
 esp=lang=='🇪🇸 Espagnol'
 track={'🇩🇪 Allemand':'travel_german','🇮🇹 Italien':'travel_italian','🇬🇧 Anglais':'travel_english'}.get(lang,'travel_german')
@@ -1106,7 +1232,7 @@ else:
 st.divider()
 with st.expander('💾 Exporter / importer ma progression · Important sur Streamlit Cloud'):
     st.download_button('⬇️ Télécharger ma sauvegarde JSON',json.dumps(p,ensure_ascii=False,indent=2),
-                       file_name='mi_espanol_progression_v6_4.json',mime='application/json',use_container_width=True,key='export_profile')
+                       file_name='mi_espanol_progression_v6_5.json',mime='application/json',use_container_width=True,key='export_profile')
     uploaded=st.file_uploader('Importer un profil V2 à V6',type=['json'],key='import_profile')
     if uploaded is not None and st.button('📂 Restaurer le profil',key='restore_profile'):
         try:
@@ -1121,4 +1247,4 @@ with st.expander('💾 Exporter / importer ma progression · Important sur Strea
             st.rerun()
         except (UnicodeError,ValueError,TypeError) as error:st.error(str(error))
     st.caption('Sur Streamlit Cloud, les sauvegardes locales peuvent disparaître. Conserve ce fichier JSON pour retrouver tes résultats. Ne publie jamais ton fichier personnel sur GitHub.')
-st.caption(f'🇪🇸 Mi Español V6.4 · Progression par langue · Guide de 30 jours DE/IT/EN : {len(MISSIONS)} missions et {TOTAL_EXPRESSIONS} expressions par langue · Révisions mixtes · Cours d’espagnol inchangés.')
+st.caption(f'🇪🇸 Mi Español V6.5 · Progression et dates prévisionnelles · Guide de 30 jours DE/IT/EN : {len(MISSIONS)} missions et {TOTAL_EXPRESSIONS} expressions par langue · Révisions mixtes · Cours d’espagnol inchangés.')
