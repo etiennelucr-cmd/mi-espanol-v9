@@ -64,9 +64,14 @@ def load_profile():
         except (OSError,ValueError,UnicodeError,TypeError):pass
     return new_profile()
 
+
 if 'profile' not in st.session_state:
     st.session_state.profile = load_profile()
+
+# Réparer automatiquement les profils des anciennes versions
+st.session_state.profile = normalize(st.session_state.profile)
 p = st.session_state.profile
+
 
 def persist():
     if LOCAL_SAVE:
