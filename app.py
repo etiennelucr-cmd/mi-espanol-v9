@@ -11,6 +11,7 @@ from pathlib import Path
 from datetime import datetime, date, timedelta
 from zoneinfo import ZoneInfo
 import math
+import random
 import streamlit as st
 import streamlit.components.v1 as components
 from programme import CLASSES, EQUIVALENCES, SCOLAIRE, CECRL, SOURCES
@@ -18,6 +19,7 @@ from programmes_officiels import PROGRAMMES, LLCER, LLCER_EXERCICES
 from grammaire import GRAMMAIRE
 from conjugaison import PERSONS, IMP_PERSONS, VERBS, TENSES, conjugate, participle, gerund
 from progression import available_indices, unlocked_groups, current_school_grade, score_passes
+from survie_400 import SUPPLEMENTS, VOCABULARY
 
 st.set_page_config(page_title='Mi Español · Mon école des langues',page_icon='🇪🇸',layout='wide',initial_sidebar_state='collapsed')
 HERE=Path(__file__).resolve().parent
@@ -32,7 +34,7 @@ TENSE_ORDER=['presente','imperfecto','preterito','perfecto','futuro','condiciona
  'preterito_anterior','subj_futuro','subj_futuro_perfecto']
 assert set(TENSE_ORDER)==set(TENSES)
 
-# Guide du voyageur : 10 missions compactes ; expressions de référence disponibles
+# Guide du voyageur : 15 missions thématiques ; expressions de référence disponibles
 # dans le guide express même si une mission est verrouillée (cas d'urgence).
 # Format phrase : (français, allemand poli en Sie, italien poli en Lei).
 TRAVEL_GUIDE = [
@@ -345,12 +347,20 @@ for _idx, (_name,_description,_phrases) in enumerate(_OLD_GUIDE):
 for _name,_description,_raw in _NEW_RAW:
     TRAVEL_GUIDE.append((_name,_description,_parse_translations(_raw)))
 
+# V6.7 : 200 phrases supplémentaires, distribuées dans les 15 missions.
+# Les 200 premières conservent leur index : les cartes de répétition espacée
+# et toutes les réussites des anciennes versions restent donc valides.
+_ORIGINAL_COUNTS=[len(phrases) for _,_,phrases in TRAVEL_GUIDE]
+assert len(TRAVEL_GUIDE)==len(SUPPLEMENTS)==15
+TRAVEL_GUIDE=[(title,description,phrases+SUPPLEMENTS[i])
+              for i,(title,description,phrases) in enumerate(TRAVEL_GUIDE)]
+
 MISSIONS=[(title,description,phrases[0],phrases[1]) for title,description,phrases in TRAVEL_GUIDE]
 GUIDE_DAYS=len(MISSIONS)*2
 TOTAL_EXPRESSIONS=sum(len(rows) for _,_,rows in TRAVEL_GUIDE)
 assert len(MISSIONS)==15 and GUIDE_DAYS==30
 assert len(_OLD_GUIDE)==10
-assert TOTAL_EXPRESSIONS>=190 and all(len(group)>=10 for _,_,group in TRAVEL_GUIDE)
+assert TOTAL_EXPRESSIONS==400 and all(len(group)>=15 for _,_,group in TRAVEL_GUIDE)
 
 # Révisions intercalées : les acquis de 1, 3 et 6 missions auparavant sont sollicités.
 # Révision accessible dès le jour 2 de la mission, sans date limite.
@@ -368,21 +378,210 @@ def mixed_review(mission_index, max_items=2):
         results.append((source,phrase))
     return results
 
-# Index validés par mission ; trois expressions nouvelles + deux de révision.
+# Examen court : 3 phrases historiques + 3 expressions nouvelles V6.7,
+# et 2 rappels intercalés. Les 400 cartes sont ensuite mélangées par le SRS.
 def mission_questions(mission_index):
     phrases=TRAVEL_GUIDE[mission_index][2]
-    core=[(mission_index,phrases[k]) for k in (1,4,7)]
+    old_size=_ORIGINAL_COUNTS[mission_index]
+    extras=len(phrases)-old_size
+    assert extras>=3
+    indices=[1,4,7,old_size,old_size+extras//2,len(phrases)-1]
+    core=[(mission_index,phrases[k]) for k in indices]
     return core+mixed_review(mission_index)
 
 
 
+# Mini-jeux d'entretien (une fois les 15 missions validées).
+# Un item = une expression précise du guide. Les dates de rappel appartiennent au
+# profil JSON pour rester compatibles avec les sauvegardes V2 à V6.5.
+REVIEW_DELAYS=(1,3,7,14,30,60)  # jours après réussites successives
+REVIEW_TRACKS=('travel_german','travel_italian','travel_english')
+REVIEW_FORMATS=('traduction','compréhension','situation','traduction','compréhension')
+
+
+def review_card_ids():
+    return [(m,i) for m,(_,_,phrases) in enumerate(TRAVEL_GUIDE) for i in range(len(phrases))]
+
+
+def review_due(section, today):
+    """Cartes à reprendre maintenant; les nouvelles expressions sont dues immédiatement."""
+    state=p.get('review_cards',{}).get(section,{})
+    known, unseen=[] , []
+    for mission,i in review_card_ids():
+        key=f'{mission}:{i}'
+        record=state.get(key)
+        if not isinstance(record,dict):
+            unseen.append((mission,i));continue
+        raw=record.get('due','')
+        try: target=date.fromisoformat(raw)
+        except (ValueError,TypeError): target=today
+        if target<=today: known.append((mission,i))
+    return known,unseen
+
+
+def diverse_sample(items,amount):
+    """Varie les missions et les expressions avant de compléter si nécessaire."""
+    remaining=items[:]
+    random.shuffle(remaining)
+    result=[];used_missions=set()
+    for item in remaining:
+        if item[0] not in used_missions and len(result)<amount:
+            result.append(item);used_missions.add(item[0])
+    for item in remaining:
+        if len(result)>=amount:break
+        if item not in result:result.append(item)
+    return result
+
+
+def make_review_deck(section,language_index,today,free=False,limit=5):
+    """Sélection aléatoire stable pendant le quiz; anciens acquis + nouvelles cartes."""
+    reviewed,unseen=review_due(section,today)
+    if free:
+        chosen=diverse_sample(review_card_ids(),limit)
+    else:
+        # Si possible : 2 cartes déjà étudiées et 3 encore neuves.
+        chosen=diverse_sample(reviewed,min(2,len(reviewed),limit))
+        remaining=limit-len(chosen)
+        chosen+=diverse_sample([x for x in unseen if x not in chosen],remaining)
+        remaining=limit-len(chosen)
+        if remaining:chosen+=diverse_sample([x for x in reviewed if x not in chosen],remaining)
+    if not chosen:return None
+    formats=list(REVIEW_FORMATS)
+    random.shuffle(formats)
+    deck=[]
+    for i,(mission,phrase_idx) in enumerate(chosen):
+        phrase=TRAVEL_GUIDE[mission][2][phrase_idx]
+        kind=formats[i%len(formats)]
+        if kind=='compréhension':
+            correct=phrase[0]
+            distractors=[p[0] for _,_,items in TRAVEL_GUIDE for p in items if p[0]!=correct]
+            question=f'🧠 Que signifie « {phrase[language_index]} » ?'
+        else:
+            correct=phrase[language_index]
+            distractors=[p[language_index] for _,_,items in TRAVEL_GUIDE for p in items if p[language_index]!=correct]
+            if kind=='situation':
+                question=f'🧳 En voyage · {TRAVEL_GUIDE[mission][0]} : que dire pour « {phrase[0]} » ?'
+            else:
+                question=f'🎯 Comment dire « {phrase[0]} » ?'
+        pool=list(dict.fromkeys(distractors))
+        options=[correct]+random.sample(pool,min(2,len(pool)))
+        random.shuffle(options)
+        deck.append({'key':f'{mission}:{phrase_idx}','mission':mission,'phrase':phrase_idx,
+                     'kind':kind,'question':question,'options':options,'correct':correct,
+                     'translation':phrase[language_index],'french':phrase[0]})
+    return {'id':str(random.randrange(1,10**12)),'mode':'libre' if free else 'espacé',
+            'cards':deck,'finished':False,'results':[],'date':today.isoformat()}
+
+
+def apply_review_result(section,deck,answers,today):
+    """Planifie 1, 3, 7, 14, 30 puis 60 jours; erreurs revues demain.
+    Une série n'est notée qu'une seule fois; aucun acquis ni étoile retiré.
+    """
+    if deck.get('finished'):return None
+    if len(answers)!=len(deck['cards']) or any(x is None for x in answers):return None
+    state=p.setdefault('review_cards',{}).setdefault(section,{})
+    results=[]
+    for card,answer in zip(deck['cards'],answers):
+        correct=(answer==card['correct'])
+        record=state.get(card['key'])
+        if not isinstance(record,dict):record={}
+        if deck['mode']=='espacé':
+            streak=max(0,min(int(record.get('streak',0)),len(REVIEW_DELAYS)))
+            streak=min(streak+1,len(REVIEW_DELAYS)) if correct else 0
+            days=REVIEW_DELAYS[streak-1] if correct else 1
+            state[card['key']]={'streak':streak,'due':(today+timedelta(days=days)).isoformat(),
+                 'seen':int(record.get('seen',0))+1,'last':today.isoformat(),
+                 'correct':int(record.get('correct',0))+(1 if correct else 0)}
+        results.append({'correct':correct,'answer':answer,'expected':card['correct'],
+                        'french':card['french'],'translated':card['translation']})
+    stats=p.setdefault('review_stats',{}).setdefault(section,{})
+    stats['sessions']=int(stats.get('sessions',0))+1
+    stats['answers']=int(stats.get('answers',0))+len(answers)
+    stats['correct']=int(stats.get('correct',0))+sum(x['correct'] for x in results)
+    stats['last']=today.isoformat()
+    deck['finished']=True;deck['results']=results
+    p['last_language']={'travel_german':'🇩🇪 Allemand',
+                        'travel_italian':'🇮🇹 Italien',
+                        'travel_english':'🇬🇧 Anglais'}[section]
+    persist()
+    return results
+
+
+def render_review_corner(section,language_index,today):
+    """Section Streamlit à afficher une fois le guide intégral acquis."""
+    st.markdown('### 🎲 Mes révisions surprises')
+    total=done_count(section,[str(i) for i in range(len(MISSIONS))])
+    if total<len(MISSIONS):
+        st.info(f'🔒 Cette salle de révision s’ouvre après les 15 missions. Encore {len(MISSIONS)-total} mission(s) à valider. Les rappels des anciennes missions sont déjà inclus dans leurs quiz.')
+        return
+    st.success('🏆 Guide terminé ! Place aux mini-jeux pour garder tes réflexes en voyage.')
+    reviewed,unseen=review_due(section,today)
+    state=p.get('review_cards',{}).get(section,{})
+    mastered=sum(isinstance(row,dict) and int(row.get('streak',0))>=3 for row in state.values())
+    col1,col2,col3=st.columns(3)
+    col1.metric('⏰ Cartes à revoir',len(reviewed))
+    col2.metric('🌱 Phrases à découvrir',len(unseen))
+    col3.metric('🏅 Bien mémorisées',f'{mastered}/{TOTAL_EXPRESSIONS}')
+    st.caption('Révisions espacées : **J+1, J+3, J+7, J+14, J+30 puis J+60** après des réussites successives. Si tu te trompes, la phrase revient le lendemain, sans pénalité. Libre à toi de jouer plus ou moins souvent.')
+    key='review_deck_'+section
+    deck=st.session_state.get(key)
+    if deck is None:
+        c1,c2=st.columns(2)
+        with c1:
+            if st.button('🎯 Révision du jour · 5 questions',key='start_due_'+section,
+                         disabled=not (reviewed or unseen),type='primary',use_container_width=True):
+                st.session_state[key]=make_review_deck(section,language_index,today)
+                st.rerun()
+        with c2:
+            if st.button('🌈 Jeu libre · 5 surprises',key='start_free_'+section,use_container_width=True):
+                st.session_state[key]=make_review_deck(section,language_index,today,free=True)
+                st.rerun()
+        if not (reviewed or unseen):
+            next_due=[]
+            for item in state.values():
+                if isinstance(item,dict):
+                    try:next_due.append(date.fromisoformat(item.get('due','')))
+                    except (ValueError,TypeError):pass
+            if next_due:st.info('👏 Aucun rappel en attente ! Prochaine révision prévue : '+min(next_due).strftime('%d/%m/%Y')+'. Tu peux jouer librement en attendant.')
+        else:
+            st.caption(f'📌 {len(reviewed)+len(unseen)} expression(s) disponibles aujourd’hui. Les 15 thèmes se mélangent aléatoirement.')
+        return
+    st.caption('🎴 Série de '+str(len(deck['cards']))+' défis · '+('Répétition espacée' if deck['mode']=='espacé' else 'Révision libre, dates inchangées'))
+    if deck.get('finished'):
+        score=sum(item['correct'] for item in deck['results'])
+        st.success(f'✨ Bravo pour ta révision ! **{score}/{len(deck["results"])}** · même les erreurs t’aident à progresser.')
+        for item in deck['results']:
+            icon='✅' if item['correct'] else '🌱'
+            st.markdown(f'{icon} **{item["french"]}** → {item["translated"]}')
+        if st.button('🎲 Une autre mini-révision',key='another_'+section,use_container_width=True):
+            st.session_state[key]=None;st.rerun()
+        return
+    with st.form('review_form_'+section+'_'+deck['id']):
+        answers=[]
+        for i,card in enumerate(deck['cards'],1):
+            answers.append(st.radio(f'{i}. {card["question"]}',card['options'],index=None,
+                                    key=f'review_ans_{section}_{deck["id"]}_{i}'))
+        submitted=st.form_submit_button('✨ Corriger ma mini-révision',type='primary',use_container_width=True)
+    if submitted:
+        result=apply_review_result(section,deck,answers,today)
+        if result is None:st.warning('Choisis une réponse à chaque question pour terminer ton mini-jeu.')
+        else:
+            score=sum(x['correct'] for x in result)
+            st.success(f'🎉 {score}/{len(result)} ! Les prochains rappels sont enregistrés dans ton profil.')
+            for item in result:
+                if not item['correct']:
+                    st.caption('🌱 À retenir : '+item['french']+' → '+item['translated'])
+            st.rerun()  # Affiche immédiatement le bilan et le bouton Nouvelle série.
+
+
 def new_profile():
-    return {'version':65,'name':'Élève','grade':0,'school':{},'school_exams':{},
+    return {'version':67,'name':'Élève','grade':0,'school':{},'school_exams':{},
             'cefr':{},'cefr_exams':{},'grammar':{},'grammar_exams':{},
             'verbs':{},'tenses':{},'conjugation':{},'german':{},'italian':{},'english':{},
             'travel_german':{},'travel_italian':{},'travel_english':{},
             'llcer':{},'notes':{},'stars':0,'legacy_spanish':{},'last_language':'',
-            'forecast_sessions':{},'validation_log':[]}
+            'forecast_sessions':{},'validation_log':[],
+            'review_cards':{},'review_stats':{}}
 
 
 def normalize(src):
@@ -400,7 +599,7 @@ def normalize(src):
     default['grade']=max(0,min(requested,current_school_grade(default['school_exams'],len(CLASSES)-1)))
     try:default['stars']=max(0,int(default['stars']))
     except (TypeError,ValueError):default['stars']=0
-    default['version']=65
+    default['version']=67
     return default
 
 
@@ -754,7 +953,7 @@ forecast_data=language_forecasts(p,chosen_pace,use_history=(forecast_mode!='Ryth
 progress_items=progress_all_languages(p)
 st.markdown(render_language_progress(progress_items,lang,p.get('last_language',''),forecast_data),
             unsafe_allow_html=True)
-st.caption('📅 Prévisions indicatives selon la fréquence de travail · le programme reste sans date limite. Espagnol : bilan interne A1–C2 et passage de classe ; voyages : 5, 10, puis 15 missions. Les QCM ne prouvent pas seuls la maîtrise d’une langue.')
+st.caption('📅 Prévisions indicatives selon la fréquence de travail · parcours sans date limite. Les 15 missions restent les mêmes, enrichies de 400 expressions. Les QCM ne constituent pas une certification linguistique.')
 
 esp=lang=='🇪🇸 Espagnol'
 track={'🇩🇪 Allemand':'travel_german','🇮🇹 Italien':'travel_italian','🇬🇧 Anglais':'travel_english'}.get(lang,'travel_german')
@@ -1098,8 +1297,8 @@ else:
              'travel_italian':('Giulia',2,'it-IT','italian','italien'),
              'travel_english':('Olivia',3,'en-GB','english','anglais')}
     teacher,ix,code,former,language_name=options[track]
-    st.markdown(f'<div class="section-note">🧳 <b>Voyage d’un mois en {language_name}</b> avec {teacher} : <b>{len(MISSIONS)} missions</b> et <b>{TOTAL_EXPRESSIONS} expressions</b> pratiques. Deux petites séances par mission = <b>30 journées indicatives</b>, à ton rythme, sans échéance. Les acquis anciens sont révisés dans les nouvelles situations.</div>',unsafe_allow_html=True)
-    study,reference,plan=st.tabs(['🧳 Mes 15 missions','🧭 Guide express · Accès libre','🗓️ Mon voyage de 30 jours'])
+    st.markdown(f'<div class="section-note">🧳 <b>Voyage d’un mois en {language_name}</b> avec {teacher} : <b>{len(MISSIONS)} missions</b> et <b>{TOTAL_EXPRESSIONS} expressions</b> pratiques. Deux petites séances par mission = <b>30 journées indicatives</b>, à ton rythme, sans échéance. <b>117 mots et repères</b> supplémentaires dans le carnet. Les acquis anciens sont révisés dans les nouvelles situations.</div>',unsafe_allow_html=True)
+    study,reference,words,plan,revisions=st.tabs(['🧳 Mes 15 missions','🧭 Guide express','🔤 Mots indispensables','🗓️ Mon voyage de 30 jours','🎲 Révisions surprises'])
     with study:
         l,r=st.columns([0.93,2.15],gap='medium')
         with l:
@@ -1131,10 +1330,20 @@ else:
                 fr=phrase[0];translation=phrase[ix]
                 st.markdown(f'<div class="lesson-panel {"rule" if n%2 else "example"}" style="min-height:auto;margin-bottom:8px;padding:12px 16px"><div class="head">{html.escape(translation)}</div><p>🇫🇷 {html.escape(fr)}</p></div>',unsafe_allow_html=True)
             tts_button('. '.join(phrase[ix] for phrase in core),code=code,id_suffix=track+str(j))
-            with st.expander(f'📚 Voir toutes les expressions de cette mission ({len(phrases)})',expanded=False):
-                for phrase in phrases:
-                    st.markdown('**'+phrase[ix]+'**')
+            st.caption('📚 Chaque mission regroupe les situations utiles, mais aussi ce que tu peux entendre en réponse. Les 400 expressions sont toutes dans le Guide express.')
+            with st.expander(f'📚 Apprendre les {len(phrases)} expressions par petits groupes',expanded=False):
+                group_size=8
+                n_groups=math.ceil(len(phrases)/group_size)
+                group_index=st.selectbox('Choisis ton petit groupe',range(n_groups),
+                    format_func=lambda k:f'Groupe {k+1}/{n_groups} · phrases {k*group_size+1} à {min((k+1)*group_size,len(phrases))}',
+                    key=f'phrase_group_{track}_{j}')
+                part=phrases[group_index*group_size:(group_index+1)*group_size]
+                for phrase in part:
+                    st.markdown('**'+html.escape(phrase[ix])+'**')
                     st.caption('🇫🇷 '+phrase[0])
+                tts_button('. '.join(item[ix] for item in part),code=code,
+                           id_suffix='mission_group_'+track+str(j)+str(group_index))
+                st.caption('🌱 Pas besoin de tout mémoriser en une séance : le mini-quiz et les rappels espacés réactivent ensuite les expressions.')
             st.markdown('#### 🔁 Séance 2 · Réviser et valider')
             review=mixed_review(j)
             if review:
@@ -1146,7 +1355,7 @@ else:
             else:
                 st.caption('Première mission : révise les nouvelles phrases avant ton défi.')
             questions=mission_questions(j)
-            st.caption(f'Pour valider : {len(questions) if j==0 else len(questions)-1}/{len(questions)} bonnes réponses, autant de tentatives que nécessaire.')
+            st.caption(f'Pour valider : {len(questions) if j==0 else len(questions)-1}/{len(questions)} bonnes réponses, avec anciennes et nouvelles expressions. Autant de tentatives que nécessaire.')
             with st.form(f'survival_month_form_{track}_{j}'):
                 responses=[]
                 for qi,(origin,phrase) in enumerate(questions):
@@ -1177,7 +1386,7 @@ else:
                 st.success('✓ Mission acquise · les phrases nouvelles et anciennes restent disponibles.')
     with reference:
         st.markdown('### 🧭 Guide du touriste · Toutes les situations du mois')
-        st.caption(f'{TOTAL_EXPRESSIONS} phrases, recherche immédiate et écoute, **même pour les missions verrouillées**. Pratique pendant un vrai voyage.')
+        st.caption(f'{TOTAL_EXPRESSIONS} expressions de survie + {sum(len(v) for v in VOCABULARY.values())} mots et repères dans le carnet, recherche immédiate et écoute. Tout reste accessible même si les missions sont verrouillées.')
         a,b=st.columns([1.1,1.5])
         with a:
             category=st.selectbox('Situation',range(len(TRAVEL_GUIDE)),
@@ -1206,9 +1415,58 @@ else:
         else:
             st.info('Aucun résultat. Essaie un autre terme : clé, ascenseur, gare, visa, chargeur, médicament…')
         st.caption('Expressions de voyage généralistes : vérifie toujours les démarches et numéros propres au pays. En urgence, demande de l’aide sans attendre une leçon.')
+    with words:
+        st.markdown('### 🔤 Carnet des mots indispensables')
+        st.caption('Comprendre ce que répondent les habitants : gauche/droite, jours, mois, nombres, heures, étages, panneaux et objets courants. Consultable immédiatement, même avant la première mission.')
+        keys=list(VOCABULARY)
+        selected_topic=st.selectbox('📌 Thème à apprendre',keys,key='vocab_theme_'+track)
+        pairs=VOCABULARY[selected_topic]
+        st.dataframe([{'Français':item[0],language_name.capitalize():item[ix]} for item in pairs],
+                     hide_index=True,use_container_width=True)
+        if pairs:
+            spoken=st.selectbox('🔊 Écouter un mot',range(len(pairs)),
+                format_func=lambda k:pairs[k][0],key='vocab_speak_'+track)
+            st.info(pairs[spoken][ix])
+            tts_button(pairs[spoken][ix],code=code,id_suffix='vocab_word_'+track)
+        st.divider()
+        st.markdown('#### 🎲 Jeu flash · 5 mots surprises')
+        st.caption('Un petit défi gratuit, sans perte d’étoiles et sans changer le déblocage des missions. Mélange toutes les fiches.')
+        vkey='vocab_flash_'+track
+        if st.button('🎲 Nouveau jeu flash',key='new_vocab_'+track,type='primary'):
+            candidates=[(name,item) for name,entries in VOCABULARY.items() for item in entries]
+            chosen=random.sample(candidates,min(5,len(candidates)))
+            questions=[]
+            for name,item in chosen:
+                correct=item[ix]
+                alternatives=[x[ix] for x in VOCABULARY[name] if x[ix]!=correct]
+                choices=[correct]+random.sample(list(dict.fromkeys(alternatives)),2)
+                random.shuffle(choices)
+                questions.append({'question':item[0],'correct':correct,'options':choices})
+            st.session_state[vkey]={'questions':questions,'answers':None,
+                                    'id':random.randrange(10**10)}
+        vocab_game=st.session_state.get(vkey)
+        if vocab_game:
+            if vocab_game['answers'] is None:
+                with st.form('vocab_form_'+track+'_'+str(vocab_game['id'])):
+                    answers=[]
+                    for k,item in enumerate(vocab_game['questions'],1):
+                        answers.append(st.radio(f'{k}. Comment dit-on « {item["question"]} » ?',item['options'],
+                                                index=None,key=f'vocab_{track}_{vocab_game["id"]}_{k}'))
+                    submitted=st.form_submit_button('✨ Vérifier mes réponses',use_container_width=True)
+                if submitted:
+                    if any(a is None for a in answers):
+                        st.warning('Réponds aux cinq questions pour voir ton résultat.')
+                    else:
+                        vocab_game['answers']=answers
+                        st.rerun()
+            else:
+                score=sum(a==q['correct'] for a,q in zip(vocab_game['answers'],vocab_game['questions']))
+                st.success(f'🎉 {score}/5 · Bien joué ! Tu peux refaire un jeu différent quand tu veux.')
+                for a,q in zip(vocab_game['answers'],vocab_game['questions']):
+                    st.write(('✅ ' if a==q['correct'] else '🌱 ')+q['question']+' → '+q['correct'])
     with plan:
         st.markdown('### 🗓️ Plan de voyage · 30 journées, sans échéances')
-        st.caption('15 missions × 2 séances de 5 à 10 minutes. C’est un **ordre d’apprentissage**, pas un calendrier : une journée peut être faite quand tu veux, ou répartie sur plusieurs jours.')
+        st.caption('15 missions × 2 séances courtes (durée variable selon le besoin). C’est un **ordre d’apprentissage**, pas un calendrier : une journée peut être faite quand tu veux, ou répartie sur plusieurs jours.')
         week_ranges=[(0,4),(4,8),(8,12),(12,15)]
         for week,(start,end) in enumerate(week_ranges,1):
             st.markdown(f'#### Semaine {week} · Jours {start*2+1} à {end*2}')
@@ -1222,8 +1480,10 @@ else:
                 ])
             st.dataframe(rows,use_container_width=True,hide_index=True)
         st.info('♻️ À chaque nouvelle mission, le mini-quiz reprend aussi des expressions de missions précédentes. Les anciennes réussites sont conservées.')
+    with revisions:
+        render_review_corner(track,ix,datetime.now(ZoneInfo('Europe/Paris')).date())
     if done_count(track,[str(i) for i in range(len(MISSIONS))])==len(MISSIONS):
-        st.success('🏆 Bravo ! Ton parcours complet de survie pour un mois de voyage est terminé. Tu peux revoir les 15 situations librement.')
+        st.success('🏆 Bravo ! Guide terminé : retrouve maintenant les mini-jeux de révision espacée dans l’onglet 🎲 Révisions surprises.')
     with st.expander('✏️ Mon carnet de voyage'):
         note=st.text_area('Mes phrases personnelles',value=p['notes'].get(former,''),key='travel_notes_'+former)
         if st.button('💾 Enregistrer mon carnet',key='save_travel_'+former):
@@ -1232,7 +1492,7 @@ else:
 st.divider()
 with st.expander('💾 Exporter / importer ma progression · Important sur Streamlit Cloud'):
     st.download_button('⬇️ Télécharger ma sauvegarde JSON',json.dumps(p,ensure_ascii=False,indent=2),
-                       file_name='mi_espanol_progression_v6_5.json',mime='application/json',use_container_width=True,key='export_profile')
+                       file_name='mi_espanol_progression_v6_6.json',mime='application/json',use_container_width=True,key='export_profile')
     uploaded=st.file_uploader('Importer un profil V2 à V6',type=['json'],key='import_profile')
     if uploaded is not None and st.button('📂 Restaurer le profil',key='restore_profile'):
         try:
@@ -1247,4 +1507,4 @@ with st.expander('💾 Exporter / importer ma progression · Important sur Strea
             st.rerun()
         except (UnicodeError,ValueError,TypeError) as error:st.error(str(error))
     st.caption('Sur Streamlit Cloud, les sauvegardes locales peuvent disparaître. Conserve ce fichier JSON pour retrouver tes résultats. Ne publie jamais ton fichier personnel sur GitHub.')
-st.caption(f'🇪🇸 Mi Español V6.5 · Progression et dates prévisionnelles · Guide de 30 jours DE/IT/EN : {len(MISSIONS)} missions et {TOTAL_EXPRESSIONS} expressions par langue · Révisions mixtes · Cours d’espagnol inchangés.')
+st.caption(f'🇪🇸 Mi Español V6.7 · 400 expressions par langue, carnet des mots, dates prévisionnelles et révisions espacées · Guide de 30 jours DE/IT/EN : {len(MISSIONS)} missions et {TOTAL_EXPRESSIONS} expressions par langue · Révisions mixtes · Cours d’espagnol inchangés.')

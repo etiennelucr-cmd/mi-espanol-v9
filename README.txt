@@ -1,47 +1,44 @@
-MI ESPAÑOL V6 — NOUVELLE INTERFACE 2D
-===================================
+MI ESPAÑOL V6.7 — GUIDE DE SURVIE 400 EXPRESSIONS
+================================================
+Mise à jour légère pour le projet Streamlit V6.6.
 
-Ce petit ZIP est une MISE À JOUR VISUELLE DE LA V5 : il ne remplace pas les modules pédagogiques V5.
-Il comprend :
-  app.py
-  requirements.txt
-  assets/classe_illustration.webp
-  assets/sofia_illustration.webp
-  README.txt
+INSTALLATION DANS LE DÉPÔT GITHUB
+--------------------------------
+1. Fais une copie de sauvegarde de ton ancien app.py.
+2. À la RACINE de ton dépôt GitHub, remplace app.py par celui du ZIP.
+3. À la RACINE du même dépôt, AJOUTE survie_400.py (nouveau module requis).
+4. Garde INTACTS : programme.py, programmes_officiels.py, grammaire.py,
+   conjugaison.py, progression.py, requirements.txt et le dossier assets/.
+5. Relance l'application Streamlit. Les acquis enregistrés ne sont pas effacés.
 
-INSTALLATION GITHUB — 3 ÉTAPES
-----------------------------
-1. Ouvrir le dépôt GitHub EXISTANT qui contient déjà la V5.
-2. Remplacer app.py et requirements.txt par ceux de ce ZIP ; ajouter les DEUX images dans un dossier assets/ à la racine.
-3. Garder, sans les supprimer, les cinq modules V5 :
-   - programme.py
-   - programmes_officiels.py
-   - grammaire.py
-   - conjugaison.py
-   - progression.py
-   Streamlit Cloud doit continuer à lancer app.py.
+CONTENU
+-------
+- 400 expressions FR/DE/IT/EN par langue : 200 phrases V6.6 préservées,
+  plus 200 expressions utiles ajoutées. Aucun doublon français.
+- 15 missions existantes, chacune enrichie sans changer de numéro.
+- 117 mots et expressions de repérage supplémentaires : directions,
+  étages, jours, mois, nombres (0-20 puis dizaines/100/1000), heures,
+  réponses fréquentes, objets de voyage.
+- Un nouvel onglet « 🔤 Mots indispensables » avec écoute navigateur
+  et jeu flash aléatoire de cinq questions ; accessible immédiatement.
+- Les nouveaux quiz de missions testent des phrases anciennes ET nouvelles.
+- Après la 15e mission, les 400 cartes rejoignent les révisions mixtes,
+  avec rappels J+1 / J+3 / J+7 / J+14 / J+30 / J+60.
+- Le guide express permet de rechercher dans les 400 phrases sans déblocage.
+- La progression par langue, les dates prévisionnelles, les cours d'espagnol,
+  les illustrations 2D et les acquis antérieurs sont conservés.
 
-Ne pas extraire un deuxième répertoire imbriqué dans la racine de GitHub : son contenu doit être AU MÊME NIVEAU que les modules ci-dessus.
+IMPORTANT
+---------
+Le programme représente toujours 30 séances indicatives, sans calendrier
+obligatoire : les missions enrichies peuvent prendre plus de temps.
+Ce guide est un outil de survie touristique, PAS une certification CECRL A1.
+Il ne remplace pas des informations locales, un conseil médical ou juridique,
+ni les consignes de sécurité en vigueur dans le pays visité.
 
-CHANGEMENTS
------------
-- Nouvelle bannière dégradée avec illustration vectorielle 2D nette.
-- Portrait illustré de Sofía et ses élèves, réutilisé dans la classe.
-- Quatre cartes pédagogiques colorées, progression et récompenses.
-- Onglets plus lisibles, sections leçon en cartes rose / bleue / verte.
-- Bouton « Écouter et répéter » réel : synthèse vocale via le navigateur (Web Speech API). La disponibilité et la voix dépendent du navigateur, et la prononciation doit être vérifiée par l'apprenant.
-- Interface adaptable sur mobile / ordinateur.
-- Trois langues et tous les modules pédagogiques conservés.
-- Déblocage après validation des acquis, bilans à 80 %, verbes / temps à 3/3.
-- Correction préventive du problème KeyError d'un profil ancien : normalize exécuté à chaque visite et après import JSON.
-
-SAUVEGARDES
------------
-Les profils JSON des anciennes versions sont réutilisables, avec les mêmes identifiants de cours V5.
-Streamlit Cloud ne conserve pas durablement les fichiers locaux, donc il faut exporter sa progression au format JSON.
-
-TESTS
------
-Compilation Python vérifiée.
-Simulation du démarrage espagnol, allemand, italien et Terminale/LLCER ; aucun identifiant de widget dupliqué dans cette simulation.
-L'application n'a pas été ouverte dans un navigateur Streamlit réel, faute d'environnement Streamlit dans l'outil de test.
+VALIDATION LOCALE
+----------------
+Compilation Python et tests de structure/affichage simulé pour DE, IT, EN.
+Testés : 400 expressions, 117 repères, mini-jeu en plusieurs étapes,
+quiz, clés de révision espacée et migration depuis les versions précédentes.
+L'exécution sur Streamlit Cloud devra être vérifiée après installation.
